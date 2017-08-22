@@ -1,0 +1,45 @@
+{
+  "name": "regl-line2d",
+  "version": "1.0.0",
+  "description": "Draw polyline with regl",
+  "main": "index.js",
+  "scripts": {
+    "test": "budo test",
+    "build": "browserify test.js -g bubleify | indexhtmlify | metadataify | github-cornerify > gh-pages/no-snapping.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dfcreative/regl-line2d.git"
+  },
+  "keywords": [
+    "regl",
+    "line2d",
+    "gl-vis",
+    "gl",
+    "webgl",
+    "polyline",
+    "plotly"
+  ],
+  "author": "Dima Yv <df.creative@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dfcreative/regl-line2d/issues"
+  },
+  "homepage": "https://github.com/dfcreative/regl-line2d#readme",
+  "dependencies": {
+    "array-bounds": "^1.0.0",
+    "color-rgba": "^1.1.0",
+    "extrude-polyline": "^1.0.6",
+    "regl": "^1.3.0"
+  },
+  "devDependencies": {
+    "nice-color-palettes": "^2.0.0",
+    "next-pow-2": "^1.0.0",
+    "canvas-fit": "^1.5.0",
+    "enable-mobile": "^1.0.7",
+    "fps-indicator": "^1.1.0",
+    "gauss-random": "^1.0.1",
+    "nanoraf": "^3.0.1",
+    "pan-zoom": "^2.0.0"
+  }
+}
