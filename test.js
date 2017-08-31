@@ -1,47 +1,72 @@
 'use strict'
 
 require('enable-mobile')
-const createErrors = require('./')
+const createLine = require('./')
 const panZoom = require('pan-zoom')
 const fps = require('fps-indicator')({css:`padding: 1.4rem`})
 const random = require('gauss-random')
 const rgba = require('color-rgba')
 const nanoraf = require('nanoraf')
 const palettes = require('nice-color-palettes')
-
+const createScatter = require('../regl-scatter2d')
+const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
+const createErrors = require('../regl-error2d')
 
 let ratio = window.innerWidth / window.innerHeight
 let range = [ -10 * ratio, -10, 10 * ratio, 10 ]
 let colors = palettes[ Math.floor(Math.random() * palettes.length) ]
 
 
-var N = 1e3
+var N = 1e1
 
 var positions = new Float32Array(2 * N)
 for(var i=0; i<2*N; i+=2) {
-  positions[i]   = (i/N)*10.0-10.0
-  positions[i+1] = random()
+  // positions[i]   = (i/N)*10.0-10.0
+  positions[i] = random()/5
+  positions[i+1] = random()/5
 }
 
-positions[11] = 1e10
+positions = [0,0, .5,.5, 0,-1, 1,1]
 
-
-
-let drawLine = createErrors({
+let drawLine = createLine({
+  regl: regl,
   positions: positions,
 
+  width: 10,
   // color: Array(N).fill(0).map(() => colors[Math.floor(Math.random() * colors.length)]),
-  color: 'rgba(0, 0, 127, 1)',
+  color: 'rgba(0, 0, 127, .5)',
 
   range: range
 })
 
-drawLine()
 
+let drawPoints = createScatter({
+  regl: regl,
+  positions: positions,
+  size: Array(N).fill(10),
+  borderSize: Array(N).fill(0),
+  errors: [1,1,1,1,1,1,1,1,1,1,1,1],
+  color: 'rgba(255,0,0,.5)',
+  range: range
+})
+
+function draw(opts) {
+  regl._refresh()
+  drawPoints(opts)
+
+  regl._refresh()
+  drawLine(opts)
+}
+
+draw()
+
+setTimeout(() => {
+  draw()
+}, 200)
 
 //interactions
 let prev = null
-var frame = nanoraf(drawLine)
+var frame = nanoraf(draw)
 
 let cnv = document.body.querySelectorAll('canvas')[1]
 
@@ -76,5 +101,5 @@ panZoom(cnv, e => {
 
 
 window.addEventListener('resize', () => {
-  drawLine()
+  draw()
 })

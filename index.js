@@ -3,7 +3,7 @@
 const createRegl = require('regl')
 const rgba = require('color-rgba')
 const getBounds = require('array-bounds')
-const createStroke = require('extrude-polyline')
+const getNormals = require('polyline-normals')
 
 module.exports = createLine
 
@@ -13,10 +13,10 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, viewport, range, bounds,
-		positions, count, color, width, dashes,
-		drawLine, mesh,
-		stroke, width = 10, join = 'bevel', miterlimit = 2, cap = 'square'
+	let regl, viewport, range, bounds, count, elements,
+		drawLine, mesh, colorBuffer, offsetBuffer, positionBuffer, joinBuffer,
+		positions, joins, color, dashes,
+		stroke, thickness = 10, join = 'bevel', miterlimit = 2, cap = 'square'
 
 
 	// regl instance
@@ -36,19 +36,137 @@ function createLine (options) {
 			if (options.gl) opts.gl = options.gl
 		}
 
+		//FIXME: use fallback if not available
+		opts.optionalExtensions = [
+			'ANGLE_instanced_arrays'
+		]
+
 		regl = createRegl(opts)
 	}
 
+	//color per-point
+	colorBuffer = regl.buffer({
+		usage: 'dynamic',
+		type: 'uint8',
+		data: null
+	})
+	offsetBuffer = regl.buffer({
+		usage: 'static',
+		type: 'float',
+		data: [0,1, 0,-1, 1,1, 1,-1]
+	})
+	positionBuffer = regl.buffer({
+		usage: 'dynamic',
+		type: 'float',
+		data: null
+	})
+	joinBuffer = regl.buffer({
+		usage: 'dynamic',
+		type: 'float',
+		data: null
+	})
+
 	update(options)
 
-	drawLine = regl({
-		vert: ``,
-		frag: ``,
-		uniforms: {
 
+
+	drawLine = regl({
+		primitive: 'triangle strip',
+		instances: regl.prop('count'),
+		count: 4,
+
+		vert: `
+		precision highp float;
+
+		attribute vec2 start, end, joinStart, joinEnd;
+		attribute vec4 color;
+		attribute float length, lineOffset;
+
+		uniform vec4 range;
+		uniform float thickness;
+		uniform vec2 pixelScale;
+
+		varying vec4 fragColor;
+
+		void main() {
+			fragColor = color;
+
+			vec2 direction = end - start;
+			vec2 offset = pixelScale*lineOffset*thickness;
+
+			vec2 position = start + direction*length;
+
+			vec2 normal = normalize(vec2(-direction.y, direction.x));
+
+			position = 2.0 * (position - range.xy) / vec2(range.z - range.x, range.w - range.y) - 1.0;
+
+			position += offset * normal * (1. - length);
+			position += offset * normal * length;
+
+			gl_Position = vec4(position, 0, 1);
+
+		}
+
+		`,
+		frag: `
+		precision mediump float;
+
+		varying vec4 fragColor;
+
+		void main() {
+			gl_FragColor = fragColor / 255.;
+		}`,
+		uniforms: {
+			range: regl.prop('range'),
+			thickness: regl.prop('thickness'),
+			pixelScale: ctx => [
+				ctx.pixelRatio / ctx.viewportWidth,
+				ctx.pixelRatio / ctx.viewportHeight
+			]
 		},
 		attributes: {
-
+			length: {
+				buffer: offsetBuffer,
+				divisor: 0,
+				stride: 8,
+				offset: 0
+			},
+			lineOffset: {
+				buffer: offsetBuffer,
+				divisor: 0,
+				stride: 8,
+				offset: 4
+			},
+			color: () => color.length > 4 ? {
+				buffer: colorBuffer,
+				divisor: 1
+			} : {
+				constant: color
+			},
+			start: {
+				buffer: positionBuffer,
+				stride: 16,
+				offset: 0,
+				divisor: 1
+			},
+			end: {
+				buffer: positionBuffer,
+				stride: 16,
+				offset: 8,
+				divisor: 1
+			},
+			joinStart: {
+				buffer: joinBuffer,
+				stride: 16,
+				offset: 0,
+				divisor: 1,
+			},
+			joinEnd: {
+				buffer: joinBuffer,
+				stride: 16,
+				offset: 8,
+				divisor: 1
+			}
 		},
 
 		blend: {
@@ -83,10 +201,10 @@ function createLine (options) {
 				width: ctx.drawingBufferWidth,
 				height: ctx.drawingBufferHeight
 			} : viewport
-		},
-
-		count: regl.prop('count')
+		}
 	})
+
+
 
 	return draw
 
@@ -98,17 +216,18 @@ function createLine (options) {
 
 	    if (!count) return
 
+	    drawLine({ count, range, bounds, thickness })
 	}
 
 	function update (options) {
 	    if (options.length != null) options = {positions: options}
 
 		//line style
-		if (options.lineWidth) options.width = options.lineWidth
-		if (options.thickness) options.width = options.thickness
-		if (options.linewidth) options.width = options.linewidth
-		if ('width' in options) {
-			width = +options.width
+		if (options.lineWidth) options.thickness = options.lineWidth
+		if (options.width) options.thickness = options.width
+		if (options.linewidth) options.thickness = options.linewidth
+		if ('thickness' in options) {
+			thickness = +options.thickness
 		}
 
 		if (options.lineJoin) options.join = options.lineJoin
@@ -120,13 +239,6 @@ function createLine (options) {
 		if (options.miterlimit) options.miterLimit = options.miterlimit
 		if (options.miterLimit) {
 			miterLimit = options.miterLimit
-		}
-
-		if (options.join || options.miterLimit || options.width) {
-			stroke = createStroke({
-				thickness: width,
-				cap, miterLimit, join
-			})
 		}
 
 		//update positions
@@ -159,7 +271,30 @@ function createLine (options) {
 			count = Math.floor(positions.length / 2)
 			bounds = getBounds(positions, 2)
 
-			mesh = stroke.build(coords)
+			joins = getNormals(coords)
+
+			let positionData = Array(count * 4)
+			for (let i = 0, l = count; i < l; i++) {
+				positionData[i*4+0] = coords[i][0]
+				positionData[i*4+1] = coords[i][1]
+				positionData[i*4+2] = i+1 < l ? coords[i+1][0] : coords[i][0]
+				positionData[i*4+3] = i+1 < l ? coords[i+1][1] : coords[i][1]
+			}
+			positionBuffer(positionData)
+
+			let joinData = Array(count * 4)
+			for (let i = 0, l = count; i < l; i++) {
+				let join = joins[i]
+				let miterLen = join[1]
+				joinData[i*4] = join[0][0] * miterLen
+				joinData[i*4+1] = join[0][1] * miterLen
+
+				join = i+1 < l ? joins[i+1] : joins[i]
+				miterLen = i+1 < l ? join[1] : 1
+				joinData[i*4+2] = join[0][0] * miterLen
+				joinData[i*4+3] = join[0][1] * miterLen
+			}
+			joinBuffer(joinData)
 		}
 
 		//process colors
