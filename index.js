@@ -3,6 +3,7 @@
 const createRegl = require('regl')
 const rgba = require('color-rgba')
 const getBounds = require('array-bounds')
+const extend = require('object-assign')
 const getNormals = require('polyline-normals')
 
 module.exports = createLine
@@ -13,10 +14,10 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, viewport, range, bounds, count, elements,
-		drawLine, mesh, colorBuffer, offsetBuffer, positionBuffer, joinBuffer,
-		positions, joins, color, dashes,
-		stroke, thickness = 10, join = 'bevel', miterlimit = 2, cap = 'square'
+	let regl, viewport, range, bounds, count, scale, translate, precise,
+		drawLine, colorBuffer, offsetBuffer, positionBuffer, joinBuffer, dashTexture, distanceBuffer,
+		positions, joins, color, dashes, dashLength,
+		stroke, thickness, join, miterLimit, cap
 
 
 	// regl instance
@@ -38,7 +39,8 @@ function createLine (options) {
 
 		//FIXME: use fallback if not available
 		opts.optionalExtensions = [
-			'ANGLE_instanced_arrays'
+			'ANGLE_instanced_arrays',
+			'OES_texture_npot'
 		]
 
 		regl = createRegl(opts)
@@ -46,7 +48,7 @@ function createLine (options) {
 
 	//color per-point
 	colorBuffer = regl.buffer({
-		usage: 'dynamic',
+		usage: 'static',
 		type: 'uint8',
 		data: null
 	})
@@ -65,9 +67,28 @@ function createLine (options) {
 		type: 'float',
 		data: null
 	})
+	distanceBuffer = regl.buffer({
+		usage: 'dynamic',
+		type: 'float',
+		data: null
+	})
+	dashTexture = regl.texture({
+		channels: 1,
+		data: [255],
+		width: 1,
+		height: 1,
+		mag: 'nearest',
+		min: 'nearest'
+	})
 
-	update(options)
-
+	//init defaults
+	update(extend({
+		dashes: [1],
+		thickness: 10,
+		join: 'bevel',
+		miterLimit: 2,
+		cap: 'square'
+	}, options))
 
 
 	drawLine = regl({
@@ -80,52 +101,62 @@ function createLine (options) {
 
 		attribute vec2 start, end, joinStart, joinEnd;
 		attribute vec4 color;
-		attribute float length, lineOffset;
+		attribute float lineLength, lineOffset, distance;
 
-		uniform vec4 range;
+		uniform vec2 scale, translate;
 		uniform float thickness;
 		uniform vec2 pixelScale;
 
 		varying vec4 fragColor;
+		varying float fragLength;
+		varying vec2 direction;
 
 		void main() {
-			fragColor = color;
+			direction = end - start;
 
-			vec2 direction = end - start;
-			vec2 offset = pixelScale*lineOffset*thickness;
+			vec2 offset = pixelScale * lineOffset * thickness;
 
-			vec2 position = start + direction*length;
+			vec2 position = start + direction * lineLength;
 
 			vec2 normal = normalize(vec2(-direction.y, direction.x));
 
-			position = 2.0 * (position - range.xy) / vec2(range.z - range.x, range.w - range.y) - 1.0;
+			position = 2.0 * (position + translate) * scale - 1.0;
 
-			position += offset * normal * (1. - length);
-			position += offset * normal * length;
+			position += offset * normal * (1. - lineLength);
+			position += offset * normal * lineLength;
+
+			fragColor = color / 255.;
+			fragLength = distance + lineLength * length(direction) * scale.y * 50.;
 
 			gl_Position = vec4(position, 0, 1);
-
 		}
 
 		`,
 		frag: `
 		precision mediump float;
 
+		uniform sampler2D dashPattern;
+
 		varying vec4 fragColor;
+		varying float fragLength;
+		varying vec2 direction;
 
 		void main() {
-			gl_FragColor = fragColor / 255.;
+			gl_FragColor = fragColor;
+			gl_FragColor.a *= texture2D(dashPattern, vec2(fract(fragLength), 0)).r;
 		}`,
 		uniforms: {
-			range: regl.prop('range'),
-			thickness: regl.prop('thickness'),
+			scale: () => scale,
+			translate: () => translate,
+			thickness: () => thickness,
+			dashPattern: dashTexture,
 			pixelScale: ctx => [
 				ctx.pixelRatio / ctx.viewportWidth,
 				ctx.pixelRatio / ctx.viewportHeight
 			]
 		},
 		attributes: {
-			length: {
+			lineLength: {
 				buffer: offsetBuffer,
 				divisor: 0,
 				stride: 8,
@@ -153,6 +184,10 @@ function createLine (options) {
 				buffer: positionBuffer,
 				stride: 16,
 				offset: 8,
+				divisor: 1
+			},
+			distance: {
+				buffer: distanceBuffer,
 				divisor: 1
 			},
 			joinStart: {
@@ -216,34 +251,38 @@ function createLine (options) {
 
 	    if (!count) return
 
-	    drawLine({ count, range, bounds, thickness })
+	    drawLine({ count, thickness })
 	}
 
 	function update (options) {
+		//copy options to avoid mutation & handle aliases
+		options = {
+			positions: options.positions || options.data || options.points,
+			thickness: options.lineWidth || options.lineWidths || options.linewidth || options.width || options.thickness,
+			join: options.lineJoin || options.linejoin || options.join,
+			miterLimit: options.miterlimit || options.miterLimit,
+			dashes: options.dashes || options.dash,
+			color: options.colors || options.color,
+			range: options.bounds || options.range,
+			viewport: options.viewport,
+			precise: options.hiprecision || options.precise
+		}
+
 	    if (options.length != null) options = {positions: options}
 
-		//line style
-		if (options.lineWidth) options.thickness = options.lineWidth
-		if (options.width) options.thickness = options.width
-		if (options.linewidth) options.thickness = options.linewidth
-		if ('thickness' in options) {
+		if (options.thickness != null) {
 			thickness = +options.thickness
 		}
 
-		if (options.lineJoin) options.join = options.lineJoin
-		if (options.linejoin) options.join = options.linejoin
 		if (options.join) {
 			join = options.join
 		}
 
-		if (options.miterlimit) options.miterLimit = options.miterlimit
 		if (options.miterLimit) {
 			miterLimit = options.miterLimit
 		}
 
 		//update positions
-		if (options.data) options.positions = options.data
-		if (options.points) options.positions = options.points
 		if (options.positions && options.positions.length) {
 			//unroll
 			let unrolled, coords
@@ -282,6 +321,15 @@ function createLine (options) {
 			}
 			positionBuffer(positionData)
 
+			let distanceData = Array(count)
+			distanceData[0] = 0
+			for (let i = 1; i < count; i++) {
+				let dx = coords[i][0] - coords[i-1][0]
+				let dy = coords[i][1] - coords[i-1][1]
+				distanceData[i] = distanceData[i-1] + Math.sqrt(dx*dx + dy*dy)
+			}
+			distanceBuffer(distanceData)
+
 			let joinData = Array(count * 4)
 			for (let i = 0, l = count; i < l; i++) {
 				let join = joins[i]
@@ -295,6 +343,7 @@ function createLine (options) {
 				joinData[i*4+3] = join[0][1] * miterLen
 			}
 			joinBuffer(joinData)
+
 		}
 
 		//process colors
@@ -330,11 +379,64 @@ function createLine (options) {
 			}
 		}
 
+		//generate dash texture
+		if (options.dashes) {
+			dashes = options.dashes
+			dashLength = 0
+
+			for(let i = 0; i < dashes.length; ++i) {
+				dashLength += dashes[i]
+			}
+			let dashData = new Uint8Array(dashLength)
+			let ptr = 0
+			let fillColor = 255
+
+			for(let i = 0; i < dashes.length; ++i) {
+				for(let j = 0; j < dashes[i]; ++j) {
+				  dashData[ptr++] = fillColor
+				}
+				fillColor ^= 255
+			}
+			dashTexture = regl.texture({
+				channels: 1,
+				data: dashData,
+				width: dashLength,
+				height: 1,
+				mag: 'nearest',
+				min: 'nearest',
+				wrap: ['clamp', 'clamp']
+			})
+		}
+
 		if (!options.range && !range) options.range = bounds
 
 		//update range
 		if (options.range) {
 			range = options.range
+
+			if (precise) {
+				let boundX = bounds[2] - bounds[0],
+				    boundY = bounds[3] - bounds[1]
+
+				let nrange = [
+				  (range[0] - bounds[0]) / boundX,
+				  (range[1] - bounds[1]) / boundY,
+				  (range[2] - bounds[0]) / boundX,
+				  (range[3] - bounds[1]) / boundY
+				]
+
+				scale = [1 / (nrange[2] - nrange[0]), 1 / (nrange[3] - nrange[1])]
+				translate = [-nrange[0], -nrange[1]]
+				// scaleFract = fract32(scale)
+				// translateFract = fract32(translate)
+			}
+			else {
+				scale = [1 / (range[2] - range[0]), 1 / (range[3] - range[1])]
+				translate = [-range[0], -range[1]]
+
+				// scaleFract = [0, 0]
+				// translateFract = [0, 0]
+			}
 		}
 
 		//update visible attribs

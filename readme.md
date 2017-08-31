@@ -52,8 +52,8 @@ Option | Default | Description
 `join` | `'miter'`, `'round'`, `'bevel'`
 `cap` | `'square'`
 `dashes` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`
-`range` | `null` | Limit visible data
-`viewport` | `null` | Limit visible area within the canvas
+`range` | `null` | Limit visible data.
+`viewport` | `null` | Limit visible area within the canvas.
 
 ## License
 

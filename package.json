@@ -29,6 +29,7 @@
   "dependencies": {
     "array-bounds": "^1.0.0",
     "color-rgba": "^1.1.0",
+    "object-assign": "^4.1.1",
     "polyline-normals": "^2.0.2",
     "regl": "^1.3.0"
   },

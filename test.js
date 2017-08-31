@@ -13,7 +13,7 @@ const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_elemen
 const createErrors = require('../regl-error2d')
 
 let ratio = window.innerWidth / window.innerHeight
-let range = [ -10 * ratio, -10, 10 * ratio, 10 ]
+let range = [ -5 * ratio, -5, 5 * ratio, 5 ]
 let colors = palettes[ Math.floor(Math.random() * palettes.length) ]
 
 
@@ -26,13 +26,14 @@ for(var i=0; i<2*N; i+=2) {
   positions[i+1] = random()/5
 }
 
-positions = [0,0, .5,.5, 0,-1, 1,1]
+positions = [0,0, .5,.5, 0,-1, 2,2, 5,-3, -5, -4]
 
 let drawLine = createLine({
   regl: regl,
   positions: positions,
 
-  width: 10,
+  width: 5,
+  dashes: [2, 1],
   // color: Array(N).fill(0).map(() => colors[Math.floor(Math.random() * colors.length)]),
   color: 'rgba(0, 0, 127, .5)',
 
