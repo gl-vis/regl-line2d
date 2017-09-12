@@ -83,7 +83,7 @@ function createLine (options) {
 
 	//init defaults
 	update(extend({
-		dashes: [1],
+		dashes: null,
 		thickness: 10,
 		join: 'bevel',
 		miterLimit: 2,
@@ -143,7 +143,7 @@ function createLine (options) {
 
 		void main() {
 			gl_FragColor = fragColor;
-			gl_FragColor.a *= texture2D(dashPattern, vec2(fract(fragLength), 0)).r;
+			gl_FragColor.a *= texture2D(dashPattern, vec2(fract(fragLength) * .5 + .25, 0)).r;
 		}`,
 		uniforms: {
 			scale: () => scale,
@@ -380,32 +380,47 @@ function createLine (options) {
 		}
 
 		//generate dash texture
-		if (options.dashes) {
+		if (options.dashes !== undefined) {
 			dashes = options.dashes
 			dashLength = 0
 
-			for(let i = 0; i < dashes.length; ++i) {
-				dashLength += dashes[i]
+			if (dashes.length < 2) {
+				dashTexture = regl.texture({
+					channels: 1,
+					data: [255],
+					width: 1,
+					height: 1,
+					mag: 'linear',
+					min: 'linear'
+				})
 			}
-			let dashData = new Uint8Array(dashLength)
-			let ptr = 0
-			let fillColor = 255
 
-			for(let i = 0; i < dashes.length; ++i) {
-				for(let j = 0; j < dashes[i]; ++j) {
-				  dashData[ptr++] = fillColor
+			else {
+				for(let i = 0; i < dashes.length; ++i) {
+					dashLength += dashes[i]
 				}
-				fillColor ^= 255
+				let dashData = new Uint8Array(dashLength * 8)
+				let ptr = 0
+				let fillColor = 255
+
+				//repeat texture two times to provide smooth 0-step
+				for (let k = 0; k < 2; k++) {
+					for(let i = 0; i < dashes.length; ++i) {
+						for(let j = 0, l = dashes[i] * 4; j < l; ++j) {
+						  dashData[ptr++] = fillColor
+						}
+						fillColor ^= 255
+					}
+				}
+				dashTexture = regl.texture({
+					channels: 1,
+					data: dashData,
+					width: dashLength * 8,
+					height: 1,
+					mag: 'linear',
+					min: 'linear'
+				})
 			}
-			dashTexture = regl.texture({
-				channels: 1,
-				data: dashData,
-				width: dashLength,
-				height: 1,
-				mag: 'nearest',
-				min: 'nearest',
-				wrap: ['clamp', 'clamp']
-			})
 		}
 
 		if (!options.range && !range) options.range = bounds
