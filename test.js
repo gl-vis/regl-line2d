@@ -32,7 +32,7 @@ let drawLine = createLine({
   regl: regl,
   positions: positions,
 
-  width: 5,
+  width: 10,
   dashes: [2, 1],
   // color: Array(N).fill(0).map(() => colors[Math.floor(Math.random() * colors.length)]),
   color: 'rgba(0, 0, 127, .5)',

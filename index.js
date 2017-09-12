@@ -114,23 +114,24 @@ function createLine (options) {
 		void main() {
 			direction = end - start;
 
-			vec2 offset = pixelScale * lineOffset * thickness;
+			vec2 offset = (pixelScale * lineOffset) * thickness;
 
 			vec2 position = start + direction * lineLength;
 
-			vec2 normal = normalize(vec2(-direction.y, direction.x));
-
 			position = 2.0 * (position + translate) * scale - 1.0;
 
-			position += offset * normal * (1. - lineLength);
-			position += offset * normal * lineLength;
+			position += offset * joinStart * (1. - lineLength);
+			position += offset * joinEnd * lineLength;
+
+			vec2 normal = normalize(vec2(-direction.y, direction.x));
+			// position += offset * normal * (1. - lineLength);
+			// position += offset * normal * lineLength;
 
 			fragColor = color / 255.;
 			fragLength = distance + lineLength * length(direction) * scale.y * 50.;
 
 			gl_Position = vec4(position, 0, 1);
 		}
-
 		`,
 		frag: `
 		precision mediump float;
@@ -176,13 +177,13 @@ function createLine (options) {
 			},
 			start: {
 				buffer: positionBuffer,
-				stride: 16,
+				stride: 8,
 				offset: 0,
 				divisor: 1
 			},
 			end: {
 				buffer: positionBuffer,
-				stride: 16,
+				stride: 8,
 				offset: 8,
 				divisor: 1
 			},
@@ -192,13 +193,13 @@ function createLine (options) {
 			},
 			joinStart: {
 				buffer: joinBuffer,
-				stride: 16,
+				stride: 8,
 				offset: 0,
 				divisor: 1,
 			},
 			joinEnd: {
 				buffer: joinBuffer,
-				stride: 16,
+				stride: 8,
 				offset: 8,
 				divisor: 1
 			}
@@ -310,14 +311,11 @@ function createLine (options) {
 			count = Math.floor(positions.length / 2)
 			bounds = getBounds(positions, 2)
 
-			joins = getNormals(coords)
 
-			let positionData = Array(count * 4)
+			let positionData = Array(count * 2 + 2)
 			for (let i = 0, l = count; i < l; i++) {
-				positionData[i*4+0] = coords[i][0]
-				positionData[i*4+1] = coords[i][1]
-				positionData[i*4+2] = i+1 < l ? coords[i+1][0] : coords[i][0]
-				positionData[i*4+3] = i+1 < l ? coords[i+1][1] : coords[i][1]
+				positionData[i*2+0] = coords[i][0]
+				positionData[i*2+1] = coords[i][1]
 			}
 			positionBuffer(positionData)
 
@@ -330,20 +328,16 @@ function createLine (options) {
 			}
 			distanceBuffer(distanceData)
 
-			let joinData = Array(count * 4)
+			joins = getNormals(coords)
+
+			let joinData = Array(count * 2 + 2)
 			for (let i = 0, l = count; i < l; i++) {
 				let join = joins[i]
 				let miterLen = join[1]
-				joinData[i*4] = join[0][0] * miterLen
-				joinData[i*4+1] = join[0][1] * miterLen
-
-				join = i+1 < l ? joins[i+1] : joins[i]
-				miterLen = i+1 < l ? join[1] : 1
-				joinData[i*4+2] = join[0][0] * miterLen
-				joinData[i*4+3] = join[0][1] * miterLen
+				joinData[i*2] = join[0][0] * miterLen
+				joinData[i*2+1] = join[0][1] * miterLen
 			}
 			joinBuffer(joinData)
-
 		}
 
 		//process colors
