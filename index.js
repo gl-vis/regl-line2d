@@ -113,7 +113,7 @@ function createLine (options) {
 
 		varying vec4 fragColor;
 		varying float fragLength;
-		varying vec2 direction, normal;
+		varying vec2 direction;
 		varying vec4 miterStart, miterEnd;
 
 		void main() {
@@ -121,7 +121,7 @@ function createLine (options) {
 			vec4 miterLimit = vec4(vec2(normalize(joinStart)), vec2(normalize(joinEnd))) * miterLimit;
 
 			direction = end - start;
-			normal = normalize(vec2(-direction.y, direction.x));
+			vec2 normal = normalize(vec2(-direction.y, direction.x));
 
 			vec2 offset = pixelScale * lineOffset * thickness;
 
@@ -143,7 +143,7 @@ function createLine (options) {
 				+ lineLength * (distanceEnd - distanceStart)
 				+ dot((joinPosition - rectPosition) / scale, normalize(direction));
 
-			fragLength *= max(scale.x, scale.y);
+			fragLength *= scale.x  * screen.x;
 
 			miterStart = vec4(
 				startCoord,
@@ -153,13 +153,6 @@ function createLine (options) {
 				endCoord,
 				endCoord + vec2(-joinEnd.y, joinEnd.x) * scale
 			) * screen.xyxy;
-
-			// if (distanceStart == 0.) {
-			// 	miterStart = vec4(startCoord, startCoord + joinStart * scale) * screen.xyxy;
-			// }
-			// if (distanceEnd == totalDistance) {
-			// 	miterEnd = vec4(endCoord, endCoord + joinEnd * scale) * screen.xyxy;
-			// }
 
 
 			if (dot(normalize(direction), joinStart) >= 0.) {
@@ -175,7 +168,6 @@ function createLine (options) {
 			miterEnd += miterLimit.zwzw;
 
 			fragColor = color / 255.;
-			// fragColor = vec4(vec3(fragLength / totalDistance), 1);
 
 			gl_Position = vec4(joinPosition * 2.0 - 1.0, 0, 1);
 		}`,
@@ -185,10 +177,11 @@ function createLine (options) {
 		uniform sampler2D dashPattern;
 		uniform vec2 screen;
 		uniform vec2 pixelScale;
+		uniform float dashLength;
 
 		varying vec4 fragColor;
 		varying float fragLength;
-		varying vec2 direction, normal;
+		varying vec2 direction;
 		varying vec4 miterStart, miterEnd;
 
 		//get shortest distance from point p to line [a, b]
@@ -202,20 +195,22 @@ function createLine (options) {
 		void main() {
 			float alpha = 1.;
 
-			if (lineDist(gl_FragCoord.xy, miterStart) < 0.) {
-				gl_FragColor = vec4(255,0,0,.05);
-				return;
-			}
-			alpha *= min(max(lineDist(gl_FragCoord.xy, miterStart), 0.), 1.);
+			float distToStart = lineDist(gl_FragCoord.xy, miterStart);
+			float distToEnd = lineDist(gl_FragCoord.xy, miterEnd);
 
-			if (lineDist(gl_FragCoord.xy, miterEnd) < 0.) {
-				gl_FragColor = vec4(255,0,0,.05);
+			if (distToStart < 0.) {
+				discard;
 				return;
 			}
-			alpha *= min(max(lineDist(gl_FragCoord.xy, miterEnd), 0.), 1.);
+			if (distToEnd < 0.) {
+				discard;
+				return;
+			}
+			alpha *= min(max(distToStart, 0.), 1.);
+			alpha *= min(max(distToEnd, 0.), 1.);
 
 			gl_FragColor = fragColor;
-			gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(fract(fragLength) * .5 + .25, 0)).r;
+			gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(fract(fragLength / dashLength) * .5 + .25, 0)).r;
 		}`,
 		uniforms: {
 			miterLimit: regl.prop('miterLimit'),
@@ -224,6 +219,7 @@ function createLine (options) {
 			thickness: regl.prop('thickness'),
 			screen: ctx => [ctx.viewportWidth, ctx.viewportHeight],
 			dashPattern: dashTexture,
+			dashLength: regl.prop('dashLength'),
 			totalDistance: regl.prop('totalDistance'),
 			pixelScale: ctx => [
 				ctx.pixelRatio / ctx.viewportWidth,
@@ -334,7 +330,7 @@ function createLine (options) {
 
 	    if (!count) return
 
-	    drawLine({ count: count, offset: 0, thickness, scale, translate, totalDistance, miterLimit })
+	    drawLine({ count: count, offset: 0, thickness, scale, translate, totalDistance, miterLimit, dashLength })
 	}
 
 	function update (options) {
