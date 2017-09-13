@@ -16,7 +16,7 @@ function createLine (options) {
 	// persistent variables
 	let regl, viewport, range, bounds, count, scale, translate, precise,
 		drawLine, colorBuffer, offsetBuffer, positionBuffer, joinBuffer, dashTexture, distanceBuffer,
-		positions, joins, color, dashes, dashLength,
+		positions, joins, color, dashes, dashLength, totalDistance,
 		stroke, thickness, join, miterLimit, cap
 
 
@@ -86,7 +86,7 @@ function createLine (options) {
 		dashes: null,
 		thickness: 10,
 		join: 'bevel',
-		miterLimit: 2,
+		miterLimit: 10,
 		cap: 'square'
 	}, options))
 
@@ -95,62 +95,149 @@ function createLine (options) {
 		primitive: 'triangle strip',
 		instances: regl.prop('count'),
 		count: 4,
+		offset: regl.prop('offset'),
 
 		vert: `
 		precision highp float;
 
 		attribute vec2 start, end, joinStart, joinEnd;
 		attribute vec4 color;
-		attribute float lineLength, lineOffset, distance;
+		attribute float lineLength, lineOffset, distanceStart, distanceEnd;
 
 		uniform vec2 scale, translate;
 		uniform float thickness;
 		uniform vec2 pixelScale;
+		uniform vec2 screen;
+		uniform float miterThreshold;
+		uniform float totalDistance;
+		uniform float miterLimit;
 
 		varying vec4 fragColor;
 		varying float fragLength;
-		varying vec2 direction;
+		varying vec2 direction, normal;
+		varying vec4 miterStart, miterEnd;
+		varying vec2 enableMiter;
 
 		void main() {
+			vec2 joinStart = joinStart, joinEnd = joinEnd;
+			float miterThreshold = miterThreshold;
+			vec4 miterLimit = vec4(vec2(normalize(joinStart)), vec2(normalize(joinEnd))) * miterLimit;
+
 			direction = end - start;
+			normal = normalize(vec2(-direction.y, direction.x));
 
 			vec2 offset = (pixelScale * lineOffset) * thickness;
 
 			vec2 position = start + direction * lineLength;
-
-			position = 2.0 * (position + translate) * scale - 1.0;
-
+			position = (position + translate) * scale * 2.0 - 1.0;
 			position += offset * joinStart * (1. - lineLength);
 			position += offset * joinEnd * lineLength;
 
-			vec2 normal = normalize(vec2(-direction.y, direction.x));
 			// position += offset * normal * (1. - lineLength);
 			// position += offset * normal * lineLength;
 
+			enableMiter = vec2(1, 1);
+
+			miterStart = (vec4(
+				(start + translate),
+				(start + translate + vec2(-joinStart.y, joinStart.x))
+			) * scale.xyxy) * screen.xyxy;
+			miterEnd = (vec4(
+				(end + translate),
+				(end + translate + vec2(-joinEnd.y, joinEnd.x))
+			) * scale.xyxy) * screen.xyxy;
+
+			if (distanceStart == 0.) {
+				miterThreshold = 0.;
+				miterStart = (vec4(
+					(start + translate),
+					(start + translate + joinStart)
+				) * scale.xyxy) * screen.xyxy;
+			}
+			if (distanceEnd == totalDistance) {
+				miterThreshold = 0.;
+				miterEnd = (vec4(
+					(end + translate),
+					(end + translate + joinEnd)
+				) * scale.xyxy) * screen.xyxy;
+			}
+
+
+			if (dot(direction, joinStart) > 0.) {
+				miterStart.xyzw = miterStart.zwxy;
+				miterLimit.xy = -miterLimit.xy;
+			}
+			if (dot(direction, joinEnd) < 0.) {
+				miterEnd.xyzw = miterEnd.zwxy;
+				miterLimit.zw = -miterLimit.zw;
+			}
+
+			if (length(joinStart) > miterThreshold) {
+				// enableMiter.x = 1.;
+			}
+			if (length(joinEnd) > miterThreshold) {
+				// enableMiter.y = 1.;
+			}
+			miterStart += miterLimit.xyxy;
+			miterEnd += miterLimit.zwzw;
+
 			fragColor = color / 255.;
-			fragLength = distance + lineLength * length(direction) * scale.y * 50.;
+
+			fragLength = distanceStart + lineLength * length(direction) * scale.y * 50.;
 
 			gl_Position = vec4(position, 0, 1);
-		}
-		`,
+		}`,
 		frag: `
-		precision mediump float;
+		precision highp float;
 
 		uniform sampler2D dashPattern;
+		uniform vec2 screen;
+		uniform vec2 pixelScale;
 
 		varying vec4 fragColor;
 		varying float fragLength;
-		varying vec2 direction;
+		varying vec2 direction, normal;
+		varying vec4 miterStart, miterEnd;
+		varying vec2 enableMiter;
+
+		//get shortest distance from point p to line [a, b]
+		float lineDist(vec2 p, vec4 line) {
+			vec2 a = line.xy, b = line.zw;
+		    vec2 diff = b - a;
+		    vec2 perp = vec2(-diff.y, diff.x);
+		    return dot(p - a, perp);
+		}
 
 		void main() {
+			float alpha = 1.;
+
+			if (enableMiter.x > 0.) {
+				if (lineDist(gl_FragCoord.xy, miterStart) < 0.) {
+					gl_FragColor = vec4(255,0,0,.05);
+					return;
+				}
+				alpha *= min(max(lineDist(gl_FragCoord.xy, miterStart), 0.), 1.);
+			}
+			if (enableMiter.y > 0.) {
+				if (lineDist(gl_FragCoord.xy, miterEnd) < 0.) {
+					gl_FragColor = vec4(255,0,0,.05);
+					return;
+				}
+				alpha *= min(max(lineDist(gl_FragCoord.xy, miterEnd), 0.), 1.);
+			}
+
 			gl_FragColor = fragColor;
-			gl_FragColor.a *= texture2D(dashPattern, vec2(fract(fragLength) * .5 + .25, 0)).r;
+			gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(fract(fragLength) * .5 + .25, 0)).r;
 		}`,
 		uniforms: {
-			scale: () => scale,
-			translate: () => translate,
-			thickness: () => thickness,
+			miterLimit: regl.prop('miterLimit'),
+			miterThreshold: regl.prop('miterThreshold'),
+			scale: regl.prop('scale'),
+			translate: regl.prop('translate'),
+			thickness: regl.prop('thickness'),
+			screen: ctx => [ctx.viewportWidth, ctx.viewportHeight],
 			dashPattern: dashTexture,
+			totalDistance: regl.prop('totalDistance'),
 			pixelScale: ctx => [
 				ctx.pixelRatio / ctx.viewportWidth,
 				ctx.pixelRatio / ctx.viewportHeight
@@ -187,8 +274,16 @@ function createLine (options) {
 				offset: 8,
 				divisor: 1
 			},
-			distance: {
+			distanceStart: {
 				buffer: distanceBuffer,
+				stride: 4,
+				offset: 0,
+				divisor: 1,
+			},
+			distanceEnd: {
+				buffer: distanceBuffer,
+				stride: 4,
+				offset: 4,
 				divisor: 1
 			},
 			joinStart: {
@@ -252,7 +347,7 @@ function createLine (options) {
 
 	    if (!count) return
 
-	    drawLine({ count, thickness })
+	    drawLine({ count: count, offset: 0, miterThreshold: 1.414, thickness, scale, translate, totalDistance, miterLimit })
 	}
 
 	function update (options) {
@@ -280,7 +375,7 @@ function createLine (options) {
 		}
 
 		if (options.miterLimit) {
-			miterLimit = options.miterLimit
+			miterLimit = +options.miterLimit
 		}
 
 		//update positions
@@ -311,22 +406,26 @@ function createLine (options) {
 			count = Math.floor(positions.length / 2)
 			bounds = getBounds(positions, 2)
 
-
 			let positionData = Array(count * 2 + 2)
 			for (let i = 0, l = count; i < l; i++) {
 				positionData[i*2+0] = coords[i][0]
 				positionData[i*2+1] = coords[i][1]
 			}
+			positionData[count*2] = positionData[count*2-2]
+			positionData[count*2 + 1] = positionData[count*2-1]
 			positionBuffer(positionData)
 
-			let distanceData = Array(count)
+			let distanceData = Array(count + 1)
 			distanceData[0] = 0
 			for (let i = 1; i < count; i++) {
 				let dx = coords[i][0] - coords[i-1][0]
 				let dy = coords[i][1] - coords[i-1][1]
 				distanceData[i] = distanceData[i-1] + Math.sqrt(dx*dx + dy*dy)
 			}
+			distanceData[count] = distanceData[count-1]
 			distanceBuffer(distanceData)
+
+			totalDistance = distanceData[count - 1]
 
 			joins = getNormals(coords)
 
@@ -337,6 +436,8 @@ function createLine (options) {
 				joinData[i*2] = join[0][0] * miterLen
 				joinData[i*2+1] = join[0][1] * miterLen
 			}
+			joinData[count*2] = joinData[count*2-2]
+			joinData[count*2 + 1] = joinData[count*2-1]
 			joinBuffer(joinData)
 		}
 

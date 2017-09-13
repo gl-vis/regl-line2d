@@ -26,16 +26,16 @@ for(var i=0; i<2*N; i+=2) {
   positions[i+1] = random()/5
 }
 
-positions = [0,0, .5,.5, 0,-1, 2,2, 5,-3, -5, -4]
+positions = [-.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -4,-3, -3,1, -5,1, -3,-1]
 
 let drawLine = createLine({
   regl: regl,
   positions: positions,
 
-  width: 10,
-  dashes: [2, 1],
+  width: 35,
+  // dashes: [2, 1],
   // color: Array(N).fill(0).map(() => colors[Math.floor(Math.random() * colors.length)]),
-  color: 'rgba(0, 0, 127, .5)',
+  color: 'rgba(0, 0, 255, .5)',
 
   range: range
 })
@@ -47,7 +47,7 @@ let drawPoints = createScatter({
   size: Array(N).fill(10),
   borderSize: Array(N).fill(0),
   errors: [1,1,1,1,1,1,1,1,1,1,1,1],
-  color: 'rgba(255,0,0,.5)',
+  color: 'rgba(255,0,0,.15)',
   range: range
 })
 
