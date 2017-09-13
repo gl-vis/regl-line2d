@@ -116,7 +116,6 @@ function createLine (options) {
 		varying float fragLength;
 		varying vec2 direction, normal;
 		varying vec4 miterStart, miterEnd;
-		varying vec2 enableMiter;
 
 		void main() {
 			vec2 joinStart = joinStart, joinEnd = joinEnd;
@@ -135,8 +134,6 @@ function createLine (options) {
 
 			// position += offset * normal * (1. - lineLength);
 			// position += offset * normal * lineLength;
-
-			enableMiter = vec2(1, 1);
 
 			miterStart = (vec4(
 				(start + translate),
@@ -172,12 +169,6 @@ function createLine (options) {
 				miterLimit.zw = -miterLimit.zw;
 			}
 
-			if (length(joinStart) > miterThreshold) {
-				// enableMiter.x = 1.;
-			}
-			if (length(joinEnd) > miterThreshold) {
-				// enableMiter.y = 1.;
-			}
 			miterStart += miterLimit.xyxy;
 			miterEnd += miterLimit.zwzw;
 
@@ -198,33 +189,29 @@ function createLine (options) {
 		varying float fragLength;
 		varying vec2 direction, normal;
 		varying vec4 miterStart, miterEnd;
-		varying vec2 enableMiter;
 
 		//get shortest distance from point p to line [a, b]
 		float lineDist(vec2 p, vec4 line) {
 			vec2 a = line.xy, b = line.zw;
 		    vec2 diff = b - a;
-		    vec2 perp = vec2(-diff.y, diff.x);
+		    vec2 perp = normalize(vec2(-diff.y, diff.x));
 		    return dot(p - a, perp);
 		}
 
 		void main() {
 			float alpha = 1.;
 
-			if (enableMiter.x > 0.) {
-				if (lineDist(gl_FragCoord.xy, miterStart) < 0.) {
-					gl_FragColor = vec4(255,0,0,.05);
-					return;
-				}
-				alpha *= min(max(lineDist(gl_FragCoord.xy, miterStart), 0.), 1.);
+			if (lineDist(gl_FragCoord.xy, miterStart) < 0.) {
+				gl_FragColor = vec4(255,0,0,.05);
+				return;
 			}
-			if (enableMiter.y > 0.) {
-				if (lineDist(gl_FragCoord.xy, miterEnd) < 0.) {
-					gl_FragColor = vec4(255,0,0,.05);
-					return;
-				}
-				alpha *= min(max(lineDist(gl_FragCoord.xy, miterEnd), 0.), 1.);
+			alpha *= min(max(lineDist(gl_FragCoord.xy, miterStart), 0.), 1.);
+
+			if (lineDist(gl_FragCoord.xy, miterEnd) < 0.) {
+				gl_FragColor = vec4(255,0,0,.05);
+				return;
 			}
+			alpha *= min(max(lineDist(gl_FragCoord.xy, miterEnd), 0.), 1.);
 
 			gl_FragColor = fragColor;
 			gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(fract(fragLength) * .5 + .25, 0)).r;

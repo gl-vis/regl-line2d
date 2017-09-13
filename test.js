@@ -32,7 +32,7 @@ let drawLine = createLine({
   regl: regl,
   positions: positions,
 
-  width: 35,
+  width: 15,
   // dashes: [2, 1],
   // color: Array(N).fill(0).map(() => colors[Math.floor(Math.random() * colors.length)]),
   color: 'rgba(0, 0, 255, .5)',
@@ -44,7 +44,7 @@ let drawLine = createLine({
 let drawPoints = createScatter({
   regl: regl,
   positions: positions,
-  size: Array(N).fill(10),
+  size: Array(N).fill(15),
   borderSize: Array(N).fill(0),
   errors: [1,1,1,1,1,1,1,1,1,1,1,1],
   color: 'rgba(255,0,0,.15)',
