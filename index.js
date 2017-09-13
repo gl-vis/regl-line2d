@@ -108,7 +108,6 @@ function createLine (options) {
 		uniform float thickness;
 		uniform vec2 pixelScale;
 		uniform vec2 screen;
-		uniform float miterThreshold;
 		uniform float totalDistance;
 		uniform float miterLimit;
 
@@ -119,52 +118,61 @@ function createLine (options) {
 
 		void main() {
 			vec2 joinStart = joinStart, joinEnd = joinEnd;
-			float miterThreshold = miterThreshold;
 			vec4 miterLimit = vec4(vec2(normalize(joinStart)), vec2(normalize(joinEnd))) * miterLimit;
 
 			direction = end - start;
 			normal = normalize(vec2(-direction.y, direction.x));
 
-			vec2 offset = (pixelScale * lineOffset) * thickness;
+			vec2 offset = pixelScale * lineOffset * thickness;
 
 			vec2 position = start + direction * lineLength;
-			position = (position + translate) * scale * 2.0 - 1.0;
-			position += offset * joinStart * (1. - lineLength);
-			position += offset * joinEnd * lineLength;
+			position = (position + translate) * scale;
 
-			// position += offset * normal * (1. - lineLength);
-			// position += offset * normal * lineLength;
+			vec2 joinPosition = position;
+			joinPosition += offset * joinStart * (1. - lineLength) * .5;
+			joinPosition += offset * joinEnd * lineLength * .5;
 
-			miterStart = (vec4(
-				(start + translate),
-				(start + translate + vec2(-joinStart.y, joinStart.x))
-			) * scale.xyxy) * screen.xyxy;
-			miterEnd = (vec4(
-				(end + translate),
-				(end + translate + vec2(-joinEnd.y, joinEnd.x))
-			) * scale.xyxy) * screen.xyxy;
+			vec2 rectPosition = position;
+			rectPosition += offset * normal * (1. - lineLength) * .5;
+			rectPosition += offset * normal * lineLength * .5;
+
+			vec2 startCoord = (start + translate) * scale;
+			vec2 endCoord = (end + translate) * scale;
+
+			fragLength = distanceStart
+				+ lineLength * (distanceEnd - distanceStart)
+				+ dot((joinPosition - rectPosition) / scale, normalize(direction));
+
+			fragLength *= max(scale.x, scale.y);
+
+			miterStart = vec4(
+				startCoord,
+				startCoord + vec2(-joinStart.y, joinStart.x) * scale
+			) * screen.xyxy;
+			miterEnd = vec4(
+				endCoord,
+				endCoord + vec2(-joinEnd.y, joinEnd.x) * scale
+			) * screen.xyxy;
 
 			if (distanceStart == 0.) {
-				miterThreshold = 0.;
-				miterStart = (vec4(
-					(start + translate),
-					(start + translate + joinStart)
-				) * scale.xyxy) * screen.xyxy;
+				miterStart = vec4(
+					startCoord,
+					startCoord + joinStart * scale
+				) * screen.xyxy;
 			}
 			if (distanceEnd == totalDistance) {
-				miterThreshold = 0.;
-				miterEnd = (vec4(
-					(end + translate),
-					(end + translate + joinEnd)
-				) * scale.xyxy) * screen.xyxy;
+				miterEnd = vec4(
+					endCoord,
+					endCoord + joinEnd * scale
+				) * screen.xyxy;
 			}
 
 
-			if (dot(direction, joinStart) > 0.) {
+			if (dot(normalize(direction), joinStart) >= 0.) {
 				miterStart.xyzw = miterStart.zwxy;
 				miterLimit.xy = -miterLimit.xy;
 			}
-			if (dot(direction, joinEnd) < 0.) {
+			if (dot(normalize(direction), joinEnd) < 0.) {
 				miterEnd.xyzw = miterEnd.zwxy;
 				miterLimit.zw = -miterLimit.zw;
 			}
@@ -173,10 +181,9 @@ function createLine (options) {
 			miterEnd += miterLimit.zwzw;
 
 			fragColor = color / 255.;
+			// fragColor = vec4(vec3(fragLength / totalDistance), 1);
 
-			fragLength = distanceStart + lineLength * length(direction) * scale.y * 50.;
-
-			gl_Position = vec4(position, 0, 1);
+			gl_Position = vec4(joinPosition * 2.0 - 1.0, 0, 1);
 		}`,
 		frag: `
 		precision highp float;
@@ -218,7 +225,6 @@ function createLine (options) {
 		}`,
 		uniforms: {
 			miterLimit: regl.prop('miterLimit'),
-			miterThreshold: regl.prop('miterThreshold'),
 			scale: regl.prop('scale'),
 			translate: regl.prop('translate'),
 			thickness: regl.prop('thickness'),
@@ -334,7 +340,7 @@ function createLine (options) {
 
 	    if (!count) return
 
-	    drawLine({ count: count, offset: 0, miterThreshold: 1.414, thickness, scale, translate, totalDistance, miterLimit })
+	    drawLine({ count: count, offset: 0, thickness, scale, translate, totalDistance, miterLimit })
 	}
 
 	function update (options) {
@@ -343,7 +349,7 @@ function createLine (options) {
 			positions: options.positions || options.data || options.points,
 			thickness: options.lineWidth || options.lineWidths || options.linewidth || options.width || options.thickness,
 			join: options.lineJoin || options.linejoin || options.join,
-			miterLimit: options.miterlimit || options.miterLimit,
+			miterLimit: options.miterlimit != null ? options.miterlimit : options.miterLimit,
 			dashes: options.dashes || options.dash,
 			color: options.colors || options.color,
 			range: options.bounds || options.range,
@@ -361,9 +367,10 @@ function createLine (options) {
 			join = options.join
 		}
 
-		if (options.miterLimit) {
+		if (options.miterLimit != null) {
 			miterLimit = +options.miterLimit
 		}
+		if (miterLimit == null) miterLimit = thickness;
 
 		//update positions
 		if (options.positions && options.positions.length) {
@@ -425,6 +432,7 @@ function createLine (options) {
 			}
 			joinData[count*2] = joinData[count*2-2]
 			joinData[count*2 + 1] = joinData[count*2-1]
+
 			joinBuffer(joinData)
 		}
 

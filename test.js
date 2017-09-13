@@ -26,14 +26,16 @@ for(var i=0; i<2*N; i+=2) {
   positions[i+1] = random()/5
 }
 
-positions = [-.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -4,-3, -3,1, -5,1, -3,-1]
+positions = [-2,2, -2,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -4,-3, -3,1, -5,1, -3,-1]
 
 let drawLine = createLine({
   regl: regl,
   positions: positions,
 
+  miterlimit: 15,
+
   width: 15,
-  // dashes: [2, 1],
+  dashes: [15, 5],
   // color: Array(N).fill(0).map(() => colors[Math.floor(Math.random() * colors.length)]),
   color: 'rgba(0, 0, 255, .5)',
 
