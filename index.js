@@ -154,18 +154,12 @@ function createLine (options) {
 				endCoord + vec2(-joinEnd.y, joinEnd.x) * scale
 			) * screen.xyxy;
 
-			if (distanceStart == 0.) {
-				miterStart = vec4(
-					startCoord,
-					startCoord + joinStart * scale
-				) * screen.xyxy;
-			}
-			if (distanceEnd == totalDistance) {
-				miterEnd = vec4(
-					endCoord,
-					endCoord + joinEnd * scale
-				) * screen.xyxy;
-			}
+			// if (distanceStart == 0.) {
+			// 	miterStart = vec4(startCoord, startCoord + joinStart * scale) * screen.xyxy;
+			// }
+			// if (distanceEnd == totalDistance) {
+			// 	miterEnd = vec4(endCoord, endCoord + joinEnd * scale) * screen.xyxy;
+			// }
 
 
 			if (dot(normalize(direction), joinStart) >= 0.) {
@@ -427,6 +421,7 @@ function createLine (options) {
 			for (let i = 0, l = count; i < l; i++) {
 				let join = joins[i]
 				let miterLen = join[1]
+				if (!Number.isFinite(miterLen)) miterLen = 1;
 				joinData[i*2] = join[0][0] * miterLen
 				joinData[i*2+1] = join[0][1] * miterLen
 			}
