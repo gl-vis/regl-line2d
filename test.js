@@ -8,16 +8,15 @@ const random = require('gauss-random')
 const rgba = require('color-rgba')
 const nanoraf = require('nanoraf')
 const palettes = require('nice-color-palettes')
-const createScatter = require('../regl-scatter2d')
+const createScatter = require('regl-scatter2d')
 const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
-const createErrors = require('../regl-error2d')
 
 let ratio = window.innerWidth / window.innerHeight
 let range = [ -5 * ratio, -5, 5 * ratio, 5 ]
-let colors = palettes[ Math.floor(Math.random() * palettes.length) ]
+let palette = palettes[ Math.floor(Math.random() * palettes.length) ]
 
 
-var N = 1e4
+var N = 1e3
 
 var positions = new Float32Array(2 * N)
 for(var i=0; i<2*N; i+=2) {
@@ -29,6 +28,7 @@ for(var i=0; i<2*N; i+=2) {
 // positions = [-1,-1, 2.1,2, 1,0]
 // positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4,-1]
 
+let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
 
 let drawLine = createLine({
   regl: regl,
@@ -36,22 +36,22 @@ let drawLine = createLine({
 
   miterlimit: 4,
 
-  width: 3,
+  width: 2,
   dashes: [10, 4],
-  // color: Array(N).fill(0).map(() => colors[Math.floor(Math.random() * colors.length)]),
-  color: 'rgba(0, 0, 255, .5)',
+  color: colors,
+  // color: 'rgba(0, 0, 255, .5)',
+  // color: ['red', 'green', 'blue'],
 
   range: range
 })
 
-
 let drawPoints = createScatter({
   regl: regl,
   positions: positions,
-  size: Array(N).fill(10),
-  borderSize: Array(N).fill(0),
-  errors: [1,1,1,1,1,1,1,1,1,1,1,1],
-  color: 'rgba(255,0,0,.15)',
+  size: 8,
+  borderSize: 0,// Array(N).fill(0),
+  // color: 'rgba(255,0,0,.15)',
+  colors: colors,
   range: range
 })
 

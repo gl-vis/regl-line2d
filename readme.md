@@ -11,6 +11,7 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * max number of lines extended from 1e5 to ...
 * optimized performance via instanced draws
 * fast 1px line mode
+* multiple colors support
 
 [Demo](https://dfcreative.github.io/regl-line2d).
 
@@ -45,15 +46,15 @@ Draw line and optionally update options.
 
 Option | Default | Description
 ---|---|---
-`positions` | Array with sequence of points to connect lines, akin to sequence of `ctx.lineTo()` calls, eg. `[0,0, 1,1, 0,2, 1,-1]`
-`color` | Array with channel values `[0, .2, .5, 1]`
-`width` | Line width, number, defaults to `1`
-`miterLimit` | `2`
-`join` | `'miter'`, `'round'`, `'bevel'`
-`cap` | `'square'`
-`dashes` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`
+`positions` | `[]` | Array with sequence of coordinates for polyline, akin to sequence of `ctx.lineTo()` calls, eg. `[0,0, 1,1, 0,2, 1,-1]` or `[[0,0], [1,1], [0,2], [1,-1]]`
+`color` | `black` | Color or array with colors. Each color can be a css color string or an array with float `0..1` values.
+`thickness`, `lineWidth` | `1` | Line width.
+`miterLimit` | `thickness` | Max miter size, in pixels
+`dashes` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`. Dash length is defined in pixels.
 `range` | `null` | Limit visible data.
 `viewport` | `null` | Limit visible area within the canvas.
+`join` | TODO: `'miter'`, `'round'`, `'bevel'`
+`cap` | TODO: `'square'`
 
 ## License
 

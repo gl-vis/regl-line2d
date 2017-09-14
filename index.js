@@ -5,6 +5,7 @@ const rgba = require('color-rgba')
 const getBounds = require('array-bounds')
 const extend = require('object-assign')
 const getNormals = require('polyline-normals')
+const glslify = require('glslify')
 
 module.exports = createLine
 
@@ -15,7 +16,8 @@ function createLine (options) {
 
 	// persistent variables
 	let regl, viewport, range, bounds, count, scale, translate, precise,
-		drawLine, colorBuffer, offsetBuffer, positionBuffer, joinBuffer, dashTexture, distanceBuffer,
+		drawLine, drawMiterLine, drawRectLine,
+		colorBuffer, offsetBuffer, positionBuffer, joinBuffer, dashTexture, distanceBuffer,
 		positions, joins, color, dashes, dashLength, totalDistance,
 		stroke, thickness, join, miterLimit, cap
 
@@ -48,7 +50,7 @@ function createLine (options) {
 
 	//color per-point
 	colorBuffer = regl.buffer({
-		usage: 'static',
+		usage: 'dynamic',
 		type: 'uint8',
 		data: null
 	})
@@ -91,126 +93,14 @@ function createLine (options) {
 	}, options))
 
 
-	drawLine = regl({
+	drawMiterLine = regl({
 		primitive: 'triangle strip',
 		instances: regl.prop('count'),
 		count: 4,
 		offset: regl.prop('offset'),
 
-		vert: `
-		precision highp float;
-
-		attribute vec2 start, end, joinStart, joinEnd;
-		attribute vec4 color;
-		attribute float lineLength, lineOffset, distanceStart, distanceEnd;
-
-		uniform vec2 scale, translate;
-		uniform float thickness;
-		uniform vec2 pixelScale;
-		uniform float totalDistance, miterLimit, dashLength;
-
-		varying vec4 fragColor;
-		varying float fragLength;
-		varying vec4 startCutoff, endCutoff;
-
-		const float REVERSE_MITER = -1e-6;
-
-		void main() {
-			fragColor = color / 255.;
-
-			vec2 joinStart = joinStart, joinEnd = joinEnd;
-			vec4 miterWidth = vec4(vec2(normalize(joinStart)), vec2(normalize(joinEnd))) * miterLimit;
-
-			vec2 scaleRatio = scale / pixelScale;
-
-			vec2 direction = end - start;
-			vec2 normal = normalize(vec2(-direction.y, direction.x));
-
-			vec2 offset = pixelScale * lineOffset * thickness;
-
-			vec2 position = start + direction * lineLength;
-			position = (position + translate) * scale;
-
-			vec2 joinPosition = position;
-			joinPosition += offset * joinStart * (1. - lineLength) * .5;
-			joinPosition += offset * joinEnd * lineLength * .5;
-
-			vec2 rectPosition = position;
-			rectPosition += offset * normal * (1. - lineLength) * .5;
-			rectPosition += offset * normal * lineLength * .5;
-
-			//provides even dash pattern
-			fragLength = fract(distanceStart * scaleRatio.x / dashLength)
-				+ (
-				  lineLength * (distanceEnd - distanceStart)
-				+ dot((joinPosition - rectPosition) / scale, normalize(direction))
-				) * scaleRatio.x / dashLength;
-
-			//provides miter slicing
-			startCutoff = vec4(
-				start + translate,
-				start + translate
-				+ (distanceStart == 0. ? normal : vec2(-joinStart.y, joinStart.x))
-			) * scaleRatio.xyxy;
-			endCutoff = vec4(
-				end + translate,
-				end + translate
-				+ (distanceEnd == totalDistance ? normal : vec2(-joinEnd.y, joinEnd.x))
-			) * scaleRatio.xyxy;
-
-			if (dot(direction, joinStart) > REVERSE_MITER) {
-				startCutoff.xyzw = startCutoff.zwxy;
-				miterWidth.xy = -miterWidth.xy;
-			}
-			if (dot(direction, joinEnd) < REVERSE_MITER) {
-				endCutoff.xyzw = endCutoff.zwxy;
-				miterWidth.zw = -miterWidth.zw;
-			}
-
-			startCutoff += miterWidth.xyxy;
-			endCutoff += miterWidth.zwzw;
-
-			gl_Position = vec4(joinPosition * 2.0 - 1.0, 0, 1);
-		}`,
-		frag: `
-		precision highp float;
-
-		uniform sampler2D dashPattern;
-
-		varying vec4 fragColor;
-		varying float fragLength;
-		varying vec4 startCutoff, endCutoff;
-
-		//get shortest distance from point p to line [a, b]
-		float lineDist(vec2 p, vec4 line) {
-			vec2 a = line.xy, b = line.zw;
-		    vec2 diff = b - a;
-		    vec2 perp = normalize(vec2(-diff.y, diff.x));
-		    return dot(p - a, perp);
-		}
-
-		void main() {
-			float alpha = 1., distToStart, distToEnd;
-
-			distToStart = lineDist(gl_FragCoord.xy, startCutoff);
-
-			if (distToStart < 0.) {
-				discard;
-				return;
-			}
-
-			distToEnd = lineDist(gl_FragCoord.xy, endCutoff);
-			if (distToEnd < 0.) {
-				discard;
-				return;
-			}
-
-			alpha *= min(max(distToStart, 0.), 1.);
-			alpha *= min(max(distToEnd, 0.), 1.);
-
-			gl_FragColor = fragColor;
-			gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(fract(fragLength) * .5 + .25, 0)).r;
-		}`,
+		vert: glslify('./miter.vert'),
+		frag: glslify('./miter.frag'),
 		uniforms: {
 			miterLimit: regl.prop('miterLimit'),
 			scale: regl.prop('scale'),
@@ -225,7 +115,7 @@ function createLine (options) {
 			]
 		},
 		attributes: {
-			lineLength: {
+			lineEnd: {
 				buffer: offsetBuffer,
 				divisor: 0,
 				stride: 8,
@@ -237,19 +127,28 @@ function createLine (options) {
 				stride: 8,
 				offset: 4
 			},
-			color: () => color.length > 4 ? {
+			startColor: () => color.length > 4 ? {
 				buffer: colorBuffer,
+				stride: 4,
 				divisor: 1
 			} : {
 				constant: color
 			},
-			start: {
+			endColor: () => color.length > 4 ? {
+				buffer: colorBuffer,
+				stride: 4,
+				offset: 4,
+				divisor: 1
+			} : {
+				constant: color
+			},
+			startCoord: {
 				buffer: positionBuffer,
 				stride: 8,
 				offset: 0,
 				divisor: 1
 			},
-			end: {
+			endCoord: {
 				buffer: positionBuffer,
 				stride: 8,
 				offset: 8,
@@ -328,7 +227,7 @@ function createLine (options) {
 
 	    if (!count) return
 
-	    drawLine({ count: count, offset: 0, thickness, scale, translate, totalDistance, miterLimit, dashLength })
+	    drawMiterLine({ count: count, offset: 0, thickness, scale, translate, totalDistance, miterLimit, dashLength })
 	}
 
 	function update (options) {
@@ -437,18 +336,26 @@ function createLine (options) {
 			if (colors.length > 1 && colors.length != count) throw Error('Not enough colors')
 
 			if (colors.length > 1) {
-				color = new Uint8Array(count * 4)
+				color = new Uint8Array(count * 4 + 4)
 
 				//convert colors to float arrays
 				for (let i = 0; i < colors.length; i++) {
-				  if (typeof colors[i] === 'string') {
-				    colors[i] = rgba(colors[i], false)
-				  }
-				  color[i*4] = colors[i][0]
-				  color[i*4 + 1] = colors[i][1]
-				  color[i*4 + 2] = colors[i][2]
-				  color[i*4 + 3] = colors[i][3] * 255
+					let c = colors[i]
+					if (typeof c === 'string') {
+						c = rgba(c, false)
+					}
+					color[i*4] = c[0]
+					color[i*4 + 1] = c[1]
+					color[i*4 + 2] = c[2]
+					color[i*4 + 3] = c[3] * 255
 				}
+
+				//put last color
+				color[count*4 + 0] = color[count*4 - 4]
+				color[count*4 + 1] = color[count*4 - 3]
+				color[count*4 + 2] = color[count*4 - 2]
+				color[count*4 + 3] = color[count*4 - 1]
+
 				colorBuffer(color)
 			}
 			else {
