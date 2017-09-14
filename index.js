@@ -110,6 +110,7 @@ function createLine (options) {
 		uniform vec2 screen;
 		uniform float totalDistance;
 		uniform float miterLimit;
+		uniform float dashLength;
 
 		varying vec4 fragColor;
 		varying float fragLength;
@@ -139,30 +140,28 @@ function createLine (options) {
 			vec2 startCoord = (start + translate) * scale;
 			vec2 endCoord = (end + translate) * scale;
 
-			fragLength = distanceStart
-				+ lineLength * (distanceEnd - distanceStart)
-				+ dot((joinPosition - rectPosition) / scale, normalize(direction));
-
-			fragLength *= scale.x  * screen.x;
+			fragLength = fract(distanceStart * scale.x  * screen.x / dashLength)
+				+ (
+				  lineLength * (distanceEnd - distanceStart)
+				+ dot((joinPosition - rectPosition) / scale, normalize(direction))
+				) * scale.x  * screen.x / dashLength;
 
 			miterStart = vec4(
 				startCoord,
 				startCoord
-				+ step(0., distanceStart) * vec2(-joinStart.y, joinStart.x) * scale
-				+ step(distanceStart, 0.) * joinStart
+				+ (distanceStart == 0. ? normal : vec2(-joinStart.y, joinStart.x) * scale)
 			) * screen.xyxy;
 			miterEnd = vec4(
 				endCoord,
 				endCoord
-				+ step(distanceEnd, totalDistance) * vec2(-joinEnd.y, joinEnd.x) * scale
-				- step(totalDistance, distanceEnd) * joinEnd
+				+ (distanceEnd == totalDistance ? normal : vec2(-joinEnd.y, joinEnd.x) * scale)
 			) * screen.xyxy;
 
-			if (dot(normalize(direction), joinStart) >= 0.) {
+			if (dot(direction, joinStart) > -1e-5) {
 				miterStart.xyzw = miterStart.zwxy;
 				miterLimit.xy = -miterLimit.xy;
 			}
-			if (dot(normalize(direction), joinEnd) < 0.) {
+			if (dot(direction, joinEnd) < -1e-5) {
 				miterEnd.xyzw = miterEnd.zwxy;
 				miterLimit.zw = -miterLimit.zw;
 			}
@@ -180,7 +179,6 @@ function createLine (options) {
 		uniform sampler2D dashPattern;
 		uniform vec2 screen;
 		uniform vec2 pixelScale;
-		uniform float dashLength;
 
 		varying vec4 fragColor;
 		varying float fragLength;
@@ -196,24 +194,26 @@ function createLine (options) {
 		}
 
 		void main() {
-			float alpha = 1.;
+			float alpha = 1., distToStart, distToEnd;
 
-			float distToStart = lineDist(gl_FragCoord.xy, miterStart);
-			float distToEnd = lineDist(gl_FragCoord.xy, miterEnd);
+			distToStart = lineDist(gl_FragCoord.xy, miterStart);
 
 			if (distToStart < 0.) {
 				discard;
 				return;
 			}
+
+			distToEnd = lineDist(gl_FragCoord.xy, miterEnd);
 			if (distToEnd < 0.) {
 				discard;
 				return;
 			}
+
 			alpha *= min(max(distToStart, 0.), 1.);
 			alpha *= min(max(distToEnd, 0.), 1.);
 
 			gl_FragColor = fragColor;
-			gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(fract(fragLength / dashLength) * .5 + .25, 0)).r;
+			gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(fract(fragLength) * .5 + .25, 0)).r;
 		}`,
 		uniforms: {
 			miterLimit: regl.prop('miterLimit'),
