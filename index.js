@@ -147,13 +147,16 @@ function createLine (options) {
 
 			miterStart = vec4(
 				startCoord,
-				startCoord + vec2(-joinStart.y, joinStart.x) * scale
+				startCoord
+				+ step(0., distanceStart) * vec2(-joinStart.y, joinStart.x) * scale
+				+ step(distanceStart, 0.) * joinStart
 			) * screen.xyxy;
 			miterEnd = vec4(
 				endCoord,
-				endCoord + vec2(-joinEnd.y, joinEnd.x) * scale
+				endCoord
+				+ step(distanceEnd, totalDistance) * vec2(-joinEnd.y, joinEnd.x) * scale
+				- step(totalDistance, distanceEnd) * joinEnd
 			) * screen.xyxy;
-
 
 			if (dot(normalize(direction), joinStart) >= 0.) {
 				miterStart.xyzw = miterStart.zwxy;
@@ -340,7 +343,7 @@ function createLine (options) {
 			thickness: options.lineWidth || options.lineWidths || options.linewidth || options.width || options.thickness,
 			join: options.lineJoin || options.linejoin || options.join,
 			miterLimit: options.miterlimit != null ? options.miterlimit : options.miterLimit,
-			dashes: options.dashes || options.dash,
+			dashes: options.dash || options.dashes,
 			color: options.colors || options.color,
 			range: options.bounds || options.range,
 			viewport: options.viewport,
@@ -463,9 +466,9 @@ function createLine (options) {
 		//generate dash texture
 		if (options.dashes !== undefined) {
 			dashes = options.dashes
-			dashLength = 0
+			dashLength = 1
 
-			if (dashes.length < 2) {
+			if (!dashes || dashes.length < 2) {
 				dashTexture = regl.texture({
 					channels: 1,
 					data: [255],
@@ -477,17 +480,20 @@ function createLine (options) {
 			}
 
 			else {
+				//enlarges dash pattern this amount of times, creates antialiasing
+				const dashMult = 2
+
 				for(let i = 0; i < dashes.length; ++i) {
 					dashLength += dashes[i]
 				}
-				let dashData = new Uint8Array(dashLength * 8)
+				let dashData = new Uint8Array(dashLength * dashMult)
 				let ptr = 0
 				let fillColor = 255
 
 				//repeat texture two times to provide smooth 0-step
 				for (let k = 0; k < 2; k++) {
 					for(let i = 0; i < dashes.length; ++i) {
-						for(let j = 0, l = dashes[i] * 4; j < l; ++j) {
+						for(let j = 0, l = dashes[i] * dashMult * .5; j < l; ++j) {
 						  dashData[ptr++] = fillColor
 						}
 						fillColor ^= 255
@@ -496,7 +502,7 @@ function createLine (options) {
 				dashTexture = regl.texture({
 					channels: 1,
 					data: dashData,
-					width: dashLength * 8,
+					width: dashLength * dashMult,
 					height: 1,
 					mag: 'linear',
 					min: 'linear'
