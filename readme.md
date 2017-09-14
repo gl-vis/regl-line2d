@@ -56,8 +56,15 @@ Option | Default | Description
 `join` | `bevel` | TODO: `'miter'`, `'round'`, `'bevel'`
 `cap` | `square` | TODO: `'square'`
 
+
+## Related
+
+* [regl-scatter2d](https://github.com/dfcreative/regl-scatter2d)
+* [regl-error2d](https://github.com/dfcreative/regl-error2d)
+
+
 ## License
 
 (c) 2017 Dima Yv. MIT License
 
-Development supported by plot.ly.
+Development supported by [plot.ly](https://github.com/plotly/).
