@@ -107,21 +107,23 @@ function createLine (options) {
 		uniform vec2 scale, translate;
 		uniform float thickness;
 		uniform vec2 pixelScale;
-		uniform vec2 screen;
-		uniform float totalDistance;
-		uniform float miterLimit;
-		uniform float dashLength;
+		uniform float totalDistance, miterLimit, dashLength;
 
 		varying vec4 fragColor;
 		varying float fragLength;
-		varying vec2 direction;
-		varying vec4 miterStart, miterEnd;
+		varying vec4 startCutoff, endCutoff;
+
+		const float REVERSE_MITER = -1e-6;
 
 		void main() {
-			vec2 joinStart = joinStart, joinEnd = joinEnd;
-			vec4 miterLimit = vec4(vec2(normalize(joinStart)), vec2(normalize(joinEnd))) * miterLimit;
+			fragColor = color / 255.;
 
-			direction = end - start;
+			vec2 joinStart = joinStart, joinEnd = joinEnd;
+			vec4 miterWidth = vec4(vec2(normalize(joinStart)), vec2(normalize(joinEnd))) * miterLimit;
+
+			vec2 scaleRatio = scale / pixelScale;
+
+			vec2 direction = end - start;
 			vec2 normal = normalize(vec2(-direction.y, direction.x));
 
 			vec2 offset = pixelScale * lineOffset * thickness;
@@ -137,39 +139,36 @@ function createLine (options) {
 			rectPosition += offset * normal * (1. - lineLength) * .5;
 			rectPosition += offset * normal * lineLength * .5;
 
-			vec2 startCoord = (start + translate) * scale;
-			vec2 endCoord = (end + translate) * scale;
-
-			fragLength = fract(distanceStart * scale.x  * screen.x / dashLength)
+			//provides even dash pattern
+			fragLength = fract(distanceStart * scaleRatio.x / dashLength)
 				+ (
 				  lineLength * (distanceEnd - distanceStart)
 				+ dot((joinPosition - rectPosition) / scale, normalize(direction))
-				) * scale.x  * screen.x / dashLength;
+				) * scaleRatio.x / dashLength;
 
-			miterStart = vec4(
-				startCoord,
-				startCoord
-				+ (distanceStart == 0. ? normal : vec2(-joinStart.y, joinStart.x) * scale)
-			) * screen.xyxy;
-			miterEnd = vec4(
-				endCoord,
-				endCoord
-				+ (distanceEnd == totalDistance ? normal : vec2(-joinEnd.y, joinEnd.x) * scale)
-			) * screen.xyxy;
+			//provides miter slicing
+			startCutoff = vec4(
+				start + translate,
+				start + translate
+				+ (distanceStart == 0. ? normal : vec2(-joinStart.y, joinStart.x))
+			) * scaleRatio.xyxy;
+			endCutoff = vec4(
+				end + translate,
+				end + translate
+				+ (distanceEnd == totalDistance ? normal : vec2(-joinEnd.y, joinEnd.x))
+			) * scaleRatio.xyxy;
 
-			if (dot(direction, joinStart) > -1e-5) {
-				miterStart.xyzw = miterStart.zwxy;
-				miterLimit.xy = -miterLimit.xy;
+			if (dot(direction, joinStart) > REVERSE_MITER) {
+				startCutoff.xyzw = startCutoff.zwxy;
+				miterWidth.xy = -miterWidth.xy;
 			}
-			if (dot(direction, joinEnd) < -1e-5) {
-				miterEnd.xyzw = miterEnd.zwxy;
-				miterLimit.zw = -miterLimit.zw;
+			if (dot(direction, joinEnd) < REVERSE_MITER) {
+				endCutoff.xyzw = endCutoff.zwxy;
+				miterWidth.zw = -miterWidth.zw;
 			}
 
-			miterStart += miterLimit.xyxy;
-			miterEnd += miterLimit.zwzw;
-
-			fragColor = color / 255.;
+			startCutoff += miterWidth.xyxy;
+			endCutoff += miterWidth.zwzw;
 
 			gl_Position = vec4(joinPosition * 2.0 - 1.0, 0, 1);
 		}`,
@@ -177,13 +176,10 @@ function createLine (options) {
 		precision highp float;
 
 		uniform sampler2D dashPattern;
-		uniform vec2 screen;
-		uniform vec2 pixelScale;
 
 		varying vec4 fragColor;
 		varying float fragLength;
-		varying vec2 direction;
-		varying vec4 miterStart, miterEnd;
+		varying vec4 startCutoff, endCutoff;
 
 		//get shortest distance from point p to line [a, b]
 		float lineDist(vec2 p, vec4 line) {
@@ -196,14 +192,14 @@ function createLine (options) {
 		void main() {
 			float alpha = 1., distToStart, distToEnd;
 
-			distToStart = lineDist(gl_FragCoord.xy, miterStart);
+			distToStart = lineDist(gl_FragCoord.xy, startCutoff);
 
 			if (distToStart < 0.) {
 				discard;
 				return;
 			}
 
-			distToEnd = lineDist(gl_FragCoord.xy, miterEnd);
+			distToEnd = lineDist(gl_FragCoord.xy, endCutoff);
 			if (distToEnd < 0.) {
 				discard;
 				return;
@@ -220,7 +216,6 @@ function createLine (options) {
 			scale: regl.prop('scale'),
 			translate: regl.prop('translate'),
 			thickness: regl.prop('thickness'),
-			screen: ctx => [ctx.viewportWidth, ctx.viewportHeight],
 			dashPattern: dashTexture,
 			dashLength: regl.prop('dashLength'),
 			totalDistance: regl.prop('totalDistance'),
