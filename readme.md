@@ -1,6 +1,6 @@
 # regl-line2d [![experimental](https://img.shields.io/badge/stability-unstable-green.svg)](http://github.com/badges/stability-badges)
 
-Draw line for a sequence of points.
+Draw polyline with regl.
 
 ![regl-line2d](https://github.com/dfcreative/regl-line2d/blob/master/preview.png?raw=true)
 
@@ -50,11 +50,11 @@ Option | Default | Description
 `color` | `black` | Color or array with colors. Each color can be a css color string or an array with float `0..1` values.
 `thickness`, `lineWidth` | `1` | Line width.
 `miterLimit` | `thickness` | Max miter size, in pixels
-`dashes` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`. Dash length is defined in pixels.
+`dashes` | `null` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`. Dash length is defined in pixels. If `null`, solid line will be rendered.
 `range` | `null` | Limit visible data.
 `viewport` | `null` | Limit visible area within the canvas.
-`join` | TODO: `'miter'`, `'round'`, `'bevel'`
-`cap` | TODO: `'square'`
+`join` | `bevel` | TODO: `'miter'`, `'round'`, `'bevel'`
+`cap` | `square` | TODO: `'square'`
 
 ## License
 
