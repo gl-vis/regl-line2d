@@ -16,7 +16,7 @@ let range = [ -5 * ratio, -5, 5 * ratio, 5 ]
 let palette = palettes[ Math.floor(Math.random() * palettes.length) ]
 
 
-var N = 1e3
+var N = 1e5
 
 var positions = new Float32Array(2 * N)
 for(var i=0; i<2*N; i+=2) {
@@ -25,10 +25,12 @@ for(var i=0; i<2*N; i+=2) {
   positions[i+1] = random() * 2
 }
 
-// positions = [-1,-1, 2.1,2, 1,0]
-// positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4,-1]
+// positions = [-2.5,0, 0,2,.5,-3]
+positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4,-1]
 
 let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
+
+let viewport =  [0, 200, 600, 500]
 
 let drawLine = createLine({
   regl: regl,
@@ -36,13 +38,15 @@ let drawLine = createLine({
 
   miterlimit: 4,
 
-  width: 2,
-  dashes: [10, 4],
-  color: colors,
-  // color: 'rgba(0, 0, 255, .5)',
+  width: 10,
+  // dashes: [10, 5],
+  // color: colors,
+  color: 'rgba(0, 0, 255, .5)',
   // color: ['red', 'green', 'blue'],
 
-  range: range
+  range: range,
+
+  viewport
 })
 
 let drawPoints = createScatter({
@@ -50,9 +54,11 @@ let drawPoints = createScatter({
   positions: positions,
   size: 8,
   borderSize: 0,// Array(N).fill(0),
-  // color: 'rgba(255,0,0,.15)',
-  colors: colors,
-  range: range
+  color: 'rgba(255,0,0,.15)',
+  // colors: colors,
+  range: range,
+
+  viewport
 })
 
 function draw(opts) {

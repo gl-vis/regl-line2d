@@ -7,6 +7,7 @@ attribute float lineEnd, lineOffset, distanceStart, distanceEnd;
 uniform vec2 scale, translate;
 uniform float thickness;
 uniform vec2 pixelScale;
+uniform vec4 viewport;
 uniform float totalDistance, miterLimit, dashLength;
 
 varying vec4 fragColor;
@@ -16,11 +17,12 @@ varying vec4 startCutoff, endCutoff;
 const float REVERSE_MITER = -1e-6;
 
 void main() {
+	vec2 scaleRatio = scale / pixelScale;
 	float lineStart = 1. - lineEnd;
-	vec2 joinStart = joinStart, joinEnd = joinEnd;
+	vec2 joinStart = joinStart,
+		joinEnd = joinEnd;
 	vec4 miterWidth = vec4(vec2(normalize(joinStart)), vec2(normalize(joinEnd))) * miterLimit;
 
-	vec2 scaleRatio = scale / pixelScale;
 
 	vec2 direction = endCoord - startCoord;
 	vec2 normal = normalize(vec2(-direction.y, direction.x));

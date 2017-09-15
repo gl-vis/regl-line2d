@@ -15,7 +15,7 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, viewport, range, bounds, count, scale, translate, precise,
+	let regl, gl, viewport, range, bounds, count, scale, translate, precise,
 		drawLine, drawMiterLine, drawRectLine,
 		colorBuffer, offsetBuffer, positionBuffer, joinBuffer, dashTexture, distanceBuffer,
 		positions, joins, color, dashes, dashLength, totalDistance,
@@ -40,13 +40,15 @@ function createLine (options) {
 		}
 
 		//FIXME: use fallback if not available
-		opts.optionalExtensions = [
-			'ANGLE_instanced_arrays',
-			'OES_texture_npot'
+		opts.extensions = [
+			'ANGLE_instanced_arrays'
 		]
 
 		regl = createRegl(opts)
 	}
+	//TODO: test if required extensions are supported
+
+	gl = regl._gl
 
 	//color per-point
 	colorBuffer = regl.buffer({
@@ -89,18 +91,18 @@ function createLine (options) {
 		thickness: 10,
 		join: 'bevel',
 		miterLimit: 10,
-		cap: 'square'
+		cap: 'square',
+		viewport: null
 	}, options))
 
 
-	drawMiterLine = regl({
+	//common shader options
+	let shaderOptions = {
 		primitive: 'triangle strip',
 		instances: regl.prop('count'),
 		count: 4,
 		offset: regl.prop('offset'),
 
-		vert: glslify('./miter.vert'),
-		frag: glslify('./miter.frag'),
 		uniforms: {
 			miterLimit: regl.prop('miterLimit'),
 			scale: regl.prop('scale'),
@@ -109,10 +111,8 @@ function createLine (options) {
 			dashPattern: dashTexture,
 			dashLength: regl.prop('dashLength'),
 			totalDistance: regl.prop('totalDistance'),
-			pixelScale: ctx => [
-				ctx.pixelRatio / ctx.viewportWidth,
-				ctx.pixelRatio / ctx.viewportHeight
-			]
+			viewport: regl.prop('viewport'),
+			pixelRatio: regl.context('pixelRatio')
 		},
 		attributes: {
 			lineEnd: {
@@ -196,25 +196,25 @@ function createLine (options) {
 		},
 
 		scissor: {
-			enable: true,
-			box: ctx => {
-			return viewport ? viewport : {
-				x: 0, y: 0,
-				width: ctx.drawingBufferWidth,
-				height: ctx.drawingBufferHeight
-			};
-			}
+		  enable: true,
+		  box: ctx => viewport
 		},
 
-		viewport: ctx => {
-			return !viewport ? {
-				x: 0, y: 0,
-				width: ctx.drawingBufferWidth,
-				height: ctx.drawingBufferHeight
-			} : viewport
-		}
-	})
+		viewport: ctx => viewport
+	}
 
+	//draw rectangle-segment line
+	let rectLineOptions = extend({}, shaderOptions)
+	rectLineOptions.vert = glslify('./rect.vert')
+	rectLineOptions.frag = glslify('./rect.frag')
+	drawRectLine = regl(rectLineOptions)
+
+
+	//draw bevel-miter line
+	let miterLineOptions = extend({}, shaderOptions)
+	miterLineOptions.vert = glslify('./miter.vert')
+	miterLineOptions.frag = glslify('./miter.frag')
+	drawMiterLine = regl(miterLineOptions)
 
 
 	return draw
@@ -227,7 +227,13 @@ function createLine (options) {
 
 	    if (!count) return
 
-	    drawMiterLine({ count: count, offset: 0, thickness, scale, translate, totalDistance, miterLimit, dashLength })
+		if (viewport) {
+	    gl.enable(gl.SCISSOR_TEST);
+	    gl.scissor(viewport.x, viewport.y, viewport.width, viewport.height);
+			regl.clear({color: [0,0,0,.02]})
+		}
+
+	    drawRectLine({ count: count, offset: 0, thickness, scale, translate, totalDistance, miterLimit, dashLength, viewport: [viewport.x, viewport.y, viewport.width, viewport.height] })
 	}
 
 	function update (options) {
@@ -240,8 +246,8 @@ function createLine (options) {
 			dashes: options.dash || options.dashes,
 			color: options.colors || options.color,
 			range: options.bounds || options.range,
-			viewport: options.viewport,
-			precise: options.hiprecision || options.precise
+			viewport: options.viewBox || options.viewport,
+			precise: options.hiprecision != null ? options.hiprecision : options.precise
 		}
 
 	    if (options.length != null) options = {positions: options}
@@ -266,11 +272,12 @@ function createLine (options) {
 			if (options.positions[0].length) {
 				unrolled = Array(options.positions.length)
 				for (let i = 0, l = options.positions.length; i<l; i++) {
-				unrolled[i*2] = options.positions[i][0]
-				unrolled[i*2+1] = options.positions[i][1]
+					unrolled[i*2] = options.positions[i][0]
+					unrolled[i*2+1] = options.positions[i][1]
 				}
 				coords = options.positions
 			}
+
 			//roll
 			else {
 				unrolled = options.positions
@@ -282,6 +289,29 @@ function createLine (options) {
 					])
 				}
 			}
+
+			//hi-precision buffer has normalized coords and [hi,hi, lo,lo, hi,hi, lo,lo...] layout
+			// if (precise) {
+			// 	precisePositions = new Float32Array(count * 2)
+			// }
+			// else {
+			// 	let precisePositions = new Float32Array(count * 4)
+
+			// 	//float numbers are more precise around 0
+			// 	let boundX = bounds[2] - bounds[0], boundY = bounds[3] - bounds[1]
+
+			// 	for (let i = 0, l = count; i < l; i++) {
+			// 		let nx = (unrolled[i * 2] - bounds[0]) / boundX
+			// 		let ny = (unrolled[i * 2 + 1] - bounds[1]) / boundY
+
+			// 		precisePositions[i * 4] = nx
+			// 		precisePositions[i * 4 + 1] = ny
+			// 		precisePositions[i * 4 + 2] = nx - precisePositions[i * 4]
+			// 		precisePositions[i * 4 + 3] = ny - precisePositions[i * 4 + 1]
+			// 	}
+
+			// 	positionBuffer(precisePositions)
+			// }
 
 			positions = unrolled
 			count = Math.floor(positions.length / 2)
@@ -329,11 +359,12 @@ function createLine (options) {
 		if (options.color) {
 			let colors = options.color
 
-			if (!Array.isArray(colors)) {
+			// 'black' or [0,0,0,0] case
+			if (!Array.isArray(colors) || typeof colors[0] === 'number') {
 				colors = [colors]
 			}
 
-			if (colors.length > 1 && colors.length != count) throw Error('Not enough colors')
+			if (colors.length > 1 && colors.length < count) throw Error('Not enough colors')
 
 			if (colors.length > 1) {
 				color = new Uint8Array(count * 4 + 4)
@@ -444,15 +475,15 @@ function createLine (options) {
 		}
 
 		//update visible attribs
-		if ('viewport' in options) {
+		if (options.viewport !== undefined) {
 			let vp = options.viewport
 			if (Array.isArray(vp)) {
-			viewport = {
-				x: vp[0],
-				y: vp[1],
-				width: vp[2] - vp[0],
-				height: vp[3] - vp[1]
-			}
+				viewport = {
+					x: vp[0],
+					y: vp[1],
+					width: vp[2] - vp[0],
+					height: vp[3] - vp[1]
+				}
 			}
 			else if (vp) {
 				viewport = {
@@ -465,6 +496,13 @@ function createLine (options) {
 
 				if (vp.bottom) viewport.height = vp.bottom - viewport.y
 				else viewport.height = vp.h || vp.height || 0
+			}
+			else {
+				viewport = {
+					x: 0, y: 0,
+					width: gl.drawingBufferWidth,
+					height: gl.drawingBufferHeight
+				}
 			}
 		}
 	}
