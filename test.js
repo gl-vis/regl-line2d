@@ -25,12 +25,12 @@ for(var i=0; i<2*N; i+=2) {
   positions[i+1] = random() * 2
 }
 
-// positions = [-2.5,0, 0,2,.5,-3]
-positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4,-1]
+positions = [-2.5,1, 0,2, .5,-3, 5,5]
+// positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4,-1]
 
 let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
 
-let viewport =  [0, 200, 600, 500]
+let viewport = null// [0, 300, 600, 500]
 
 let drawLine = createLine({
   regl: regl,
@@ -38,8 +38,8 @@ let drawLine = createLine({
 
   miterlimit: 4,
 
-  width: 10,
-  // dashes: [10, 5],
+  width: 40,
+  dashes: [10, 5],
   // color: colors,
   color: 'rgba(0, 0, 255, .5)',
   // color: ['red', 'green', 'blue'],
@@ -52,7 +52,7 @@ let drawLine = createLine({
 let drawPoints = createScatter({
   regl: regl,
   positions: positions,
-  size: 8,
+  size: 10,
   borderSize: 0,// Array(N).fill(0),
   color: 'rgba(255,0,0,.15)',
   // colors: colors,

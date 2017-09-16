@@ -1,9 +1,11 @@
 precision highp float;
 
 uniform sampler2D dashPattern;
+uniform float dashLength;
 
 varying vec4 fragColor;
 varying float fragLength;
+varying vec2 tangent;
 varying vec4 startCutoff, endCutoff;
 
 //get shortest distance from point p to line [a, b]
@@ -33,6 +35,10 @@ void main() {
 	// alpha *= min(max(distToStart, 0.), 1.);
 	// alpha *= min(max(distToEnd, 0.), 1.);
 
+	// gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(fract(fragLength) * .5 + .25, 0)).r;
+
+	float t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;
+
 	gl_FragColor = fragColor;
-	gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(fract(fragLength) * .5 + .25, 0)).r;
+	gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(t, 0.)).r;
 }

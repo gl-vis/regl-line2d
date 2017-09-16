@@ -127,14 +127,15 @@ function createLine (options) {
 				stride: 8,
 				offset: 4
 			},
-			startColor: () => color.length > 4 ? {
+			aColor: () => color.length > 4 ? {
 				buffer: colorBuffer,
 				stride: 4,
+				offset: 0,
 				divisor: 1
 			} : {
 				constant: color
 			},
-			endColor: () => color.length > 4 ? {
+			bColor: () => color.length > 4 ? {
 				buffer: colorBuffer,
 				stride: 4,
 				offset: 4,
@@ -142,40 +143,40 @@ function createLine (options) {
 			} : {
 				constant: color
 			},
-			startCoord: {
+			prevCoord: {
 				buffer: positionBuffer,
 				stride: 8,
 				offset: 0,
 				divisor: 1
 			},
-			endCoord: {
+			aCoord: {
 				buffer: positionBuffer,
 				stride: 8,
 				offset: 8,
 				divisor: 1
 			},
-			distanceStart: {
+			bCoord: {
+				buffer: positionBuffer,
+				stride: 8,
+				offset: 16,
+				divisor: 1
+			},
+			nextCoord: {
+				buffer: positionBuffer,
+				stride: 8,
+				offset: 24,
+				divisor: 1
+			},
+			aDistance: {
 				buffer: distanceBuffer,
 				stride: 4,
 				offset: 0,
 				divisor: 1,
 			},
-			distanceEnd: {
+			bDistance: {
 				buffer: distanceBuffer,
 				stride: 4,
 				offset: 4,
-				divisor: 1
-			},
-			joinStart: {
-				buffer: joinBuffer,
-				stride: 8,
-				offset: 0,
-				divisor: 1,
-			},
-			joinEnd: {
-				buffer: joinBuffer,
-				stride: 8,
-				offset: 8,
 				divisor: 1
 			}
 		},
@@ -233,7 +234,7 @@ function createLine (options) {
 			regl.clear({color: [0,0,0,.02]})
 		}
 
-	    drawRectLine({ count: count, offset: 0, thickness, scale, translate, totalDistance, miterLimit, dashLength, viewport: [viewport.x, viewport.y, viewport.width, viewport.height] })
+	    drawMiterLine({ count: count - 1, offset: 0, thickness, scale, translate, totalDistance, miterLimit, dashLength, viewport: [viewport.x, viewport.y, viewport.width, viewport.height] })
 	}
 
 	function update (options) {
@@ -317,16 +318,21 @@ function createLine (options) {
 			count = Math.floor(positions.length / 2)
 			bounds = getBounds(positions, 2)
 
-			let positionData = Array(count * 2 + 2)
+			let positionData = Array(count * 2 + 4)
+
+			//we duplicate first and last point to get [prev, a, b, next] coords valid
+			positionData[0] = coords[0][0]
+			positionData[1] = coords[0][1]
 			for (let i = 0, l = count; i < l; i++) {
-				positionData[i*2+0] = coords[i][0]
-				positionData[i*2+1] = coords[i][1]
+				positionData[i*2 + 2] = coords[i][0]
+				positionData[i*2 + 3] = coords[i][1]
 			}
-			positionData[count*2] = positionData[count*2-2]
-			positionData[count*2 + 1] = positionData[count*2-1]
+			positionData[count*2 + 2] = positionData[count*2 + 0]
+			positionData[count*2 + 3] = positionData[count*2 + 1]
+			console.log(count, positionData)
 			positionBuffer(positionData)
 
-			let distanceData = Array(count + 1)
+			let distanceData = Array(count + 2)
 			distanceData[0] = 0
 			for (let i = 1; i < count; i++) {
 				let dx = coords[i][0] - coords[i-1][0]
@@ -334,24 +340,25 @@ function createLine (options) {
 				distanceData[i] = distanceData[i-1] + Math.sqrt(dx*dx + dy*dy)
 			}
 			distanceData[count] = distanceData[count-1]
+			distanceData[count+1] = distanceData[count]
 			distanceBuffer(distanceData)
 
 			totalDistance = distanceData[count - 1]
 
-			joins = getNormals(coords)
+			// joins = getNormals(coords)
 
-			let joinData = Array(count * 2 + 2)
-			for (let i = 0, l = count; i < l; i++) {
-				let join = joins[i]
-				let miterLen = join[1]
-				if (!Number.isFinite(miterLen)) miterLen = 1;
-				joinData[i*2] = join[0][0] * miterLen
-				joinData[i*2+1] = join[0][1] * miterLen
-			}
-			joinData[count*2] = joinData[count*2-2]
-			joinData[count*2 + 1] = joinData[count*2-1]
+			// let joinData = Array(count * 2 + 2)
+			// for (let i = 0, l = count; i < l; i++) {
+			// 	let join = joins[i]
+			// 	let miterLen = join[1]
+			// 	if (!Number.isFinite(miterLen)) miterLen = 1;
+			// 	joinData[i*2] = join[0][0] * miterLen
+			// 	joinData[i*2+1] = join[0][1] * miterLen
+			// }
+			// joinData[count*2] = joinData[count*2-2]
+			// joinData[count*2 + 1] = joinData[count*2-1]
 
-			joinBuffer(joinData)
+			// joinBuffer(joinData)
 		}
 
 		//process colors
