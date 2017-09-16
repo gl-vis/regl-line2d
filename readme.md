@@ -10,8 +10,9 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * fixed transparent color miter overlapping
 * max number of lines extended from 1e5 to ...
 * optimized performance via instanced draws
-* fast 1px line mode
+* no-miter/bevel/round miter mode
 * multiple colors support
+* miters are calculated in fragment shader in parallel
 
 [Demo](https://dfcreative.github.io/regl-line2d).
 

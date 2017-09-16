@@ -72,20 +72,22 @@ void main() {
 	endCutoff += translate.xyxy;
 	endCutoff *= scaleRatio.xyxy;
 
+	vec4 miterWidth = vec4(vec2(normalize(startJoin)), vec2(normalize(endJoin))) * miterLimit;
+
 	if (dot(currTangent, startJoin) > REVERSE_MITER) {
 		startCutoff.xyzw = startCutoff.zwxy;
-		// miterWidth.xy = -miterWidth.xy;
+		miterWidth.xy = -miterWidth.xy;
 	}
 	if (dot(currTangent, endJoin) < REVERSE_MITER) {
 		endCutoff.xyzw = endCutoff.zwxy;
-		// miterWidth.zw = -miterWidth.zw;
+		miterWidth.zw = -miterWidth.zw;
 	}
 
 	startCutoff += viewport.xyxy;
 	endCutoff += viewport.xyxy;
 
-	// startCutoff += miterWidth.xyxy;
-	// endCutoff += miterWidth.zwzw;
+	startCutoff += miterWidth.xyxy;
+	endCutoff += miterWidth.zwzw;
 
 	tangent = currTangent;
 

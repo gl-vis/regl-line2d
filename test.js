@@ -16,7 +16,7 @@ let range = [ -5 * ratio, -5, 5 * ratio, 5 ]
 let palette = palettes[ Math.floor(Math.random() * palettes.length) ]
 
 
-var N = 1e5
+var N = 1e4
 
 var positions = new Float32Array(2 * N)
 for(var i=0; i<2*N; i+=2) {
@@ -25,21 +25,21 @@ for(var i=0; i<2*N; i+=2) {
   positions[i+1] = random() * 2
 }
 
-positions = [0,0, 0,2, 3,-2, -3,-3, -6,0]
-// positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4,-1]
+// positions = [0,0, 0,2, 3,-2, -3,-3, -6,0]
+positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4,-1]
 
 let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
 
-let viewport = null//[0, 300, 600, 500]
+let viewport = [0, 200, 600, 500]
 
 let drawLine = createLine({
   regl: regl,
   positions: positions,
 
-  miterlimit: 4,
+  miterlimit: 10,
 
-  width: 40,
-  dashes: [9, 1],
+  width: 30,
+  dashes: [8, 2],
   // color: colors,
   color: 'rgba(0, 0, 255, .5)',
   // color: ['red', 'green', 'blue'],

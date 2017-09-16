@@ -4,7 +4,6 @@ const createRegl = require('regl')
 const rgba = require('color-rgba')
 const getBounds = require('array-bounds')
 const extend = require('object-assign')
-const getNormals = require('polyline-normals')
 const glslify = require('glslify')
 
 module.exports = createLine
@@ -17,8 +16,8 @@ function createLine (options) {
 	// persistent variables
 	let regl, gl, viewport, range, bounds, count, scale, translate, precise,
 		drawLine, drawMiterLine, drawRectLine,
-		colorBuffer, offsetBuffer, positionBuffer, joinBuffer, dashTexture, distanceBuffer,
-		positions, joins, color, dashes, dashLength, totalDistance,
+		colorBuffer, offsetBuffer, positionBuffer, dashTexture,
+		positions, color, dashes, dashLength,
 		stroke, thickness, join, miterLimit, cap
 
 
@@ -62,16 +61,6 @@ function createLine (options) {
 		data: [0,1, 0,-1, 1,1, 1,-1]
 	})
 	positionBuffer = regl.buffer({
-		usage: 'dynamic',
-		type: 'float',
-		data: null
-	})
-	joinBuffer = regl.buffer({
-		usage: 'dynamic',
-		type: 'float',
-		data: null
-	})
-	distanceBuffer = regl.buffer({
 		usage: 'dynamic',
 		type: 'float',
 		data: null
@@ -223,7 +212,7 @@ function createLine (options) {
 		}
 
 		//we draw one more sement than actual points
-	    drawMiterLine({ count: count - 1, offset: 0, thickness, scale, translate, totalDistance, miterLimit, dashLength, viewport: [viewport.x, viewport.y, viewport.width, viewport.height] })
+	    drawMiterLine({ count: count - 1, offset: 0, thickness, scale, translate, miterLimit, dashLength, viewport: [viewport.x, viewport.y, viewport.width, viewport.height] })
 	}
 
 	function update (options) {
@@ -318,36 +307,8 @@ function createLine (options) {
 			}
 			positionData[count*2 + 2] = positionData[count*2 + 0]
 			positionData[count*2 + 3] = positionData[count*2 + 1]
-			console.log(count, positionData)
+
 			positionBuffer(positionData)
-
-			let distanceData = Array(count + 2)
-			distanceData[0] = 0
-			for (let i = 1; i < count; i++) {
-				let dx = coords[i][0] - coords[i-1][0]
-				let dy = coords[i][1] - coords[i-1][1]
-				distanceData[i] = distanceData[i-1] + Math.sqrt(dx*dx + dy*dy)
-			}
-			distanceData[count] = distanceData[count-1]
-			distanceData[count+1] = distanceData[count]
-			distanceBuffer(distanceData)
-
-			totalDistance = distanceData[count - 1]
-
-			// joins = getNormals(coords)
-
-			// let joinData = Array(count * 2 + 2)
-			// for (let i = 0, l = count; i < l; i++) {
-			// 	let join = joins[i]
-			// 	let miterLen = join[1]
-			// 	if (!Number.isFinite(miterLen)) miterLen = 1;
-			// 	joinData[i*2] = join[0][0] * miterLen
-			// 	joinData[i*2+1] = join[0][1] * miterLen
-			// }
-			// joinData[count*2] = joinData[count*2-2]
-			// joinData[count*2 + 1] = joinData[count*2-1]
-
-			// joinBuffer(joinData)
 		}
 
 		//process colors
@@ -424,7 +385,7 @@ function createLine (options) {
 				for (let k = 0; k < 2; k++) {
 					for(let i = 0; i < dashes.length; ++i) {
 						for(let j = 0, l = dashes[i] * dashMult * .5; j < l; ++j) {
-						  dashData[ptr++] = fillColor
+							dashData[ptr++] = fillColor
 						}
 						fillColor ^= 255
 					}
@@ -449,13 +410,13 @@ function createLine (options) {
 
 			if (precise) {
 				let boundX = bounds[2] - bounds[0],
-				    boundY = bounds[3] - bounds[1]
+					boundY = bounds[3] - bounds[1]
 
 				let nrange = [
-				  (range[0] - bounds[0]) / boundX,
-				  (range[1] - bounds[1]) / boundY,
-				  (range[2] - bounds[0]) / boundX,
-				  (range[3] - bounds[1]) / boundY
+					(range[0] - bounds[0]) / boundX,
+					(range[1] - bounds[1]) / boundY,
+					(range[2] - bounds[0]) / boundX,
+					(range[3] - bounds[1]) / boundY
 				]
 
 				scale = [1 / (nrange[2] - nrange[0]), 1 / (nrange[3] - nrange[1])]
