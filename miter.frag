@@ -20,17 +20,16 @@ void main() {
 	float alpha = 1., distToStart, distToEnd;
 
 	distToStart = lineDist(gl_FragCoord.xy, startCutoff);
+	if (distToStart < 0.) {
+		discard;
+		return;
+	}
 
-	// if (distToStart < 0.) {
-	// 	discard;
-	// 	return;
-	// }
-
-	// distToEnd = lineDist(gl_FragCoord.xy, endCutoff);
-	// if (distToEnd < 0.) {
-	// 	discard;
-	// 	return;
-	// }
+	distToEnd = lineDist(gl_FragCoord.xy, endCutoff);
+	if (distToEnd < 0.) {
+		discard;
+		return;
+	}
 
 	// alpha *= min(max(distToStart, 0.), 1.);
 	// alpha *= min(max(distToEnd, 0.), 1.);

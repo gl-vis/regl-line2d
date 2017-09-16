@@ -30,7 +30,7 @@ positions = [0,0, 0,2, 3,-2, -3,-3, -6,0]
 
 let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
 
-let viewport = [0, 300, 600, 500]
+let viewport = null//[0, 300, 600, 500]
 
 let drawLine = createLine({
   regl: regl,

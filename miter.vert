@@ -2,19 +2,18 @@ precision highp float;
 
 attribute vec2 aCoord, bCoord, nextCoord, prevCoord;// joinStart, joinEnd;
 attribute vec4 aColor, bColor;
-attribute float lineEnd, lineOffset, aDistance, bDistance;
+attribute float lineEnd, lineOffset;
 
 uniform vec2 scale, translate;
 uniform float thickness, pixelRatio;
 uniform vec4 viewport;
-uniform float totalDistance, miterLimit, dashLength;
+uniform float miterLimit, dashLength;
 
 varying vec4 fragColor;
-varying float fragLength;
 varying vec4 startCutoff, endCutoff;
 varying vec2 tangent;
 
-const float REVERSE_MITER = -1e-6;
+const float REVERSE_MITER = -1e-5;
 
 void main() {
 	vec2 pixelScale = pixelRatio / viewport.zw;
@@ -57,53 +56,33 @@ void main() {
 	vec2 position = aCoord * lineStart + bCoord * lineEnd;
 	position = (position + translate) * scale;
 
-	vec2 rectPosition = position;
-	rectPosition += offset * startJoin * lineStart * .5;
-	rectPosition += offset * endJoin * lineEnd * .5;
+	position += offset * startJoin * lineStart * .5;
+	position += offset * endJoin * lineEnd * .5;
 
-	// vec2 joinStart = joinStart * normalize(scale.xy * pixelScale.yx);
-	// vec2 joinEnd = joinEnd * normalize(scale.xy * pixelScale.yx);
-
-	// vec2 joinPosition = position;
-	// joinPosition += offset * joinStart * lineStart * .5;
-	// joinPosition += offset * joinEnd * lineEnd * .5;
-
-	gl_Position = vec4(rectPosition * 2.0 - 1.0, 0, 1);
-
-	// vec2 joinStart = length(joinStart) * normalize(joinStart * scale.yx * pixelScale),
-	// 	joinEnd = length(joinEnd) * normalize(joinEnd * scale.yx * pixelScale);
-	// vec2 joinPosition = position;
-	// joinPosition += offset * joinStart * lineStart * .5;
-	// joinPosition += offset * joinEnd * lineEnd * .5;
-
-
-	//provides even dash pattern
-	// fragLength = fract(aDistance * scale.x * viewport.zw / pixelRatio / dashLength)
-	// 	+ (
-	// 	  lineEnd * (bDistance - aDistance)
-	// 	+ dot((joinPosition - rectPosition) / scale, normalize(abDirection))
-	// 	) * scaleRatio.x / dashLength;
+	gl_Position = vec4(position * 2.0 - 1.0, 0, 1);
 
 	//provides miter slicing
-	// startCutoff = vec4(
-	// 	aCoord + translate,
-	// 	aCoord + translate
-	// 	+ (aDistance == 0. ? normal : vec2(-joinStart.y, joinStart.x))
-	// ) * scaleRatio.xyxy;
-	// endCutoff = vec4(
-	// 	bCoord + translate,
-	// 	bCoord + translate
-	// 	+ (bDistance == totalDistance ? normal : vec2(-joinEnd.y, joinEnd.x))
-	// ) * scaleRatio.xyxy;
+	startCutoff = vec4(aCoord, aCoord);
+	startCutoff.zw += prevCoord == aCoord ? startJoin : vec2(-startJoin.y, startJoin.x);
+	startCutoff += translate.xyxy;
+	startCutoff *= scaleRatio.xyxy;
 
-	// if (dot(abDirection, joinStart) > REVERSE_MITER) {
-	// 	startCutoff.xyzw = startCutoff.zwxy;
-	// 	miterWidth.xy = -miterWidth.xy;
-	// }
-	// if (dot(abDirection, joinEnd) < REVERSE_MITER) {
-	// 	endCutoff.xyzw = endCutoff.zwxy;
-	// 	miterWidth.zw = -miterWidth.zw;
-	// }
+	endCutoff = vec4(bCoord, bCoord);
+	endCutoff.zw += nextCoord == bCoord ? endJoin : vec2(-endJoin.y, endJoin.x);
+	endCutoff += translate.xyxy;
+	endCutoff *= scaleRatio.xyxy;
+
+	if (dot(currTangent, startJoin) > REVERSE_MITER) {
+		startCutoff.xyzw = startCutoff.zwxy;
+		// miterWidth.xy = -miterWidth.xy;
+	}
+	if (dot(currTangent, endJoin) < REVERSE_MITER) {
+		endCutoff.xyzw = endCutoff.zwxy;
+		// miterWidth.zw = -miterWidth.zw;
+	}
+
+	startCutoff += viewport.xyxy;
+	endCutoff += viewport.xyxy;
 
 	// startCutoff += miterWidth.xyxy;
 	// endCutoff += miterWidth.zwzw;

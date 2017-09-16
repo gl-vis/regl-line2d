@@ -166,18 +166,6 @@ function createLine (options) {
 				stride: 8,
 				offset: 24,
 				divisor: 1
-			},
-			aDistance: {
-				buffer: distanceBuffer,
-				stride: 4,
-				offset: 0,
-				divisor: 1,
-			},
-			bDistance: {
-				buffer: distanceBuffer,
-				stride: 4,
-				offset: 4,
-				divisor: 1
 			}
 		},
 
@@ -424,6 +412,7 @@ function createLine (options) {
 				//enlarges dash pattern this amount of times, creates antialiasing
 				const dashMult = 2
 
+				dashLength = 0.;
 				for(let i = 0; i < dashes.length; ++i) {
 					dashLength += dashes[i]
 				}
@@ -440,6 +429,7 @@ function createLine (options) {
 						fillColor ^= 255
 					}
 				}
+
 				dashTexture = regl.texture({
 					channels: 1,
 					data: dashData,
