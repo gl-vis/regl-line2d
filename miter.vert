@@ -26,9 +26,9 @@ void main() {
 	vec2 currDirection = bCoord - aCoord;
 	vec2 nextDirection = nextCoord - bCoord;
 
-	vec2 prevTangent = normalize(prevDirection);
-	vec2 currTangent = normalize(currDirection);
-	vec2 nextTangent = normalize(nextDirection);
+	vec2 prevTangent = normalize(prevDirection * scaleRatio);
+	vec2 currTangent = normalize(currDirection * scaleRatio);
+	vec2 nextTangent = normalize(nextDirection * scaleRatio);
 
 	vec2 prevNormal = vec2(-prevTangent.y, prevTangent.x);
 	vec2 currNormal = vec2(-currTangent.y, currTangent.x);
