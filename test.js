@@ -25,7 +25,7 @@ for(var i=0; i<2*N; i+=2) {
   positions[i+1] = random() * 2
 }
 
-positions = [-2.5,1, 0,2, .5,-3, 5,5]
+positions = [0,0, 0,2, 3,-2, -3,-3, -6,0]
 // positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4,-1]
 
 let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
@@ -39,7 +39,7 @@ let drawLine = createLine({
   miterlimit: 4,
 
   width: 40,
-  dashes: [10, 5],
+  dashes: [9, 1],
   // color: colors,
   color: 'rgba(0, 0, 255, .5)',
   // color: ['red', 'green', 'blue'],

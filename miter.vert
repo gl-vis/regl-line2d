@@ -26,30 +26,40 @@ void main() {
 	vec2 currDirection = bCoord - aCoord;
 	vec2 nextDirection = nextCoord - bCoord;
 
-	vec2 prevTangent = normalize(prevDirection * scale * pixelScale.yx);
-	vec2 currTangent = normalize(currDirection * scale * pixelScale.yx);
-	vec2 nextTangent = normalize(nextDirection * scale * pixelScale.yx);
+	vec2 prevTangent = normalize(prevDirection);
+	vec2 currTangent = normalize(currDirection);
+	vec2 nextTangent = normalize(nextDirection);
 
-	vec2 prevNormal = normalize(vec2(-prevDirection.y, prevDirection.x));
-	vec2 currNormal = normalize(vec2(-currDirection.y, currDirection.x));
-	vec2 nextNormal = normalize(vec2(-nextDirection.y, nextDirection.x));
+	vec2 prevNormal = vec2(-prevTangent.y, prevTangent.x);
+	vec2 currNormal = vec2(-currTangent.y, currTangent.x);
+	vec2 nextNormal = vec2(-nextTangent.y, nextTangent.x);
 
-	vec2 startJoin = normalize(prevDirection - currDirection);
-	vec2 endJoin = normalize(currDirection - nextDirection);
+	vec2 startJoin = prevTangent - currTangent;
+	vec2 endJoin = currTangent - nextTangent;
 
-	float startMiterRatio = 1. / dot(prevNormal, startJoin);
-	float endMiterRatio = 1. / dot(currNormal, endJoin);
+	if (prevCoord == aCoord) {
+		startJoin = currNormal;
+	}
+	if (aCoord == bCoord) {
+		endJoin = startJoin;
+	}
+	if (bCoord == nextCoord) {
+		endJoin = currNormal;
+	}
 
-	vec2 startMiter = normalize(currNormal * scale.yx * pixelScale);
-	vec2 endMiter = normalize(currNormal * scale.yx * pixelScale);
+	float startMiterRatio = 1. / dot(startJoin, currNormal);
+	float endMiterRatio = 1. / dot(endJoin, currNormal);
+
+	startJoin *= startMiterRatio;
+	endJoin *= endMiterRatio;
 
 	vec2 offset = pixelScale * lineOffset * thickness;
 	vec2 position = aCoord * lineStart + bCoord * lineEnd;
 	position = (position + translate) * scale;
 
 	vec2 rectPosition = position;
-	rectPosition += offset * startMiter * lineStart * .5;
-	rectPosition += offset * endMiter * lineEnd * .5;
+	rectPosition += offset * startJoin * lineStart * .5;
+	rectPosition += offset * endJoin * lineEnd * .5;
 
 	// vec2 joinStart = joinStart * normalize(scale.xy * pixelScale.yx);
 	// vec2 joinEnd = joinEnd * normalize(scale.xy * pixelScale.yx);

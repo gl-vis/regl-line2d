@@ -234,6 +234,7 @@ function createLine (options) {
 			regl.clear({color: [0,0,0,.02]})
 		}
 
+		//we draw one more sement than actual points
 	    drawMiterLine({ count: count - 1, offset: 0, thickness, scale, translate, totalDistance, miterLimit, dashLength, viewport: [viewport.x, viewport.y, viewport.width, viewport.height] })
 	}
 
