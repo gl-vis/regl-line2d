@@ -59,7 +59,7 @@ function createLine (options) {
 	offsetBuffer = regl.buffer({
 		usage: 'static',
 		type: 'float',
-		data: [0,1, 0,-1, 1,1, 1,-1]
+		data: [0,1, 0,0, 1,1, 1,0]
 	})
 	positionBuffer = regl.buffer({
 		usage: 'dynamic',
@@ -110,7 +110,7 @@ function createLine (options) {
 				stride: 8,
 				offset: 0
 			},
-			lineOffset: {
+			lineTop: {
 				buffer: offsetBuffer,
 				divisor: 0,
 				stride: 8,
