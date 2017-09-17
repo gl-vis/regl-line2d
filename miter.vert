@@ -16,11 +16,12 @@ varying vec2 tangent;
 const float REVERSE_MITER = -1e-5;
 
 void main() {
-	vec2 pixelScale = 1. / viewport.zw;
-	vec2 scaleRatio = scale / pixelScale;
+	vec2 scaleRatio = scale * viewport.zw;
 
 	float lineStart = 1. - lineEnd;
 	float lineBot = 1. - lineTop;
+
+	vec2 normalWidth = pixelRatio * thickness / viewport.zw;
 
 	vec2 prevDirection = aCoord - prevCoord;
 	vec2 currDirection = bCoord - aCoord;
@@ -63,19 +64,18 @@ void main() {
 	endTopJoin = sign(endJoinShift) * endJoin * .5;
 	endBottomJoin = -endTopJoin;
 
-	//TODO: make limiting clipping miters
-	// endBottomJoin = normalize(endBottomJoin) * min(length(endBottomJoin), abs(dot(-currDirection * scale, endBottomJoin)));
-
-	vec2 offset = pixelScale * pixelRatio * thickness;
+	//TODO: reduce inter-miter join length to min between distances
+	//TODO: shift inter-miter joins to avoid overlaps
 
 	vec2 aPosition = (aCoord + translate) * scale;
-	vec2 aTopPosition = aPosition + offset * startTopJoin;
-	vec2 aBotPosition = aPosition + offset * startBottomJoin;
+	vec2 aTopPosition = aPosition + normalWidth * startTopJoin;
+	vec2 aBotPosition = aPosition + normalWidth * startBottomJoin;
 
 	vec2 bPosition = (bCoord + translate) * scale;
-	vec2 bTopPosition = bPosition + offset * endTopJoin;
-	vec2 bBotPosition = bPosition + offset * endBottomJoin;
+	vec2 bTopPosition = bPosition + normalWidth * endTopJoin;
+	vec2 bBotPosition = bPosition + normalWidth * endBottomJoin;
 
+	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
 
 	gl_Position = vec4(position  * 2.0 - 1.0, 0, 1);

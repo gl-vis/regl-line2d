@@ -25,12 +25,12 @@ for(var i=0; i<2*N; i+=2) {
   positions[i+1] = random() * 2
 }
 
-positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
+positions = [0,-1, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
 // positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4,-1]
 
 let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
 
-let viewport = null// [0, 200, 600, 500]
+let viewport = null//[0, 200, 600, 500]
 
 let drawLine = createLine({
   regl: regl,

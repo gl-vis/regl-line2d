@@ -158,6 +158,12 @@ function createLine (options) {
 			}
 		},
 
+		//culling removes polygon creasing
+		cull: {
+			enable: true,
+			face: 'back'
+		},
+
 		blend: {
 			enable: true,
 			color: [0,0,0,1],
