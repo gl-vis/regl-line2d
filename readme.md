@@ -47,21 +47,26 @@ Draw line and optionally update options.
 
 Option | Default | Description
 ---|---|---
-`positions` | `[]` | Array with sequence of coordinates for polyline, akin to sequence of `ctx.lineTo()` calls, eg. `[0,0, 1,1, 0,2, 1,-1]` or `[[0,0], [1,1], [0,2], [1,-1]]`
-`color` | `black` | Color or array with colors. Each color can be a css color string or an array with float `0..1` values.
-`thickness`, `lineWidth` | `1` | Line width.
-`miterLimit` | `thickness` | Max miter size, in pixels
+`points`, `positions` | `[]` | Array with sequence of coordinates for polyline, akin to sequence of `ctx.lineTo()` calls, eg. `[0,0, 1,1, 0,2, 1,-1]` or `[[0,0], [1,1], [0,2], [1,-1]]`
+`color`, `stroke` | `black` | Color or array with colors. Each color can be a css color string or an array with float `0..1` values.
+`width`, `thickness`, `stroke-width` | `1` | Line width.
+`miterlimit` | `1` | The limit on the ratio of the miter length to the thickness.
 `dashes` | `null` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`. Dash length is defined in pixels. If `null`, solid line will be rendered.
 `range` | `null` | Limit visible data.
 `viewport` | `null` | Limit visible area within the canvas.
-`join` | `bevel` | TODO: `'miter'`, `'round'`, `'bevel'`
+`linejoin`, `join` | `bevel` | TODO: `'miter'`, `'round'`, `'bevel'`
 `cap` | `square` | TODO: `'square'`
+`fill` | `none` | TODO: `'none'`
 
 
 ## Related
 
 * [regl-scatter2d](https://github.com/dfcreative/regl-scatter2d)
 * [regl-error2d](https://github.com/dfcreative/regl-error2d)
+
+## See also
+
+* [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit) svg element.
 
 
 ## License

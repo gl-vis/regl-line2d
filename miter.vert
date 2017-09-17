@@ -61,27 +61,25 @@ void main() {
 
 	gl_Position = vec4(position * 2.0 - 1.0, 0, 1);
 
+	if (dot(currTangent, startJoin) > REVERSE_MITER) {
+		startJoin = -startJoin;
+	}
+	if (dot(currTangent, endJoin) < REVERSE_MITER) {
+		endJoin = -endJoin;
+	}
+
 	//provides miter slicing
 	startCutoff = vec4(aCoord, aCoord);
-	startCutoff.zw += prevCoord == aCoord ? startJoin : vec2(-startJoin.y, startJoin.x);
+	startCutoff.zw += (prevCoord == aCoord ? startJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
 	startCutoff += translate.xyxy;
 	startCutoff *= scaleRatio.xyxy;
 
 	endCutoff = vec4(bCoord, bCoord);
-	endCutoff.zw += nextCoord == bCoord ? endJoin : vec2(-endJoin.y, endJoin.x);
+	endCutoff.zw += (nextCoord == bCoord ? endJoin : vec2(-endJoin.y, endJoin.x))  / scaleRatio;
 	endCutoff += translate.xyxy;
 	endCutoff *= scaleRatio.xyxy;
 
-	vec4 miterWidth = vec4(vec2(normalize(startJoin)), vec2(normalize(endJoin))) * miterLimit;
-
-	if (dot(currTangent, startJoin) > REVERSE_MITER) {
-		startCutoff.xyzw = startCutoff.zwxy;
-		miterWidth.xy = -miterWidth.xy;
-	}
-	if (dot(currTangent, endJoin) < REVERSE_MITER) {
-		endCutoff.xyzw = endCutoff.zwxy;
-		miterWidth.zw = -miterWidth.zw;
-	}
+	vec4 miterWidth = vec4(vec2(normalize(startJoin)), vec2(normalize(endJoin))) * thickness * miterLimit * .5;
 
 	startCutoff += viewport.xyxy;
 	endCutoff += viewport.xyxy;

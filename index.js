@@ -5,6 +5,7 @@ const rgba = require('color-rgba')
 const getBounds = require('array-bounds')
 const extend = require('object-assign')
 const glslify = require('glslify')
+const pick = require('pick-by-alias')
 
 module.exports = createLine
 
@@ -18,7 +19,7 @@ function createLine (options) {
 		drawLine, drawMiterLine, drawRectLine,
 		colorBuffer, offsetBuffer, positionBuffer, dashTexture,
 		positions, color, dashes, dashLength,
-		stroke, thickness, join, miterLimit, cap
+		stroke, thickness = 10, join, miterLimit, cap
 
 
 	// regl instance
@@ -77,9 +78,8 @@ function createLine (options) {
 	//init defaults
 	update(extend({
 		dashes: null,
-		thickness: 10,
 		join: 'bevel',
-		miterLimit: 10,
+		miterLimit: 1,
 		cap: 'square',
 		viewport: null
 	}, options))
@@ -217,17 +217,17 @@ function createLine (options) {
 
 	function update (options) {
 		//copy options to avoid mutation & handle aliases
-		options = {
-			positions: options.positions || options.data || options.points,
-			thickness: options.lineWidth || options.lineWidths || options.linewidth || options.width || options.thickness,
-			join: options.lineJoin || options.linejoin || options.join,
-			miterLimit: options.miterlimit != null ? options.miterlimit : options.miterLimit,
-			dashes: options.dash || options.dashes,
-			color: options.colors || options.color,
-			range: options.bounds || options.range,
-			viewport: options.viewBox || options.viewport,
-			precise: options.hiprecision != null ? options.hiprecision : options.precise
-		}
+		options = pick(options, {
+			positions: 'positions points data',
+			thickness: 'thickness lineWidth lineWidths linewidth width stroke-width strokewidth',
+			join: 'lineJoin linejoin join',
+			miterLimit: 'miterlimit miterLimit',
+			dashes: 'dash dashes dasharray',
+			color: 'stroke colors color',
+			range: 'bounds range dataBox',
+			viewport: 'viewport viewBox',
+			precise: 'precise hiprecision'
+		})
 
 	    if (options.length != null) options = {positions: options}
 
@@ -242,7 +242,7 @@ function createLine (options) {
 		if (options.miterLimit != null) {
 			miterLimit = +options.miterLimit
 		}
-		if (miterLimit == null) miterLimit = thickness;
+		if (miterLimit == null) miterLimit = 1;
 
 		//update positions
 		if (options.positions && options.positions.length) {

@@ -16,7 +16,7 @@ let range = [ -5 * ratio, -5, 5 * ratio, 5 ]
 let palette = palettes[ Math.floor(Math.random() * palettes.length) ]
 
 
-var N = 1e4
+var N = 1e2
 
 var positions = new Float32Array(2 * N)
 for(var i=0; i<2*N; i+=2) {
@@ -30,15 +30,15 @@ positions = [-3,4, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2
 
 let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
 
-let viewport = [0, 200, 600, 500]
+let viewport = null// [0, 200, 600, 500]
 
 let drawLine = createLine({
   regl: regl,
   positions: positions,
 
-  miterlimit: 10,
+  miterlimit: 1,
 
-  width: 30,
+  width: 40,
   dashes: [8, 2],
   // color: colors,
   color: 'rgba(0, 0, 255, .5)',
