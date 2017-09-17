@@ -205,12 +205,6 @@ function createLine (options) {
 
 	    if (!count) return
 
-		if (viewport) {
-	    gl.enable(gl.SCISSOR_TEST);
-	    gl.scissor(viewport.x, viewport.y, viewport.width, viewport.height);
-			regl.clear({color: [0,0,0,.02]})
-		}
-
 		//we draw one more sement than actual points
 	    drawMiterLine({ count: count - 1, offset: 0, thickness, scale, translate, miterLimit, dashLength, viewport: [viewport.x, viewport.y, viewport.width, viewport.height] })
 	}

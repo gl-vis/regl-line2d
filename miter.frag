@@ -6,7 +6,7 @@ uniform float dashLength, pixelRatio;
 varying vec4 fragColor;
 varying float fragLength;
 varying vec2 tangent;
-varying vec4 startCutoff, endCutoff;
+varying vec4 startCutoff, endCutoff, prevCutoff, nextCutoff;
 
 //get shortest distance from point p to line [a, b]
 float lineDist(vec2 p, vec4 line) {
@@ -30,6 +30,18 @@ void main() {
 		discard;
 		return;
 	}
+
+	// distToEnd = lineDist(gl_FragCoord.xy, prevCutoff);
+	// if (distToEnd < 0.) {
+	// 	discard;
+	// 	return;
+	// }
+
+	// distToEnd = lineDist(gl_FragCoord.xy, nextCutoff);
+	// if (distToEnd < 0.) {
+	// 	discard;
+	// 	return;
+	// }
 
 	alpha *= min(max(distToStart, 0.), 1.);
 	alpha *= min(max(distToEnd, 0.), 1.);

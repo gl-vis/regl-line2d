@@ -10,7 +10,7 @@ uniform vec4 viewport;
 uniform float miterLimit, dashLength;
 
 varying vec4 fragColor;
-varying vec4 startCutoff, endCutoff;
+varying vec4 startCutoff, endCutoff, prevCutoff, nextCutoff;
 varying vec2 tangent;
 
 const float REVERSE_MITER = -1e-5;
@@ -68,24 +68,33 @@ void main() {
 		endJoin = -endJoin;
 	}
 
+	vec4 miterWidth = vec4(vec2(normalize(startJoin)), vec2(normalize(endJoin))) * thickness * pixelRatio * miterLimit * .5;
+
 	//provides miter slicing
 	startCutoff = vec4(aCoord, aCoord);
 	startCutoff.zw += (prevCoord == aCoord ? startJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
 	startCutoff += translate.xyxy;
 	startCutoff *= scaleRatio.xyxy;
+	startCutoff += viewport.xyxy;
+	startCutoff += miterWidth.xyxy;
 
 	endCutoff = vec4(bCoord, bCoord);
 	endCutoff.zw += (nextCoord == bCoord ? endJoin : vec2(-endJoin.y, endJoin.x))  / scaleRatio;
 	endCutoff += translate.xyxy;
 	endCutoff *= scaleRatio.xyxy;
-
-	vec4 miterWidth = vec4(vec2(normalize(startJoin)), vec2(normalize(endJoin))) * thickness * pixelRatio * miterLimit * .5;
-
-	startCutoff += viewport.xyxy;
 	endCutoff += viewport.xyxy;
-
-	startCutoff += miterWidth.xyxy;
 	endCutoff += miterWidth.zwzw;
+
+	// vec2 prevCutoffCoord = aCoord - .5 * currTangent * startMiterRatio;
+	// prevCutoff = vec4(prevCutoffCoord, prevCutoffCoord - currNormal/scaleRatio);
+	// prevCutoff += translate.xyxy;
+	// prevCutoff *= scaleRatio.xyxy;
+
+	// vec2 nextCutoffCoord = bCoord + .5 * currTangent * startMiterRatio;
+	// nextCutoff = vec4(nextCutoffCoord, nextCutoffCoord + currNormal/scaleRatio);
+	// nextCutoff += translate.xyxy;
+	// nextCutoff *= scaleRatio.xyxy;
+
 
 	tangent = currTangent;
 
