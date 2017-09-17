@@ -1,7 +1,7 @@
 precision highp float;
 
 uniform sampler2D dashPattern;
-uniform float dashLength;
+uniform float dashLength, pixelRatio;
 
 varying vec4 fragColor;
 varying float fragLength;
@@ -34,7 +34,7 @@ void main() {
 	alpha *= min(max(distToStart, 0.), 1.);
 	alpha *= min(max(distToEnd, 0.), 1.);
 
-	float t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;
+	float t = fract(dot(tangent, gl_FragCoord.xy) / dashLength / pixelRatio) * .5 + .25;
 
 	gl_FragColor = fragColor;
 	gl_FragColor.a *= alpha * texture2D(dashPattern, vec2(t, 0.)).r;

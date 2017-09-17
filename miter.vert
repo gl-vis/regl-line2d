@@ -16,7 +16,7 @@ varying vec2 tangent;
 const float REVERSE_MITER = -1e-5;
 
 void main() {
-	vec2 pixelScale = pixelRatio / viewport.zw;
+	vec2 pixelScale = 1. / viewport.zw;
 	vec2 scaleRatio = scale / pixelScale;
 
 	float lineStart = 1. - lineEnd;
@@ -52,7 +52,7 @@ void main() {
 	startJoin *= startMiterRatio;
 	endJoin *= endMiterRatio;
 
-	vec2 offset = pixelScale * lineOffset * thickness;
+	vec2 offset = pixelScale * lineOffset * thickness * pixelRatio;
 	vec2 position = aCoord * lineStart + bCoord * lineEnd;
 	position = (position + translate) * scale;
 
@@ -79,7 +79,7 @@ void main() {
 	endCutoff += translate.xyxy;
 	endCutoff *= scaleRatio.xyxy;
 
-	vec4 miterWidth = vec4(vec2(normalize(startJoin)), vec2(normalize(endJoin))) * thickness * miterLimit * .5;
+	vec4 miterWidth = vec4(vec2(normalize(startJoin)), vec2(normalize(endJoin))) * thickness * pixelRatio * miterLimit * .5;
 
 	startCutoff += viewport.xyxy;
 	endCutoff += viewport.xyxy;
