@@ -16,6 +16,7 @@ varying vec2 tangent;
 const float REVERSE_MITER = -1e-5;
 
 void main() {
+	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
 	vec2 scaleRatio = scale * viewport.zw;
 
 	float lineStart = 1. - lineEnd;
@@ -26,6 +27,15 @@ void main() {
 	vec2 prevDirection = aCoord - prevCoord;
 	vec2 currDirection = bCoord - aCoord;
 	vec2 nextDirection = nextCoord - bCoord;
+
+	if (dot(normalize(currDirection), normalize(nextDirection)) == -1.) {
+		nextCoord = bCoord;
+		nextDirection = nextCoord - bCoord;
+	}
+	if (dot(normalize(currDirection), normalize(prevDirection)) == -1.) {
+		aCoord = prevCoord;
+		currDirection = bCoord - aCoord;
+	}
 
 	vec2 prevTangent = normalize(prevDirection * scaleRatio);
 	vec2 currTangent = normalize(currDirection * scaleRatio);
@@ -85,13 +95,13 @@ void main() {
 
 	//provides miter slicing
 	startCutoff = vec4(aCoord, aCoord);
-	startCutoff.zw += vec2(-startJoin.y, startJoin.x) / scaleRatio;
+	startCutoff.zw += (prevCoord == aCoord ? startBottomJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
 	startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
 	startCutoff += viewport.xyxy;
 	startCutoff += miterWidth.xyxy;
 
 	endCutoff = vec4(bCoord, bCoord);
-	endCutoff.zw += vec2(-endJoin.y, endJoin.x)  / scaleRatio;
+	endCutoff.zw += (nextCoord == bCoord ? endTopJoin : vec2(-endJoin.y, endJoin.x))  / scaleRatio;
 	endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
 	endCutoff += viewport.xyxy;
 	endCutoff += miterWidth.zwzw;
