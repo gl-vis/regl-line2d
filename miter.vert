@@ -51,6 +51,12 @@ void main() {
 	vec2 startJoinNormal = normalize(prevTangent - currTangent);
 	vec2 endJoinNormal = normalize(currTangent - nextTangent);
 
+	if (prevTangent == currTangent) {
+		startJoinNormal = currNormal;
+	}
+	if (nextTangent == currTangent) {
+		endJoinNormal = currNormal;
+	}
 	if (prevCoord == aCoord) {
 		startJoinNormal = currNormal;
 	}
