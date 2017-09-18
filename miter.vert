@@ -12,8 +12,15 @@ uniform float miterLimit, dashLength;
 varying vec4 fragColor;
 varying vec4 startCutoff, endCutoff;
 varying vec2 tangent;
+varying vec2 startCoord, endCoord;
 
 const float REVERSE_MITER = -1e-5;
+
+float distToLine(vec2 p, vec2 a, vec2 b) {
+	vec2 diff = b - a;
+	vec2 perp = normalize(vec2(-diff.y, diff.x));
+	return dot(p - a, perp);
+}
 
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
@@ -21,8 +28,6 @@ void main() {
 
 	float lineStart = 1. - lineEnd;
 	float lineBot = 1. - lineTop;
-
-	vec2 normalWidth = pixelRatio * thickness / viewport.zw;
 
 	vec2 prevDiff = aCoord - prevCoord;
 	vec2 currDiff = bCoord - aCoord;
@@ -63,12 +68,18 @@ void main() {
 	}
 	if (prevCoord == aCoord) {
 		startJoinNormal = currNormal;
+		prevTangent = currTangent;
+		prevNormal = currNormal;
 	}
 	if (aCoord == bCoord) {
 		endJoinNormal = startJoinNormal;
+		currNormal = prevNormal;
+		currTangent = prevTangent;
 	}
 	if (bCoord == nextCoord) {
 		endJoinNormal = currNormal;
+		nextTangent = currTangent;
+		nextNormal = currNormal;
 	}
 
 	float startJoinShift = dot(currNormal, startJoinNormal);
@@ -80,23 +91,45 @@ void main() {
 	vec2 startJoin = startJoinNormal * startMiterRatio;
 	vec2 endJoin = endJoinNormal * endMiterRatio;
 
-	vec2 startTopJoin, startBottomJoin, endTopJoin, endBottomJoin;
+	vec2 startTopJoin, startBotJoin, endTopJoin, endBotJoin;
 	startTopJoin = sign(startJoinShift) * startJoin * .5;
-	startBottomJoin = -startTopJoin;
+	startBotJoin = -startTopJoin;
 
 	endTopJoin = sign(endJoinShift) * endJoin * .5;
-	endBottomJoin = -endTopJoin;
+	endBotJoin = -endTopJoin;
 
-	//TODO: reduce inter-miter join length to min between distances
-	//TODO: shift inter-miter joins to avoid overlaps
+	vec2 normalWidth = pixelRatio * thickness / scaleRatio;
+
+	vec2 aBotCoord = aCoord + normalWidth * startBotJoin;
+	vec2 aTopCoord = aCoord + normalWidth * startTopJoin;
+	vec2 bBotCoord = bCoord + normalWidth * endBotJoin;
+	vec2 bTopCoord = bCoord + normalWidth * endTopJoin;
+
+	//reduce the length of startJoin/endJoin to avoid crease of thick lines
+	//TODO: optimize this part
+	// if (dot(currNormal, nextTangent) <= 0. && currTangent != nextTangent) {
+	float abClipping = abs(distToLine(aCoord, bCoord, bBotCoord) / dot(normalize(normalWidth * startBotJoin), normalize(normalWidth.yx * vec2(-endBotJoin.y, endBotJoin.x))));
+	float baClipping = abs(distToLine(bCoord, aCoord, aBotCoord) / dot(normalize(normalWidth * endBotJoin), normalize(normalWidth.yx * vec2(-startBotJoin.y, startBotJoin.x))));
+	if (dot(prevNormal, currTangent) <= 0. && dot(currNormal, nextTangent) <= 0.) {
+		if (abClipping < length(normalWidth * startBotJoin)) {
+			aBotCoord -= normalWidth * startBotJoin;
+			aBotCoord += normalize(startBotJoin * normalWidth) * abClipping;
+		}
+	}
+	if (dot(prevNormal, currTangent) >= 0. && dot(currNormal, nextTangent) >= 0.) {
+		if (baClipping < length(normalWidth * endBotJoin)) {
+			bTopCoord -= normalWidth * endTopJoin;
+			bTopCoord += normalize(endTopJoin * normalWidth) * baClipping;
+		}
+	}
 
 	vec2 aPosition = (aCoord + translate) * scale;
-	vec2 aTopPosition = aPosition + normalWidth * startTopJoin;
-	vec2 aBotPosition = aPosition + normalWidth * startBottomJoin;
+	vec2 aTopPosition = (aTopCoord + translate) * scale;
+	vec2 aBotPosition = (aBotCoord + translate) * scale;
 
 	vec2 bPosition = (bCoord + translate) * scale;
-	vec2 bTopPosition = bPosition + normalWidth * endTopJoin;
-	vec2 bBotPosition = bPosition + normalWidth * endBottomJoin;
+	vec2 bTopPosition = (bTopCoord + translate) * scale;
+	vec2 bBotPosition = (bBotCoord + translate) * scale;
 
 	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
@@ -108,7 +141,7 @@ void main() {
 
 	//provides miter slicing
 	startCutoff = vec4(aCoord, aCoord);
-	startCutoff.zw += (prevCoord == aCoord ? startBottomJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
+	startCutoff.zw += (prevCoord == aCoord ? startBotJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
 	startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
 	startCutoff += viewport.xyxy;
 	startCutoff += miterWidth.xyxy;
@@ -118,6 +151,9 @@ void main() {
 	endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
 	endCutoff += viewport.xyxy;
 	endCutoff += miterWidth.zwzw;
+
+	startCoord = (aCoord + translate) * scaleRatio + viewport.xy;
+	endCoord = (bCoord + translate) * scaleRatio + viewport.xy;
 
 	tangent = currTangent;
 

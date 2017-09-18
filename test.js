@@ -26,11 +26,18 @@ for(var i=0; i<2*N; i+=2) {
 }
 
 // positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
-positions = [-3,4, -3,3, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4.5,1, -4.5,2]
+// positions = [-3,4, -3,3, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4.5,1, -4.5,2]
+
+function flipY (arr) {
+  for (let i = 0; i < arr.length; i+=2) {
+    arr[i] = -arr[i]
+  }
+  return arr
+}
 
 let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
 
-let viewport = null//[0, 200, 600, 500]
+let viewport = null// [0, 300, 600, 500]
 
 let drawLine = createLine({
   regl: regl,
@@ -38,7 +45,7 @@ let drawLine = createLine({
 
   miterlimit: 1,
 
-  width: 10,
+  width: 20,
   dashes: [8, 2],
   // color: colors,
   color: 'rgba(0, 0, 255, .5)',
