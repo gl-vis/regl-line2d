@@ -9,7 +9,6 @@
   },
   "browserify": {
     "transform": [
-      "glslify",
       "bubleify"
     ]
   },
