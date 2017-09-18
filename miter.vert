@@ -24,25 +24,29 @@ void main() {
 
 	vec2 normalWidth = pixelRatio * thickness / viewport.zw;
 
-	vec2 prevDirection = aCoord - prevCoord;
-	vec2 currDirection = bCoord - aCoord;
-	vec2 nextDirection = nextCoord - bCoord;
+	vec2 prevDiff = aCoord - prevCoord;
+	vec2 currDiff = bCoord - aCoord;
+	vec2 nextDiff = nextCoord - bCoord;
 
-	if (dot(normalize(currDirection), normalize(nextDirection)) == -1.) {
+	vec2 prevDirection = normalize(prevDiff);
+	vec2 currDirection = normalize(currDiff);
+	vec2 nextDirection = normalize(nextDiff);
+
+	if (dot(currDirection, nextDirection) == -1.) {
 		nextCoord = bCoord;
-		nextDirection = nextCoord - bCoord;
+		nextDiff = nextCoord - bCoord;
 	}
-	if (dot(normalize(currDirection), normalize(prevDirection)) == -1.) {
-		if (length(currDirection) <= length(prevDirection)) {
+	if (dot(currDirection, prevDirection) == -1.) {
+		if (length(currDiff) <= length(prevDiff)) {
 			return;
 		}
 		aCoord = prevCoord;
-		currDirection = bCoord - aCoord;
+		currDiff = bCoord - aCoord;
 	}
 
-	vec2 prevTangent = normalize(prevDirection * scaleRatio);
-	vec2 currTangent = normalize(currDirection * scaleRatio);
-	vec2 nextTangent = normalize(nextDirection * scaleRatio);
+	vec2 prevTangent = normalize(prevDiff * scaleRatio);
+	vec2 currTangent = normalize(currDiff * scaleRatio);
+	vec2 nextTangent = normalize(nextDiff * scaleRatio);
 
 	vec2 prevNormal = vec2(-prevTangent.y, prevTangent.x);
 	vec2 currNormal = vec2(-currTangent.y, currTangent.x);
@@ -51,10 +55,10 @@ void main() {
 	vec2 startJoinNormal = normalize(prevTangent - currTangent);
 	vec2 endJoinNormal = normalize(currTangent - nextTangent);
 
-	if (prevTangent == currTangent) {
+	if (prevDirection == currDirection) {
 		startJoinNormal = currNormal;
 	}
-	if (nextTangent == currTangent) {
+	if (nextDirection == currDirection) {
 		endJoinNormal = currNormal;
 	}
 	if (prevCoord == aCoord) {
