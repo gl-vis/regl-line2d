@@ -4,8 +4,8 @@ const createRegl = require('regl')
 const rgba = require('color-rgba')
 const getBounds = require('array-bounds')
 const extend = require('object-assign')
+const glslify = require('glslify')
 const pick = require('pick-by-alias')
-const {vert, frag} = require('./shader')
 
 module.exports = createLine
 
@@ -16,7 +16,7 @@ function createLine (options) {
 
 	// persistent variables
 	let regl, gl, viewport, range, bounds, count, scale, translate, precise,
-		drawLine, drawMiterLine, drawRectLine,
+		drawLine,
 		colorBuffer, offsetBuffer, positionBuffer, dashTexture,
 		positions, color, dashes, dashLength,
 		stroke, thickness = 10, join, miterLimit, cap
@@ -92,8 +92,8 @@ function createLine (options) {
 		count: 4,
 		offset: regl.prop('offset'),
 
-		vert: vert(),
-		frag: frag({join}),
+		vert: glslify('./vert.glsl'),
+		frag: glslify('./frag.glsl'),
 
 		uniforms: {
 			miterLimit: regl.prop('miterLimit'),
