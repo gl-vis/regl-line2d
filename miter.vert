@@ -33,6 +33,9 @@ void main() {
 		nextDirection = nextCoord - bCoord;
 	}
 	if (dot(normalize(currDirection), normalize(prevDirection)) == -1.) {
+		if (length(currDirection) <= length(prevDirection)) {
+			return;
+		}
 		aCoord = prevCoord;
 		currDirection = bCoord - aCoord;
 	}
