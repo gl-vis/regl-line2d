@@ -13,6 +13,7 @@ varying vec4 fragColor;
 varying vec4 startCutoff, endCutoff;
 varying vec2 tangent;
 varying vec2 startCoord, endCoord;
+varying float startMiter, endMiter;
 
 const float REVERSE_MITER = -1e-5;
 
@@ -98,7 +99,7 @@ void main() {
 	endTopJoin = sign(endJoinShift) * endJoin * .5;
 	endBotJoin = -endTopJoin;
 
-	vec2 normalWidth = pixelRatio * thickness / scaleRatio;
+	vec2 normalWidth = thickness / scaleRatio;
 
 	vec2 aBotCoord = aCoord + normalWidth * startBotJoin;
 	vec2 aTopCoord = aCoord + normalWidth * startTopJoin;
@@ -136,20 +137,28 @@ void main() {
 	gl_Position = vec4(position  * 2.0 - 1.0, 0, 1);
 
 
-	vec4 miterWidth = vec4(vec2(normalize(startJoin)), vec2(normalize(endJoin))) * thickness * pixelRatio * miterLimit * .5;
+	vec4 miterWidth = vec4(vec2(normalize(startJoin)), vec2(normalize(endJoin))) * thickness * miterLimit * .5;
 
 	//provides miter slicing
-	startCutoff = vec4(aCoord, aCoord);
-	startCutoff.zw += (prevCoord == aCoord ? startBotJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
-	startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
-	startCutoff += viewport.xyxy;
-	startCutoff += miterWidth.xyxy;
+	startMiter = 0.;
+	if (dot(currTangent, prevTangent) < .5) {
+		startMiter = 1.;
+		startCutoff = vec4(aCoord, aCoord);
+		startCutoff.zw += (prevCoord == aCoord ? startBotJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
+		startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
+		startCutoff += viewport.xyxy;
+		startCutoff += miterWidth.xyxy;
+	}
 
-	endCutoff = vec4(bCoord, bCoord);
-	endCutoff.zw += (nextCoord == bCoord ? endTopJoin : vec2(-endJoin.y, endJoin.x))  / scaleRatio;
-	endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
-	endCutoff += viewport.xyxy;
-	endCutoff += miterWidth.zwzw;
+	endMiter = 0.;
+	if (dot(currTangent, nextTangent) < .5) {
+		endMiter = 1.;
+		endCutoff = vec4(bCoord, bCoord);
+		endCutoff.zw += (nextCoord == bCoord ? endTopJoin : vec2(-endJoin.y, endJoin.x))  / scaleRatio;
+		endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
+		endCutoff += viewport.xyxy;
+		endCutoff += miterWidth.zwzw;
+	}
 
 	startCoord = (aCoord + translate) * scaleRatio + viewport.xy;
 	endCoord = (bCoord + translate) * scaleRatio + viewport.xy;

@@ -16,7 +16,7 @@ function createLine (options) {
 
 	// persistent variables
 	let regl, gl, viewport, range, bounds, count, scale, translate, precise,
-		drawLine,
+		drawLine, opacity,
 		colorBuffer, offsetBuffer, positionBuffer, dashTexture,
 		positions, color, dashes, dashLength,
 		stroke, thickness = 10, join, miterLimit, cap
@@ -27,26 +27,29 @@ function createLine (options) {
 
 	// container/gl/canvas case
 	else {
-		let opts = {}
-		opts.pixelRatio = options.pixelRatio || global.devicePixelRatio
+		let opts
 
-		if (options instanceof HTMLCanvasElement) opts.canvas = options
-		else if (options instanceof HTMLElement) opts.container = options
-		else if (options.drawingBufferWidth || options.drawingBufferHeight) opts.gl = options
+		if (options instanceof HTMLCanvasElement) opts = {canvas: options}
+		else if (options instanceof HTMLElement) opts = {container: options}
+		else if (options.drawingBufferWidth || options.drawingBufferHeight) opts = {gl: options}
+
 		else {
-			if (options.canvas) opts.canvas = options.canvas
-			if (options.container) opts.container = options.container
-			if (options.gl) opts.gl = options.gl
+			opts = pick(options, {
+				pixelRatio: true,
+				canvas: true,
+				container: true,
+				gl: true,
+				extensions: true
+			})
 		}
 
+		if (!opts.extensions) opts.extensions = []
+
 		//FIXME: use fallback if not available
-		opts.extensions = [
-			'ANGLE_instanced_arrays'
-		]
+		opts.extensions.push('ANGLE_instanced_arrays')
 
 		regl = createRegl(opts)
 	}
-	//TODO: test if required extensions are supported
 
 	gl = regl._gl
 
@@ -81,7 +84,8 @@ function createLine (options) {
 		join: 'bevel',
 		miterLimit: 1,
 		cap: 'square',
-		viewport: null
+		viewport: null,
+		opacity: 1
 	}, options))
 
 
@@ -100,11 +104,12 @@ function createLine (options) {
 			scale: regl.prop('scale'),
 			translate: regl.prop('translate'),
 			thickness: regl.prop('thickness'),
-			dashPattern: dashTexture,
+			dashPattern: regl.prop('dashTexture'),
 			dashLength: regl.prop('dashLength'),
 			totalDistance: regl.prop('totalDistance'),
 			viewport: regl.prop('viewport'),
-			pixelRatio: regl.context('pixelRatio')
+			pixelRatio: regl.context('pixelRatio'),
+			opacity: regl.prop('opacity')
 		},
 		attributes: {
 			lineEnd: {
@@ -202,7 +207,7 @@ function createLine (options) {
 	    if (!count) return
 
 		//we draw one more sement than actual points
-	    drawLine({ count: count - 1, offset: 0, thickness, scale, translate, miterLimit, dashLength, viewport: [viewport.x, viewport.y, viewport.width, viewport.height] })
+	    drawLine({ count: count - 1, offset: 0, thickness, scale, translate, miterLimit, dashLength, viewport: [viewport.x, viewport.y, viewport.width, viewport.height], dashTexture, opacity })
 	}
 
 	function update (options) {
@@ -216,13 +221,18 @@ function createLine (options) {
 			color: 'stroke colors color',
 			range: 'bounds range dataBox',
 			viewport: 'viewport viewBox',
-			precise: 'precise hiprecision'
+			precise: 'precise hiprecision',
+			opacity: 'alpha opacity'
 		})
 
 	    if (options.length != null) options = {positions: options}
 
 		if (options.thickness != null) {
 			thickness = +options.thickness
+		}
+
+		if (options.opacity != null) {
+			opacity = +options.opacity
 		}
 
 		if (options.join) {
@@ -361,7 +371,7 @@ function createLine (options) {
 
 			else {
 				//enlarges dash pattern this amount of times, creates antialiasing
-				const dashMult = 2
+				const dashMult = 4
 
 				dashLength = 0.;
 				for(let i = 0; i < dashes.length; ++i) {
