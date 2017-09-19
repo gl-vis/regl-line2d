@@ -84,6 +84,7 @@ function createLine (options) {
 		join: 'bevel',
 		miterLimit: 1,
 		cap: 'square',
+		color: 'black',
 		viewport: null,
 		opacity: 1
 	}, options))
