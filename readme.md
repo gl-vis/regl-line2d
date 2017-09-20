@@ -38,11 +38,12 @@ Option | Default | Description
 ---|---|---
 `regl` | `null` | Regl instance to reuse, otherwise new regl is created.
 `gl`, `canvas`, `container`, `pixelRatio` | `null` | Options for `regl`, if new regl instance is created.
-`...rest` | | `drawLine(rest)` is invoked with the rest of options.
 
-### `drawLine(points|options|null?)`
+`drawLine` is invoked with the rest of options.
 
-Draw line and optionally update options. If plain `points` array passed - it will just update the positions. `null` will destroy argument.
+### `drawLine(points|options?)`
+
+Draw line and optionally update options. If plain `points` array passed - it will just update the positions. `null` argument will destroy instance and dispose resources.
 
 Option | Alias | Default | Description
 ---|---|---|---
@@ -59,7 +60,7 @@ Option | Alias | Default | Description
 `close` | | `false` | TODO
 `fill` | | `none` | TODO: `'none'`
 
-Options are exposed on `drawLine` object as `drawLine.thickness` etc, along with `draw`, `update` and `destroy` methods.
+Processed options are exposed in `drawLine.state` object, along with `drawLine.draw`, `drawLine.update` and `drawLine.destroy` methods.
 
 ## Related
 
