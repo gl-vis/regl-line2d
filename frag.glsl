@@ -26,6 +26,7 @@ void main() {
 			discard;
 			return;
 		}
+		alpha *= min(max(distToStart, 0.), 1.);
 	}
 
 	if (endMiter > 0.) {
@@ -34,10 +35,9 @@ void main() {
 			discard;
 			return;
 		}
+		alpha *= min(max(distToEnd, 0.), 1.);
 	}
 
-	alpha *= min(max(distToStart, 0.), 1.);
-	alpha *= min(max(distToEnd, 0.), 1.);
 
 	// round miter
 	// distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
