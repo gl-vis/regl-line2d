@@ -7,10 +7,10 @@ Draw polyline with regl.
 Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 
 * GPU miter calculation
-* bevel, round and rect miter modes
-* correct transparent color handling in joins
-* optimized performance via instanced draws
-* multiple colors support
+* Bevel, round and rectangular joins
+* Correct transparent color handling in joins
+* Optimized performance via instanced draws
+* Multiline support
 * `<polyline>`-compatible API
 
 [Demo](https://dfcreative.github.io/regl-line2d).
@@ -54,11 +54,11 @@ Option | Alias | Default | Description
 `dashes` | `dasharray` | `null` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`. Dash length is defined in pixels. If `null`, solid line will be rendered.
 `range` | `dataBox` | `null` | Limit visible data.
 `viewport` | `viewBox` | `null` | Limit visible area within the canvas.
-`precise` | | `false` |
-`join` | | `bevel` | TODO: `'miter'`, `'round'`, `'bevel'`
-`cap` | | `square` | TODO: `'square'`
-`close` | | `false` | TODO
-`fill` | | `none` | TODO: `'none'`
+`join` | | `bevel` | Join style: `'rect'`, `'round'`, `'bevel'`.
+`cap` | | `square` | Cap style for not closed path: `rect`, `round`.
+`close` | | `false` | Connect last point with the first point with a segment.
+`fill` | | `none` | Fills area enclosed by line.
+`precise` | | `true` | Enable float64 precision. Affects performance insignificantly.
 
 Processed options are exposed in `drawLine.state` object, along with `drawLine.draw`, `drawLine.update` and `drawLine.destroy` methods.
 
