@@ -37,7 +37,7 @@ let drawPoints = createScatter({
   regl, range,
   size: 10,
   borderSize: 0,
-  color: 'rgba(255,0,0,.15)'
+  color: 'rgba(255,0,0,.5)'
 })
 
 function draw(opts) {
@@ -50,6 +50,7 @@ function draw(opts) {
 
 setTimeout(() => {
   draw(batch[0])
+  regl.frame(t => draw())
 }, 100)
 
 //pan-zoom interactions
