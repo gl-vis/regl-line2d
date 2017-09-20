@@ -36,8 +36,8 @@ void main() {
 		}
 	}
 
-	// alpha *= min(max(distToStart, 0.), 1.);
-	// alpha *= min(max(distToEnd, 0.), 1.);
+	alpha *= min(max(distToStart, 0.), 1.);
+	alpha *= min(max(distToEnd, 0.), 1.);
 
 	// round miter
 	// distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);

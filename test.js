@@ -50,7 +50,6 @@ function draw(opts) {
 
 setTimeout(() => {
   draw(batch[0])
-  regl.frame(t => draw())
 }, 100)
 
 //pan-zoom interactions
@@ -92,30 +91,30 @@ panZoom(cnv, e => {
 
 /** Test cases */
 
-t('multiple points', t => {
+t.only('multiple points', t => {
   let N = 1e5
-  positions = new Float32Array(2 * N)
+  let positions = new Float32Array(2 * N)
   for(var i=0; i<2*N; i+=2) {
     // positions[i]   = (i/N)*10.0-10.0
     positions[i] = random() * 2
     positions[i+1] = random() * 2
   }
 
-  batch.push({positions})
+  batch.push({positions, thickness: 1})
 
   t.end()
 })
 
 t('closed circuit', t => {
-  thickness = 100
-  positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
+  let thickness = 100
+  let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
 
   batch.push({positions})
 
   t.end()
 })
 
-t.only('basic edge cases', t => {
+t('basic edge cases', t => {
   let positions = [-3,4, -3,3, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4.5,1, -4.5,2]
 
   batch.push({positions})
