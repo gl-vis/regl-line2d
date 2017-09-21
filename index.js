@@ -210,7 +210,7 @@ function createLine (options) {
 			box: regl.prop('viewport')
 		},
 
-		viewport: (ctx, prop) => regl.prop('viewport')
+		viewport: regl.prop('viewport')
 	})
 
 
