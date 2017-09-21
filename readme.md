@@ -10,7 +10,7 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * Bevel, round and rectangular joins
 * Correct transparent color handling in joins
 * Optimized performance via instanced draws
-* Multiline support
+* Multiline batch rendering
 * `<polyline>`-compatible API
 
 [Demo](https://dfcreative.github.io/regl-line2d).
@@ -43,12 +43,12 @@ Option | Default | Description
 
 ### `drawLine(points|options?)`
 
-Draw line and optionally update options. If plain `points` array passed - it will just update the positions. `null` argument will destroy instance and dispose resources.
+Draw line and optionally update options. If plain `points` array passed - it will just update the positions. `null` argument will destroy instance and dispose resources. To batch render multiple lines - pass array with options for separate lines.
 
 Option | Alias | Default | Description
 ---|---|---|---
-`positions` | `points`, `data` | `[]` | Array with sequence of coordinates for polyline, akin to sequence of `ctx.lineTo()` calls, eg. `[0,0, 1,1, 0,2, 1,-1]` or `[[0,0], [1,1], [0,2], [1,-1]]`. If array of arrays passed, like `[[line1...], [line2...], ...]`, every item will be considered as a separate polyline.
-`color` | `colors`, `stroke` | `black` | Color or array with colors corresponding to polylines. Each color can be a css color string or an array with float `0..1` values.
+`positions` | `points`, `data` | `[]` | Array with sequence of coordinates for polyline, akin to sequence of `ctx.lineTo()` calls, eg. `[0,0, 1,1, 0,2, 1,-1]` or `[[0,0], [1,1], [0,2], [1,-1]]`.
+`color` | `colors`, `stroke` | `black` | Color can be a css color string or an array with float `0..1` values.
 `width` | `thickness`, `lineWidth`, `strokeWidth` | `1` | Line width or array with widths corresponding to polylines.
 `dashes` | `dasharray` | `null` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`. Dash length is defined in pixels. If `null`, solid line will be rendered.
 `miterlimit` |  | `1` | The limit on the ratio of the miter length to the thickness.
