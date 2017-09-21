@@ -10,6 +10,7 @@ const filter = require('filter-obj')
 const mapProp = require('obj-map-prop')
 const flatten = require('flatten-vertex-data')
 const blacklist = require('blacklist')
+const dprop = require('dprop')
 
 module.exports = createLine
 
@@ -33,15 +34,8 @@ function createLine (options) {
 			cap: 'square',
 			color: 'black',
 			opacity: 1,
-
 			viewport: null,
-			range: null,
-			scale: null,
-			translate: null,
-			count: 0,
-			offset: 0,
-			raw: {},
-			dashLength: 0
+			range: null
 		},
 
 		// list of options for lines
@@ -110,7 +104,7 @@ function createLine (options) {
 	})
 
 	//init defaults
-	update(extend(defaultOptions, options))
+	update(options)
 
 
 	//create regl draw
@@ -216,7 +210,7 @@ function createLine (options) {
 			box: regl.prop('viewport')
 		},
 
-		viewport: regl.prop('viewport')
+		viewport: (ctx, prop) => regl.prop('viewport')
 	})
 
 
@@ -236,7 +230,6 @@ function createLine (options) {
 			return state.count
 		})
 
-
 		drawLine(batch)
 	}
 
@@ -249,6 +242,9 @@ function createLine (options) {
 		//make options a batch
 		if (!Array.isArray(options)) options = [options]
 
+		//global count of points
+		let pointCount = 0
+
 		//process per-line settings
 		lines = options.map((options, i) => {
 			if (!options) return
@@ -257,7 +253,17 @@ function createLine (options) {
 			let state = lines[i]
 
 			//prototype here keeps defaultOptions live-updated
-			if (!state) lines[i] = state = Object.create(defaultOptions)
+			if (!state) {
+				lines[i] = state = {
+					raw: {},
+					scale: null,
+					translate: null,
+					count: 0,
+					offset: 0,
+					dashLength: 0
+				}
+				options = extend({}, defaultOptions, options)
+			}
 
 			//reduce by aliases
 			options = pick(options, {
@@ -317,22 +323,24 @@ function createLine (options) {
 					// }
 
 					let count = state.count = Math.floor(positions.length / 2)
-					state.bounds = getBounds(positions, 2)
+					let bounds = state.bounds = getBounds(positions, 2)
 
 					if (!state.range) state.range = bounds
 
-					let positionData = new Float32Array(count * 2 + 4)
+					pointCount += count
+
+					return positions
+
+					// let positionData = new Float32Array(count * 2 + 4)
 
 					//we duplicate first and last points to get [prev, a, b, next] coords valid
-					positionData[0] = positions[0]
-					positionData[1] = positions[1]
-					positionData.set(positions, 2)
-					positionData[count*2 + 2] = positionData[count*2 + 0]
-					positionData[count*2 + 3] = positionData[count*2 + 1]
+					// positionData[0] = positions[0]
+					// positionData[1] = positions[1]
+					// positionData.set(positions, 2)
+					// positionData[count*2 + 2] = positionData[count*2 + 0]
+					// positionData[count*2 + 3] = positionData[count*2 + 1]
 
-					positionBuffer(positionData)
-
-					return positionData
+					// return positionData
 				},
 
 				color: colors => {
@@ -431,6 +439,7 @@ function createLine (options) {
 
 				range: range => {
 					let bounds = state.bounds
+					if (!range) range = state.range = bounds
 
 					if (state.precise) {
 						let boundX = bounds[2] - bounds[0],
@@ -499,6 +508,25 @@ function createLine (options) {
 		})
 
 		//put collected data into buffers
+		if (pointCount) {
+			let positionData = new Float32Array(pointCount * 2 + lines.length * 4 )
+			let offset = 0
+			lines.forEach((state, i) => {
+				let {positions, count} = state
+				state.offset = offset
+
+				if (!count) return
+
+				positionData[offset * 2 + 0] = positions[0]
+				positionData[offset * 2 + 1] = positions[1]
+				positionData.set(positions, offset * 2 + 2)
+				positionData[offset * 2 + count*2 + 2] = positions[count*2 - 2]
+				positionData[offset * 2 + count*2 + 3] = positions[count*2 - 1]
+
+				offset += count + 2
+			})
+			positionBuffer(positionData)
+		}
 
 		return line2d
 	}

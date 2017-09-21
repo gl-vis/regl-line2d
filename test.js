@@ -24,17 +24,15 @@ let options = {
   color: 'rgba(0,0,255,.5)',//[palette[0]],
   miterlimit: 1,
   dashes: [8, 2],
-  closed: true
+  closed: true,
+  range
 }
 let batch = []
 
 // FIXME: enable settings-panel
 // createPanel(options, opts => draw(opts))
 
-let drawLine = createLine(extend({
-  regl,
-  range
-}, options))
+let drawLine = createLine(regl)
 let drawPoints = createScatter({
   regl, range,
   size: 10,
@@ -85,7 +83,7 @@ panZoom(cnv, e => {
     range[3] += yrange * e.dy / h
   }
 
-  let state = {range: range}
+  let state = Array(batch.length).fill({range: range})
   frame(state, prev)
   prev = state
 })
@@ -120,7 +118,7 @@ t('multiple points', t => {
     positions[i+1] = random() * 2
   }
 
-  batch.push({positions, thickness: 10})
+  batch.push({positions, thickness: 10, range})
 
   t.end()
 })
@@ -129,8 +127,8 @@ t.only('closed circuit', t => {
   let thickness = 100
   let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
 
-  batch.push(extend(options, {positions}))
-  // batch.push(extend(options, {positions: translate(positions, -2, -2)})
+  batch.push(extend({}, options, {positions: positions.slice()}))
+  batch.push(extend({}, options, {positions: translate(positions.slice(), -2, -2)}))
 
   t.end()
 })
