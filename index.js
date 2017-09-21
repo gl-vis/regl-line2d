@@ -7,8 +7,9 @@ const extend = require('object-assign')
 const glslify = require('glslify')
 const pick = require('pick-by-alias')
 const filter = require('filter-obj')
-const map = require('obj-map-prop')
+const mapProp = require('obj-map-prop')
 const flatten = require('flatten-vertex-data')
+const blacklist = require('blacklist')
 
 module.exports = createLine
 
@@ -19,15 +20,29 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, gl, drawLine, colorBuffer, offsetBuffer, positionBuffer, dashTexture, rawOptions = {}, state = {
-		bounds: null,
-		scale: null,
-		translate: null,
-		count: null,
-		//enlarges dash pattern this amount of times, creates antialiasing
-		dashMult: 4,
-		dashLength: null
-	}
+	let regl, gl, properties, drawLine, colorBuffer, offsetBuffer, positionBuffer, dashTexture,
+
+		// last raw options reference for diff-update
+		rawOptions = {},
+
+		// used to for new lines instances
+		defaultOptions = {
+			positions: [],
+			precise: false,
+			dashes: null,
+			join: 'bevel',
+			miterLimit: 1,
+			thickness: 10,
+			cap: 'square',
+			color: 'black',
+			opacity: 1,
+			viewport: null,
+			range: null,
+			offset: 0
+		},
+
+		// list of states for lines
+		lines = []
 
 
 	// regl instance
@@ -88,23 +103,12 @@ function createLine (options) {
 		regl: regl,
 		gl: regl._gl,
 		canvas: regl._gl.canvas,
-		state: state
+		lines: lines
 	})
 
 	//init defaults
-	update(extend({
-		positions: [],
-		precise: true,
-		dashes: null,
-		join: 'bevel',
-		miterLimit: 1,
-		thickness: 10,
-		cap: 'square',
-		color: 'black',
-		opacity: 1,
-		viewport: null,
-		range: null
-	}, options))
+	update(extend(defaultOptions, options))
+
 
 	//create regl draw
 	drawLine = regl({
@@ -112,6 +116,12 @@ function createLine (options) {
 		instances: (ctx, prop) => prop.count - 1,
 		count: 4,
 		offset: 0,
+
+		//culling removes polygon creasing
+		cull: {
+			enable: true,
+			face: 'back'
+		},
 
 		vert: glslify('./vert.glsl'),
 		frag: glslify('./frag.glsl'),
@@ -126,7 +136,7 @@ function createLine (options) {
 			totalDistance: regl.prop('totalDistance'),
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
-			viewport: ctx => [state.viewport.x, state.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
+			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
 		},
 		attributes: {
 			lineEnd: {
@@ -141,52 +151,46 @@ function createLine (options) {
 				stride: 8,
 				offset: 4
 			},
-			aColor: () => state.color.length > 4 ? {
+			aColor: (ctx, prop) => prop.color.length > 4 ? {
 				buffer: colorBuffer,
 				stride: 4,
 				offset: 0,
 				divisor: 1
 			} : {
-				constant: state.color
+				constant: prop.color
 			},
-			bColor: () => state.color.length > 4 ? {
+			bColor: (ctx, prop) => prop.color.length > 4 ? {
 				buffer: colorBuffer,
 				stride: 4,
 				offset: 4,
 				divisor: 1
 			} : {
-				constant: state.color
+				constant: prop.color
 			},
 			prevCoord: {
 				buffer: positionBuffer,
 				stride: 8,
-				offset: 0,
+				offset: (ctx, prop) => prop.offset * 8,
 				divisor: 1
 			},
 			aCoord: {
 				buffer: positionBuffer,
 				stride: 8,
-				offset: 8,
+				offset: (ctx, prop) => 8 + prop.offset * 8,
 				divisor: 1
 			},
 			bCoord: {
 				buffer: positionBuffer,
 				stride: 8,
-				offset: 16,
+				offset: (ctx, prop) => 16 + prop.offset * 8,
 				divisor: 1
 			},
 			nextCoord: {
 				buffer: positionBuffer,
 				stride: 8,
-				offset: 24,
+				offset: (ctx, prop) => 24 + prop.offset * 8,
 				divisor: 1
 			}
-		},
-
-		//culling removes polygon creasing
-		cull: {
-			enable: true,
-			face: 'back'
 		},
 
 		blend: {
@@ -212,8 +216,6 @@ function createLine (options) {
 		viewport: regl.prop('viewport')
 	})
 
-	return line2d
-
 
 	function line2d (opts) {
 		//update
@@ -226,10 +228,14 @@ function createLine (options) {
 			destroy()
 		}
 
-		if (!state.count) return
+		//render multiple polylines via regl batch
+		let batch = lines.filter(state => {
+			return state.count && state.positions && state.positions.length
+		})
 
-		drawLine(state)
+		drawLine(batch)
 	}
+
 
 	function update (options) {
 		if (options.length != null) {
@@ -259,21 +265,38 @@ function createLine (options) {
 		//consider only not changed properties
 		options = filter(options, (key, value) => {
 			if (Array.isArray(value)) return true
-			return value !== undefined && rawOptions[key] !== value && state[key] !== value
+			return value !== undefined && rawOptions[key] !== value
 		})
 
 		//cache properties
 		extend(rawOptions, options)
 
-		//handle and cache new options
-		extend(state, map(options, {
+		if (options.positions) {
+			//force positions to be for multiple lines
+			if (options.positions.length && (typeof options.positions[0] === 'number' || options.positions[0].length === 2)) {
+				options.positions = [options.positions]
+			}
+		}
+
+		//separate options to per-line property and shared property values
+		let multiOptions = filter(options, (key, value) => {
+			if (key === 'positions') return true
+
+			if (!Array.isArray(value)) return false
+			if (typeof value[0] === 'number') return false
+
+			return true
+		})
+		let singleOptions = blacklist(options, multiOptions)
+
+		let properties = {
 			thickness: parseFloat,
 			opacity: parseFloat,
 			miterLimit: parseFloat,
 			// join: j => join = j,
 
-			positions: positions => {
-				let unrolled = flatten(positions)
+			positions: (positions, state) => {
+				positions = flatten(positions)
 
 				//hi-precision buffer has normalized coords and [hi,hi, lo,lo, hi,hi, lo,lo...] layout
 				// if (precise) {
@@ -298,23 +321,20 @@ function createLine (options) {
 				// 	positionBuffer(precisePositions)
 				// }
 
-				let count = state.count = Math.floor(unrolled.length / 2)
-				state.bounds = getBounds(unrolled, 2)
-
-				if (!state.range) state.range = state.bounds
+				let count = state.count = Math.floor(positions.length / 2)
 
 				let positionData = new Float32Array(count * 2 + 4)
 
 				//we duplicate first and last points to get [prev, a, b, next] coords valid
-				positionData[0] = unrolled[0]
-				positionData[1] = unrolled[1]
-				positionData.set(unrolled, 2)
+				positionData[0] = positions[0]
+				positionData[1] = positions[1]
+				positionData.set(positions, 2)
 				positionData[count*2 + 2] = positionData[count*2 + 0]
 				positionData[count*2 + 3] = positionData[count*2 + 1]
 
 				positionBuffer(positionData)
 
-				return unrolled
+				return positions
 			},
 
 			color: colors => {
@@ -359,10 +379,11 @@ function createLine (options) {
 				return color
 			},
 
-			dashes: dashes => {
+			dashes: (dashes, state) => {
 				let dashLength = state.dashLength,
-					dashMult = state.dashMult,
 					dashData = new Uint8Array([255])
+
+				const dashMult = 4;
 
 				if (!dashes || dashes.length < 2) {
 					dashLength = 1.
@@ -410,8 +431,9 @@ function createLine (options) {
 				return dashData
 			},
 
-			range: range => {
+			range: (range, state) => {
 				let bounds = state.bounds
+				if (!state.range) state.range = bounds
 
 				if (state.precise) {
 					let boundX = bounds[2] - bounds[0],
@@ -440,6 +462,7 @@ function createLine (options) {
 
 				return range
 			},
+
 			viewport: vp => {
 				let viewport
 
@@ -473,7 +496,37 @@ function createLine (options) {
 
 				return viewport
 			}
-		}))
+		}
+
+		//put newly obtained shared properties to defaults
+		let processedOptions = mapProp(singleOptions, properties)
+		extend(defaultOptions, singleOptions, processedOptions)
+
+		//ensure there is enough line instances
+		if (options.positions) {
+			lines = options.positions.map((p, i) => {
+				let state = lines[i]
+
+				//prototype here keeps defaultOptions live-updated
+				if (!state) state = Object.create(defaultOptions)
+
+				state.bounds = getBounds(p, 2)
+
+				return state
+			})
+		}
+
+		//distribute every new multi property per polyline instance
+		lines = lines.map((state, i) => {
+			let options = {}
+			for (let prop in multiOptions) {
+				let value = multiOptions[prop][i]
+				options[prop] = value
+			}
+			let changes = mapProp(options, properties)
+
+			return extend(state, options, changes)
+		})
 
 		return line2d
 	}
@@ -486,4 +539,6 @@ function createLine (options) {
 		dashTexture.destroy()
 		regl.destroy()
 	}
+
+	return line2d
 }

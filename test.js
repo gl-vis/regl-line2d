@@ -11,15 +11,17 @@ const nanoraf = require('nanoraf')
 const palettes = require('nice-color-palettes')
 const createScatter = require('regl-scatter2d')
 const t = require('tape')
+const extend = require('object-assign')
 const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
 
 
 let palette = palettes[ Math.floor(Math.random() * palettes.length) ]
-let range = [-5 * innerWidth/innerHeight, -5, 5 * innerWidth/innerHeight, 5]
+let span = 10
+let range = [-span * .5 * innerWidth/innerHeight, -span * .5, span * .5 * innerWidth/innerHeight, span * .5]
 let pan = true
 let options = {
   thickness: 20,
-  color: [palette[0]],
+  color: 'rgba(0,0,255,.5)',//[palette[0]],
   miterlimit: 1,
   dashes: [8, 2],
   closed: true
@@ -29,15 +31,15 @@ let batch = []
 // FIXME: enable settings-panel
 // createPanel(options, opts => draw(opts))
 
-let drawLine = createLine({
+let drawLine = createLine(extend({
   regl,
   range
-})
+}, options))
 let drawPoints = createScatter({
   regl, range,
   size: 10,
   borderSize: 0,
-  color: 'rgba(255,0,0,.5)'
+  color: 'rgba(255,0,0,.25)'
 })
 
 function draw(opts) {
@@ -89,23 +91,41 @@ panZoom(cnv, e => {
 })
 
 
+function translate (arr, x, y) {
+  for (let i = 0; i < arr.length; i+=2) {
+    arr[i] += x
+    arr[i+1] += y
+  }
+  return arr
+}
+
+function scale (arr, x, y) {
+  for (let i = 0; i < arr.length; i+=2) {
+    arr[i] *= x
+    arr[i+1] *= y
+  }
+  return arr
+}
+
+
+
 /** Test cases */
 
-t.only('multiple points', t => {
-  let N = 1e5
-  let positions = new Float32Array(2 * N)
+t('multiple points', t => {
+  let N = 1e4
+  let positions = Array(2 * N)
   for(var i=0; i<2*N; i+=2) {
     // positions[i]   = (i/N)*10.0-10.0
     positions[i] = random() * 2
     positions[i+1] = random() * 2
   }
 
-  batch.push({positions, thickness: 1})
+  batch.push({positions, thickness: 10})
 
   t.end()
 })
 
-t('closed circuit', t => {
+t.only('closed circuit', t => {
   let thickness = 100
   let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
 
@@ -169,20 +189,3 @@ t('painting', t => {
   pan = false
 })
 
-
-
-function translate (arr, x, y) {
-  for (let i = 0; i < arr.length; i+=2) {
-    arr[i] += x
-    arr[i+1] += y
-  }
-  return arr
-}
-
-function scale (arr, x, y) {
-  for (let i = 0; i < arr.length; i+=2) {
-    arr[i] *= x
-    arr[i+1] *= y
-  }
-  return arr
-}

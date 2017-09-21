@@ -34,6 +34,7 @@
   "homepage": "https://github.com/dfcreative/regl-line2d#readme",
   "dependencies": {
     "array-bounds": "^1.0.0",
+    "blacklist": "^1.1.4",
     "bubleify": "^0.7.0",
     "color-rgba": "^1.1.0",
     "filter-obj": "^1.1.0",
