@@ -389,7 +389,7 @@ function createLine (options) {
 					let dashLength = state.dashLength,
 						dashData = new Uint8Array([255])
 
-					const dashMult = 4;
+					const dashMult = 2;
 
 					if (!dashes || dashes.length < 2) {
 						dashLength = 1.
