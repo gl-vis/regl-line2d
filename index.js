@@ -41,6 +41,8 @@ function createLine (options) {
 		// list of options for lines
 		lines = []
 
+	const dashMult = 2, dashTextureWidth = 1024, dashTextureHeight = 256
+
 
 	// regl instance
 	if (options.regl) regl = options.regl
@@ -85,11 +87,10 @@ function createLine (options) {
 	})
 	dashTexture = regl.texture({
 		channels: 1,
-		data: [255],
-		width: 1,
-		height: 1,
-		mag: 'nearest',
-		min: 'nearest'
+		width: dashTextureWidth,
+		height: dashTextureHeight,
+		mag: 'linear',
+		min: 'linear'
 	})
 
 	//expose API
@@ -130,9 +131,11 @@ function createLine (options) {
 			thickness: regl.prop('thickness'),
 			dashPattern: dashTexture,
 			dashLength: regl.prop('dashLength'),
+			dashShape: [dashTextureWidth, dashTextureHeight],
 			totalDistance: regl.prop('totalDistance'),
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
+			id: regl.prop('id'),
 			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
 		},
 		attributes: {
@@ -255,6 +258,7 @@ function createLine (options) {
 			//prototype here keeps defaultOptions live-updated
 			if (!state) {
 				lines[i] = state = {
+					id: i,
 					raw: {},
 					scale: null,
 					translate: null,
@@ -387,20 +391,11 @@ function createLine (options) {
 
 				dashes: dashes => {
 					let dashLength = state.dashLength,
-						dashData = new Uint8Array([255])
-
-					const dashMult = 2;
+						dashData
 
 					if (!dashes || dashes.length < 2) {
 						dashLength = 1.
-						dashTexture({
-							channels: 1,
-							data: dashData,
-							width: 1,
-							height: 1,
-							mag: 'linear',
-							min: 'linear'
-						})
+						dashData = new Uint8Array([255, 255, 255, 255, 255, 255, 255, 255])
 					}
 
 					else {
@@ -421,16 +416,14 @@ function createLine (options) {
 								fillColor ^= 255
 							}
 						}
-
-						dashTexture({
-							channels: 1,
-							data: dashData,
-							width: dashLength * dashMult,
-							height: 1,
-							mag: 'linear',
-							min: 'linear'
-						})
 					}
+
+					dashTexture.subimage({
+						// channels: 1,
+						data: dashData,
+						width: dashData.length,
+						height: 1
+					}, 0, state.id)
 
 					state.dashLength = dashLength
 

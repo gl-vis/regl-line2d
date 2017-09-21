@@ -35,17 +35,17 @@ let batch = []
 let drawLine = createLine(regl)
 let drawPoints = createScatter({
   regl, range,
-  size: 10,
+  size: 5,
   borderSize: 0,
   color: 'rgba(255,0,0,.25)'
 })
 
 function draw(opts) {
   regl._refresh()
-  drawLine(opts)
+  drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
 
   regl._refresh()
-  drawPoints(opts)
+  drawLine(opts)
 }
 
 setTimeout(() => {
@@ -121,7 +121,7 @@ t('multiple points', t => {
   scale(positions, .15, .15)
   translate(positions, -5, -3)
 
-  batch.push(extend({}, options, {positions, thickness: 1, range}))
+  batch.push(extend({}, options, {positions, thickness: 1, range, dash: [3, 3]}))
 
   t.end()
 })
@@ -133,7 +133,7 @@ t('closed circuit', t => {
   scale(positions, .25, .25)
   translate(positions, -1.5, -3)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 15}))
+  batch.push(extend({}, options, {positions: positions, thickness: 10, dash: [8, 2]}))
   // batch.push(extend({}, options, {positions: translate(positions.slice(), -2, -2)}))
 
   t.end()
@@ -145,7 +145,7 @@ t('basic edge cases', t => {
   scale(positions, .25, .25)
   translate(positions, 1.5, -3)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 5, dash: [5, 5]}))
+  batch.push(extend({}, options, {positions: positions, thickness: 3, dash: [8, 2, 2, 2]}))
 
   t.end()
 })
@@ -179,7 +179,7 @@ t('plotly linear approx', t => {
   scale(positions, 1, .12)
   translate(positions, -6, 0)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 3, dash: [1]}))
+  batch.push(extend({}, options, {positions: positions, thickness: 3, dash: null}))
 
   t.end()
 })
