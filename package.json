@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "budo test",
-    "build": "browserify test.js -g bubleify | indexhtmlify | metadataify | github-cornerify > index.html"
+    "build": "browserify test.js -g bubleify | indexhtmlify | metadataify | github-cornerify > demo/index.html"
   },
   "browserify": {
     "transform": [
