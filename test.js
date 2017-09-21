@@ -51,7 +51,7 @@ function draw(opts) {
 }
 
 setTimeout(() => {
-  draw(batch[0])
+  draw(batch)
 }, 100)
 
 //pan-zoom interactions
@@ -129,7 +129,8 @@ t.only('closed circuit', t => {
   let thickness = 100
   let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
 
-  batch.push({positions})
+  batch.push(extend(options, {positions}))
+  // batch.push(extend(options, {positions: translate(positions, -2, -2)})
 
   t.end()
 })
