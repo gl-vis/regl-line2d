@@ -21,7 +21,7 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, gl, properties, drawLine, colorBuffer, offsetBuffer, positionBuffer, dashTexture,
+	let regl, gl, properties, drawLine, colorBuffer, offsetBuffer, positionBuffer, dashTexture, fbo,
 
 		// used to for new lines instances
 		defaultOptions = {
@@ -60,9 +60,11 @@ function createLine (options) {
 		}
 
 		if (!opts.extensions) opts.extensions = []
+		if (!opts.optionalExtensions) opts.optionalExtensions = []
 
 		//FIXME: use fallback if not available
 		opts.extensions.push('ANGLE_instanced_arrays')
+		opts.optionalExtensions.push('EXT_blend_minmax')
 
 		regl = createRegl(opts)
 	}
@@ -92,6 +94,11 @@ function createLine (options) {
 		mag: 'linear',
 		min: 'linear'
 	})
+	fbo = regl.framebuffer({
+		width: gl.drawingBufferWidth,
+		height: gl.drawingBufferHeight,
+		depthStencil: false
+	})
 
 	//expose API
 	extend(line2d, {
@@ -99,13 +106,15 @@ function createLine (options) {
 		draw: line2d,
 		destroy: destroy,
 		regl: regl,
-		gl: regl._gl,
-		canvas: regl._gl.canvas,
+		gl: gl,
+		canvas: gl.canvas,
 		lines: lines
 	})
 
 	//init defaults
 	update(options)
+
+
 
 
 	//create regl draw
@@ -195,23 +204,30 @@ function createLine (options) {
 
 		blend: {
 			enable: true,
-			color: [0,0,0,1],
+			color: () => [0,0,0,0],
+			equation: {
+				rgb: 'add',
+				alpha: 'add'
+			},
 			func: {
-				srcRGB:   'src alpha',
-				srcAlpha: 1,
-				dstRGB:   'one minus src alpha',
-				dstAlpha: 'one minus src alpha'
+				srcRGB: 'src alpha',
+				dstRGB: 'one minus src alpha',
+				srcAlpha: 'one minus dst alpha',
+				dstAlpha: 'one'
 			}
 		},
 
 		depth: {
-			enable: false
+			enable: false,
+			func: 'less'
 		},
 
 		scissor: {
 			enable: true,
 			box: regl.prop('viewport')
 		},
+
+		stencil: false,
 
 		viewport: regl.prop('viewport')
 	})

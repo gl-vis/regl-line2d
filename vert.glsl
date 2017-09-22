@@ -5,7 +5,7 @@ attribute vec4 aColor, bColor;
 attribute float lineEnd, lineTop;
 
 uniform vec2 scale, translate;
-uniform float thickness, pixelRatio;
+uniform float thickness, pixelRatio, id;
 uniform vec4 viewport;
 uniform float miterLimit, dashLength;
 
@@ -130,7 +130,7 @@ void main() {
 	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
 
-	gl_Position = vec4(position  * 2.0 - 1.0, 0, 1);
+	gl_Position = vec4(position  * 2.0 - 1.0, (19. - id) / 20., 1);
 
 
 	vec4 miterWidth = vec4(startJoinNormal, endJoinNormal) * thickness * miterLimit * .5;
