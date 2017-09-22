@@ -12,7 +12,11 @@ const palettes = require('nice-color-palettes')
 const createScatter = require('regl-scatter2d')
 const t = require('tape')
 const extend = require('object-assign')
-const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
+const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint', 'EXT_blend_minmax']})
+
+
+document.documentElement.style.background = 'url(https://images.unsplash.com/photo-1461958723673-f65d980244f1?dpr=1&auto=format&fit=crop&w=1080&h=720&q=80&cs=tinysrgb&crop=)';
+document.documentElement.style.height = '100vh'
 
 
 let palette = palettes[ Math.floor(Math.random() * palettes.length) ]
@@ -20,8 +24,10 @@ let span = 10
 let range = [-span * .5 * innerWidth/innerHeight, -span * .5, span * .5 * innerWidth/innerHeight, span * .5]
 let pan = true
 let options = {
+  opacity: .5,
+  overlay: true,
   thickness: 20,
-  color: 'rgba(0,0,255,.5)',//[palette[0]],
+  color: 'rgba(0,0,255,1)',//[palette[0]],
   miterlimit: 1,
   dashes: [8, 2],
   closed: true,
@@ -35,7 +41,7 @@ let batch = []
 let drawLine = createLine(regl)
 let drawPoints = createScatter({
   regl, range,
-  size: 5,
+  size: 15,
   borderSize: 0,
   color: 'rgba(255,0,0,.25)'
 })
@@ -127,14 +133,12 @@ t('multiple points', t => {
 })
 
 t('closed circuit', t => {
-  let thickness = 100
   let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
 
   scale(positions, .25, .25)
   translate(positions, -1.5, -3)
 
   batch.push(extend({}, options, {positions: positions, thickness: 10, dash: [8, 2]}))
-  // batch.push(extend({}, options, {positions: translate(positions.slice(), -2, -2)}))
 
   t.end()
 })
@@ -145,7 +149,7 @@ t('basic edge cases', t => {
   scale(positions, .25, .25)
   translate(positions, 1.5, -3)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 3, dash: [8, 2, 2, 2]}))
+  batch.push(extend({}, options, {positions: positions, thickness: 10, dash: [15, 5]}))
 
   t.end()
 })

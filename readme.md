@@ -59,6 +59,7 @@ Option | Alias | Default | Description
 `close` | | `false` | Connect last point with the first point with a segment.
 `fill` | | `none` | Fills area enclosed by line.
 `precise` | | `true` | Enable float64 precision. Affects performance insignificantly.
+`overlay` | | `false` | Enable overlay of line segments.
 
 Processed options are exposed in `drawLine.state` object, along with `drawLine.draw`, `drawLine.update` and `drawLine.destroy` methods.
 

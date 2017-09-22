@@ -6390,7 +6390,7 @@ function createLine (options) {
 	else if (options.length) { options = {positions: options} }
 
 	// persistent variables
-	var regl, gl, properties, drawLine, colorBuffer, offsetBuffer, positionBuffer, dashTexture,
+	var regl, gl, properties, drawLine, colorBuffer, offsetBuffer, positionBuffer, dashTexture, fbo,
 
 		// used to for new lines instances
 		defaultOptions = {
@@ -6429,9 +6429,11 @@ function createLine (options) {
 		}
 
 		if (!opts.extensions) { opts.extensions = [] }
+		if (!opts.optionalExtensions) { opts.optionalExtensions = [] }
 
 		//FIXME: use fallback if not available
 		opts.extensions.push('ANGLE_instanced_arrays')
+		opts.optionalExtensions.push('EXT_blend_minmax')
 
 		regl = createRegl(opts)
 	}
@@ -6461,6 +6463,12 @@ function createLine (options) {
 		mag: 'linear',
 		min: 'linear'
 	})
+	// fbo = regl.framebuffer({
+	// 	width: 256,
+	// 	height: 256,
+	// 	depthStencil: false,
+	// 	color: regl.texture()
+	// })
 
 	//expose API
 	extend(line2d, {
@@ -6491,7 +6499,7 @@ function createLine (options) {
 		},
 
 		vert: glslify(["precision highp float;\n#define GLSLIFY 1\n\nattribute vec2 aCoord, bCoord, nextCoord, prevCoord;\nattribute vec4 aColor, bColor;\nattribute float lineEnd, lineTop;\n\nuniform vec2 scale, translate;\nuniform float thickness, pixelRatio;\nuniform vec4 viewport;\nuniform float miterLimit, dashLength;\n\nvarying vec4 fragColor;\nvarying vec4 startCutoff, endCutoff;\nvarying vec2 tangent;\nvarying vec2 startCoord, endCoord;\nvarying float startMiter, endMiter;\n\nconst float REVERSE_MITER = -1e-5;\n\nfloat distToLine(vec2 p, vec2 a, vec2 b) {\n\tvec2 diff = b - a;\n\tvec2 perp = normalize(vec2(-diff.y, diff.x));\n\treturn dot(p - a, perp);\n}\n\nvoid main() {\n\tvec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;\n\tvec2 scaleRatio = scale * viewport.zw;\n\n\tfloat lineStart = 1. - lineEnd;\n\tfloat lineBot = 1. - lineTop;\n\n\tvec2 prevDiff = aCoord - prevCoord;\n\tvec2 currDiff = bCoord - aCoord;\n\tvec2 nextDiff = nextCoord - bCoord;\n\n\tvec2 prevDirection = normalize(prevDiff);\n\tvec2 currDirection = normalize(currDiff);\n\tvec2 nextDirection = normalize(nextDiff);\n\n\tif (dot(currDirection, nextDirection) == -1.) {\n\t\tnextCoord = bCoord;\n\t\tnextDiff = nextCoord - bCoord;\n\t}\n\tif (dot(currDirection, prevDirection) == -1.) {\n\t\tif (length(currDiff) <= length(prevDiff)) {\n\t\t\treturn;\n\t\t}\n\t\taCoord = prevCoord;\n\t\tcurrDiff = bCoord - aCoord;\n\t}\n\n\tvec2 prevTangent = normalize(prevDiff * scaleRatio);\n\tvec2 currTangent = normalize(currDiff * scaleRatio);\n\tvec2 nextTangent = normalize(nextDiff * scaleRatio);\n\n\tvec2 prevNormal = vec2(-prevTangent.y, prevTangent.x);\n\tvec2 currNormal = vec2(-currTangent.y, currTangent.x);\n\tvec2 nextNormal = vec2(-nextTangent.y, nextTangent.x);\n\n\tvec2 startJoinNormal = normalize(prevTangent - currTangent);\n\tvec2 endJoinNormal = normalize(currTangent - nextTangent);\n\n\t//collapsed/unidirectional segment cases\n\tif (prevDirection == currDirection) {\n\t\tstartJoinNormal = currNormal;\n\t}\n\tif (nextDirection == currDirection) {\n\t\tendJoinNormal = currNormal;\n\t}\n\tif (prevCoord == aCoord) {\n\t\tstartJoinNormal = currNormal;\n\t\tprevTangent = currTangent;\n\t\tprevNormal = currNormal;\n\t}\n\tif (aCoord == bCoord) {\n\t\tendJoinNormal = startJoinNormal;\n\t\tcurrNormal = prevNormal;\n\t\tcurrTangent = prevTangent;\n\t}\n\tif (bCoord == nextCoord) {\n\t\tendJoinNormal = currNormal;\n\t\tnextTangent = currTangent;\n\t\tnextNormal = currNormal;\n\t}\n\n\tfloat startJoinShift = dot(currNormal, startJoinNormal);\n\tfloat endJoinShift = dot(currNormal, endJoinNormal);\n\n\tfloat startMiterRatio = abs(1. / startJoinShift);\n\tfloat endMiterRatio = abs(1. / endJoinShift);\n\n\tvec2 startJoin = startJoinNormal * startMiterRatio;\n\tvec2 endJoin = endJoinNormal * endMiterRatio;\n\n\tvec2 startTopJoin, startBotJoin, endTopJoin, endBotJoin;\n\tstartTopJoin = sign(startJoinShift) * startJoin * .5;\n\tstartBotJoin = -startTopJoin;\n\n\tendTopJoin = sign(endJoinShift) * endJoin * .5;\n\tendBotJoin = -endTopJoin;\n\n\tvec2 normalWidth = thickness / scaleRatio;\n\n\tvec2 aBotCoord = aCoord + normalWidth * startBotJoin;\n\tvec2 aTopCoord = aCoord + normalWidth * startTopJoin;\n\tvec2 bBotCoord = bCoord + normalWidth * endBotJoin;\n\tvec2 bTopCoord = bCoord + normalWidth * endTopJoin;\n\n\t//miter crease anti-clipping\n\tfloat abClipping = distToLine(aCoord, bCoord, bTopCoord) / dot(normalize(normalWidth * startBotJoin), normalize(normalWidth.yx * vec2(-endBotJoin.y, endBotJoin.x)));\n\tfloat baClipping = distToLine(bCoord, aCoord, aBotCoord) / dot(normalize(normalWidth * endBotJoin), normalize(normalWidth.yx * vec2(-startBotJoin.y, startBotJoin.x)));\n\tif (abClipping > 0. && abClipping < length(normalWidth * startBotJoin)) {\n\t\taBotCoord -= normalWidth * startBotJoin;\n\t\taBotCoord += normalize(startBotJoin * normalWidth) * abClipping;\n\t}\n\tif (baClipping > 0. && baClipping < length(normalWidth * endBotJoin)) {\n\t\tbTopCoord -= normalWidth * endTopJoin;\n\t\tbTopCoord += normalize(endTopJoin * normalWidth) * baClipping;\n\t}\n\n\tvec2 aPosition = (aCoord + translate) * scale;\n\tvec2 aTopPosition = (aTopCoord + translate) * scale;\n\tvec2 aBotPosition = (aBotCoord + translate) * scale;\n\n\tvec2 bPosition = (bCoord + translate) * scale;\n\tvec2 bTopPosition = (bTopCoord + translate) * scale;\n\tvec2 bBotPosition = (bBotCoord + translate) * scale;\n\n\t//position is normalized 0..1 coord on the screen\n\tvec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;\n\n\tgl_Position = vec4(position  * 2.0 - 1.0, 0, 1);\n\n\tvec4 miterWidth = vec4(startJoinNormal, endJoinNormal) * thickness * miterLimit * .5;\n\n\t//provides bevel miter cutoffs\n\tstartMiter = 0.;\n\tif (dot(currTangent, prevTangent) < .5) {\n\t\tstartMiter = 1.;\n\t\tstartCutoff = vec4(aCoord, aCoord);\n\t\tstartCutoff.zw += (prevCoord == aCoord ? startBotJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;\n\t\tstartCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;\n\t\tstartCutoff += viewport.xyxy;\n\t\tstartCutoff += miterWidth.xyxy;\n\t}\n\n\tendMiter = 0.;\n\tif (dot(currTangent, nextTangent) < .5) {\n\t\tendMiter = 1.;\n\t\tendCutoff = vec4(bCoord, bCoord);\n\t\tendCutoff.zw += (nextCoord == bCoord ? endTopJoin :  vec2(-endJoinNormal.y, endJoinNormal.x))  / scaleRatio;\n\t\tendCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;\n\t\tendCutoff += viewport.xyxy;\n\t\tendCutoff += miterWidth.zwzw;\n\t}\n\n\tstartCoord = (aCoord + translate) * scaleRatio + viewport.xy;\n\tendCoord = (bCoord + translate) * scaleRatio + viewport.xy;\n\n\ttangent = currTangent;\n\n\tfragColor = (lineEnd * bColor + lineStart * aColor) / 255.;\n}\n"]),
-		frag: glslify(["precision highp float;\n#define GLSLIFY 1\n\nuniform sampler2D dashPattern;\nuniform vec2 dashShape;\nuniform float dashLength, pixelRatio, thickness, opacity, id;\n\nvarying vec4 fragColor;\nvarying float fragLength;\nvarying vec2 tangent;\nvarying vec4 startCutoff, endCutoff;\nvarying vec2 startCoord, endCoord;\nvarying float startMiter, endMiter;\n\nfloat distToLine(vec2 p, vec2 a, vec2 b) {\n\tvec2 diff = b - a;\n\tvec2 perp = normalize(vec2(-diff.y, diff.x));\n\treturn dot(p - a, perp);\n}\n\nvoid main() {\n\tfloat alpha = 1., distToStart, distToEnd;\n\n\t//bevel miter\n\tif (startMiter > 0.) {\n\t\tdistToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);\n\t\tif (distToStart < 0.) {\n\t\t\tdiscard;\n\t\t\treturn;\n\t\t}\n\t\talpha *= min(max(distToStart, 0.), 1.);\n\t}\n\n\tif (endMiter > 0.) {\n\t\tdistToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);\n\t\tif (distToEnd < 0.) {\n\t\t\tdiscard;\n\t\t\treturn;\n\t\t}\n\t\talpha *= min(max(distToEnd, 0.), 1.);\n\t}\n\n\t// round miter\n\t// distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);\n\t// if (distToStart < 0.) {\n\t// \tfloat radius = length(gl_FragCoord.xy - startCoord);\n\n\t// \tif(radius > thickness * pixelRatio * .5) {\n\t// \t\tdiscard;\n\t// \t\treturn;\n\t// \t}\n\t// }\n\n\t// distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);\n\t// if (distToEnd < 0.) {\n\t// \tfloat radius = length(gl_FragCoord.xy - endCoord);\n\n\t// \tif(radius > thickness * pixelRatio * .5) {\n\t// \t\tdiscard;\n\t// \t\treturn;\n\t// \t}\n\t// }\n\n\t// alpha -= smoothstep(1.0 - delta, 1.0 + delta, radius);\n\n\tfloat t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;\n\n\tgl_FragColor = fragColor;\n\tgl_FragColor.a *= alpha * opacity * texture2D(dashPattern, vec2(t * dashLength * 2. / dashShape.x, (id + .5) / dashShape.y)).r;\n}\n"]),
+		frag: glslify(["precision highp float;\n#define GLSLIFY 1\n\nuniform sampler2D dashPattern;\nuniform vec2 dashShape;\nuniform float dashLength, pixelRatio, thickness, opacity, id;\n\nvarying vec4 fragColor;\nvarying float fragLength;\nvarying vec2 tangent;\nvarying vec4 startCutoff, endCutoff;\nvarying vec2 startCoord, endCoord;\nvarying float startMiter, endMiter;\n\nfloat distToLine(vec2 p, vec2 a, vec2 b) {\n\tvec2 diff = b - a;\n\tvec2 perp = normalize(vec2(-diff.y, diff.x));\n\treturn dot(p - a, perp);\n}\n\nvoid main() {\n\tfloat alpha = 1., distToStart, distToEnd;\n\n\t//bevel miter\n\tif (startMiter > 0.) {\n\t\tdistToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);\n\t\tif (distToStart < 0.) {\n\t\t\tdiscard;\n\t\t\treturn;\n\t\t}\n\t\talpha *= min(max(distToStart, 0.), 1.);\n\t}\n\n\tif (endMiter > 0.) {\n\t\tdistToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);\n\t\tif (distToEnd < 0.) {\n\t\t\tdiscard;\n\t\t\treturn;\n\t\t}\n\t\talpha *= min(max(distToEnd, 0.), 1.);\n\t}\n\n\t// round miter\n\t// distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);\n\t// if (distToStart < 0.) {\n\t// \tfloat radius = length(gl_FragCoord.xy - startCoord);\n\n\t// \tif(radius > thickness * pixelRatio * .5) {\n\t// \t\tdiscard;\n\t// \t\treturn;\n\t// \t}\n\t// }\n\n\t// distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);\n\t// if (distToEnd < 0.) {\n\t// \tfloat radius = length(gl_FragCoord.xy - endCoord);\n\n\t// \tif(radius > thickness * pixelRatio * .5) {\n\t// \t\tdiscard;\n\t// \t\treturn;\n\t// \t}\n\t// }\n\n\t// alpha -= smoothstep(1.0 - delta, 1.0 + delta, radius);\n\n\tfloat t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;\n\tfloat dash = texture2D(dashPattern, vec2(t * dashLength * 2. / dashShape.x, (id + .5) / dashShape.y)).r;\n\n\tgl_FragColor = fragColor * dash;\n\tgl_FragColor.a *= alpha * opacity * dash;\n}\n"]),
 
 		uniforms: {
 			miterLimit: regl.prop('miterLimit'),
@@ -6564,12 +6572,16 @@ function createLine (options) {
 
 		blend: {
 			enable: true,
-			color: [0,0,0,1],
+			color: [0,0,0,0],
+			equation: {
+				rgb: 'add',
+				alpha: 'max'
+			},
 			func: {
-				srcRGB:   'src alpha',
-				srcAlpha: 1,
-				dstRGB:   'one minus src alpha',
-				dstAlpha: 'one minus src alpha'
+				srcRGB:   'one',
+				dstRGB: 'one',
+				srcAlpha:   'src alpha',
+				dstAlpha: 'dst alpha'
 			}
 		},
 
@@ -6581,6 +6593,8 @@ function createLine (options) {
 			enable: true,
 			box: regl.prop('viewport')
 		},
+
+		stencil: false,
 
 		viewport: regl.prop('viewport')
 	})
@@ -21105,7 +21119,7 @@ var palettes = require('nice-color-palettes')
 var createScatter = require('regl-scatter2d')
 var t = require('tape')
 var extend = require('object-assign')
-var regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
+var regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint', 'EXT_blend_minmax']})
 
 
 var palette = palettes[ Math.floor(Math.random() * palettes.length) ]
@@ -21128,7 +21142,7 @@ var batch = []
 var drawLine = createLine(regl)
 var drawPoints = createScatter({
   regl: regl, range: range,
-  size: 5,
+  size: 15,
   borderSize: 0,
   color: 'rgba(255,0,0,.25)'
 })
@@ -21226,19 +21240,18 @@ t('closed circuit', function (t) {
   scale(positions, .25, .25)
   translate(positions, -1.5, -3)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 10, dash: [8, 2]}))
-  // batch.push(extend({}, options, {positions: translate(positions.slice(), -2, -2)}))
+  batch.push(extend({}, options, {positions: positions, thickness: 50, dash: [8, 2]}))
 
   t.end()
 })
 
-t('basic edge cases', function (t) {
+t.only('basic edge cases', function (t) {
   var positions = [-3,4, -3,3, -3,0, -1,0, -.7,-.5, 0,1, -.5,-.5, .5,1, 0,0, .5,.5, 1,0.5, 2,2, 5,-3, -1,-1.5, -2.5,-2, -5,-3, -4,1, -5,1, -4.5,1, -4.5,2]
 
-  scale(positions, .25, .25)
-  translate(positions, 1.5, -3)
+  // scale(positions, .25, .25)
+  // translate(positions, 1.5, -3)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 3, dash: [8, 2, 2, 2]}))
+  batch.push(extend({}, options, {positions: positions, thickness: 30, dash: [15, 5]}))
 
   t.end()
 })

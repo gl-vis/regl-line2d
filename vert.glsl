@@ -16,6 +16,7 @@ varying vec2 startCoord, endCoord;
 varying float startMiter, endMiter;
 
 const float REVERSE_MITER = -1e-5;
+const float MAX_LINES = 256.;
 
 float distToLine(vec2 p, vec2 a, vec2 b) {
 	vec2 diff = b - a;
@@ -130,7 +131,7 @@ void main() {
 	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
 
-	gl_Position = vec4(position  * 2.0 - 1.0, (19. - id) / 20., 1);
+	gl_Position = vec4(position  * 2.0 - 1.0, (MAX_LINES - 1. - id) / (MAX_LINES), 1);
 
 
 	vec4 miterWidth = vec4(startJoinNormal, endJoinNormal) * thickness * miterLimit * .5;

@@ -34,6 +34,7 @@ function createLine (options) {
 			cap: 'square',
 			color: 'black',
 			opacity: 1,
+			overlay: false,
 			viewport: null,
 			range: null
 		},
@@ -218,7 +219,9 @@ function createLine (options) {
 		},
 
 		depth: {
-			enable: false,
+			enable: (ctx, prop) => {
+				return !prop.overlay
+			},
 			func: 'less'
 		},
 
@@ -294,6 +297,7 @@ function createLine (options) {
 				dashes: 'dash dashes dasharray dash-array dashArray',
 				color: 'color stroke colors stroke-color strokeColor',
 				opacity: 'alpha opacity',
+				overlay: 'overlay crease overlap',
 
 				range: 'bounds range dataBox',
 				viewport: 'viewport viewBox',
@@ -314,6 +318,7 @@ function createLine (options) {
 				thickness: parseFloat,
 				opacity: parseFloat,
 				miterLimit: parseFloat,
+				overlay: Boolean,
 				// join: j => join = j,
 
 				positions: positions => {
