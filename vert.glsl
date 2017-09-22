@@ -91,6 +91,7 @@ void main() {
 
 	tangent = currTangent;
 
+	//calculate join shifts relative to normals
 	float startJoinShift = dot(currNormal, startJoinNormal);
 	float endJoinShift = dot(currNormal, endJoinNormal);
 
@@ -137,6 +138,7 @@ void main() {
 
 	if (nextReverse) {
 		//make join rectangular
+		//TODO: append miterWidth to coord offset here
 		bBotCoord = bCoord - normalWidth * currNormal * .5;
 		bTopCoord = bCoord + normalWidth * currNormal * .5;
 	}
@@ -157,7 +159,7 @@ void main() {
 	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
 
-	//provides bevel miter cutoffs
+	//bevel miter cutoffs
 	startMiter = 0.;
 	if (dot(currTangent, prevTangent) < .5) {
 		startMiter = 1.;
