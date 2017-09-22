@@ -11,12 +11,13 @@ const nanoraf = require('nanoraf')
 const palettes = require('nice-color-palettes')
 const createScatter = require('regl-scatter2d')
 const t = require('tape')
+const normalize = require('array-normalize')
 const extend = require('object-assign')
 const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint', 'EXT_blend_minmax']})
 
 
-document.documentElement.style.background = 'url(https://images.unsplash.com/photo-1461958723673-f65d980244f1?dpr=1&auto=format&fit=crop&w=1080&h=720&q=80&cs=tinysrgb&crop=)';
-document.documentElement.style.height = '100vh'
+// document.documentElement.style.background = 'url(https://images.unsplash.com/photo-1461958723673-f65d980244f1?dpr=1&auto=format&fit=crop&w=1080&h=720&q=80&cs=tinysrgb&crop=)';
+// document.documentElement.style.height = '100vh'
 
 
 let palette = palettes[ Math.floor(Math.random() * palettes.length) ]
@@ -25,7 +26,7 @@ let range = [-span * .5 * innerWidth/innerHeight, -span * .5, span * .5 * innerW
 let pan = true
 let options = {
   opacity: .5,
-  overlay: true,
+  overlay: false,
   thickness: 20,
   color: 'rgba(0,0,255,1)',//[palette[0]],
   miterlimit: 1,
@@ -95,21 +96,6 @@ panZoom(cnv, e => {
 })
 
 
-function translate (arr, x, y) {
-  for (let i = 0; i < arr.length; i+=2) {
-    arr[i] += x
-    arr[i+1] += y
-  }
-  return arr
-}
-
-function scale (arr, x, y) {
-  for (let i = 0; i < arr.length; i+=2) {
-    arr[i] *= x
-    arr[i+1] *= y
-  }
-  return arr
-}
 
 
 
@@ -138,7 +124,7 @@ t('closed circuit', t => {
   scale(positions, .25, .25)
   translate(positions, -1.5, -3)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 10, dash: [8, 2]}))
+  batch.push(extend({}, options, {positions: positions, overlay: true, thickness: 30, dash: [8, 2]}))
 
   t.end()
 })
@@ -149,7 +135,7 @@ t('basic edge cases', t => {
   scale(positions, .25, .25)
   translate(positions, 1.5, -3)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 10, dash: [15, 5]}))
+  batch.push(extend({}, options, {overlay: true, positions: positions, thickness: 10, dash: [15, 5]}))
 
   t.end()
 })
@@ -161,18 +147,21 @@ t('miter clipping', t => {
   scale(positions, .85, .85)
   translate(positions, 0.5, -5.5)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 30, dash: [9, 1]}))
+  batch.push(extend({}, options, {overlay: true, positions: positions, miterlimit: 3, thickness: 30, dash: [9, 1]}))
 
   t.end()
 })
 
 t('near-opposite directions', t => {
-  let positions = [4.01,4, 4,2, 4,7, 3.99,5.5]
+  let positions = [0,1, 0.25,4, .25,-4, .5,-1, .65,0]
 
-  scale(positions, .75, .75)
-  translate(positions, 2.5, -5.3)
+  // normalize(positions, 2)
+  // translate(positions, 2, 1)
+  scale(positions, 1.75, 1)
+  scale(positions, .5, .5)
+  translate(positions, 5.5, -1.82)
 
-  batch.push(extend({}, options, {positions: positions, thickness: 30, dash: [9, 1]}))
+  batch.push(extend({}, options, {overlay: true, positions: positions, thickness: 30, dash: [9, 1]}))
 
   t.end()
 })
@@ -216,3 +205,21 @@ t('painting', t => {
   pan = false
 })
 
+
+
+
+function translate (arr, x, y) {
+  for (let i = 0; i < arr.length; i+=2) {
+    arr[i] += x
+    arr[i+1] += y
+  }
+  return arr
+}
+
+function scale (arr, x, y) {
+  for (let i = 0; i < arr.length; i+=2) {
+    arr[i] *= x
+    arr[i+1] *= y
+  }
+  return arr
+}

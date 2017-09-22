@@ -27,9 +27,13 @@ float distToLine(vec2 p, vec2 a, vec2 b) {
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
 	vec2 scaleRatio = scale * viewport.zw;
+	vec2 normalWidth = thickness / scaleRatio;
 
 	float lineStart = 1. - lineEnd;
 	float lineBot = 1. - lineTop;
+	float depth = (MAX_LINES - 1. - id) / (MAX_LINES);
+
+	fragColor = (lineEnd * bColor + lineStart * aColor) / 255.;
 
 	vec2 prevDiff = aCoord - prevCoord;
 	vec2 currDiff = bCoord - aCoord;
@@ -85,6 +89,8 @@ void main() {
 		nextNormal = currNormal;
 	}
 
+	tangent = currTangent;
+
 	float startJoinShift = dot(currNormal, startJoinNormal);
 	float endJoinShift = dot(currNormal, endJoinNormal);
 
@@ -101,23 +107,43 @@ void main() {
 	endTopJoin = sign(endJoinShift) * endJoin * .5;
 	endBotJoin = -endTopJoin;
 
-	vec2 normalWidth = thickness / scaleRatio;
+	vec4 startMiterWidth = vec4(startJoinNormal, endJoinNormal) * thickness * miterLimit * .5;
+	vec4 endMiterWidth = startMiterWidth;
 
-	vec2 aBotCoord = aCoord + normalWidth * startBotJoin;
 	vec2 aTopCoord = aCoord + normalWidth * startTopJoin;
-	vec2 bBotCoord = bCoord + normalWidth * endBotJoin;
 	vec2 bTopCoord = bCoord + normalWidth * endTopJoin;
+	vec2 aBotCoord = aCoord + normalWidth * startBotJoin;
+	vec2 bBotCoord = bCoord + normalWidth * endBotJoin;
 
-	//miter crease anti-clipping
-	float abClipping = distToLine(aCoord, bCoord, bTopCoord) / dot(normalize(normalWidth * startBotJoin), normalize(normalWidth.yx * vec2(-endBotJoin.y, endBotJoin.x)));
+	//miter anti-clipping
 	float baClipping = distToLine(bCoord, aCoord, aBotCoord) / dot(normalize(normalWidth * endBotJoin), normalize(normalWidth.yx * vec2(-startBotJoin.y, startBotJoin.x)));
-	if (abClipping > 0. && abClipping < length(normalWidth * startBotJoin)) {
-		aBotCoord -= normalWidth * startBotJoin;
-		aBotCoord += normalize(startBotJoin * normalWidth) * abClipping;
+	float abClipping = distToLine(aCoord, bCoord, bTopCoord) / dot(normalize(normalWidth * startBotJoin), normalize(normalWidth.yx * vec2(-endBotJoin.y, endBotJoin.x)));
+
+	//prevent close to reverse direction switch
+	bool prevReverse = dot(currTangent, prevTangent) <= -.875 && abs(dot(currTangent, prevNormal)) * min(length(prevDiff), length(currDiff)) <  length(normalWidth * currNormal);
+	bool nextReverse = dot(currTangent, nextTangent) <= -.875
+		&& abs(dot(currTangent, nextNormal)) * min(length(nextDiff), length(currDiff)) <  length(normalWidth * currNormal);
+
+	if (prevReverse) {
+		//make join rectangular
+		aBotCoord = aCoord - normalWidth * currNormal * .5;
+		aTopCoord = aCoord + normalWidth * currNormal * .5;
 	}
-	if (baClipping > 0. && baClipping < length(normalWidth * endBotJoin)) {
+	else if (!nextReverse && baClipping > 0. && baClipping < length(normalWidth * endBotJoin)) {
+		//miter anti-clipping
 		bTopCoord -= normalWidth * endTopJoin;
 		bTopCoord += normalize(endTopJoin * normalWidth) * baClipping;
+	}
+
+	if (nextReverse) {
+		//make join rectangular
+		bBotCoord = bCoord - normalWidth * currNormal * .5;
+		bTopCoord = bCoord + normalWidth * currNormal * .5;
+	}
+	else if (!prevReverse && abClipping > 0. && abClipping < length(normalWidth * startBotJoin)) {
+		//miter anti-clipping
+		aBotCoord -= normalWidth * startBotJoin;
+		aBotCoord += normalize(startBotJoin * normalWidth) * abClipping;
 	}
 
 	vec2 aPosition = (aCoord + translate) * scale;
@@ -131,11 +157,6 @@ void main() {
 	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
 
-	gl_Position = vec4(position  * 2.0 - 1.0, (MAX_LINES - 1. - id) / (MAX_LINES), 1);
-
-
-	vec4 miterWidth = vec4(startJoinNormal, endJoinNormal) * thickness * miterLimit * .5;
-
 	//provides bevel miter cutoffs
 	startMiter = 0.;
 	if (dot(currTangent, prevTangent) < .5) {
@@ -144,7 +165,7 @@ void main() {
 		startCutoff.zw += (prevCoord == aCoord ? startBotJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
 		startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
 		startCutoff += viewport.xyxy;
-		startCutoff += miterWidth.xyxy;
+		startCutoff += startMiterWidth.xyxy;
 	}
 
 	endMiter = 0.;
@@ -154,13 +175,11 @@ void main() {
 		endCutoff.zw += (nextCoord == bCoord ? endTopJoin :  vec2(-endJoinNormal.y, endJoinNormal.x))  / scaleRatio;
 		endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
 		endCutoff += viewport.xyxy;
-		endCutoff += miterWidth.zwzw;
+		endCutoff += endMiterWidth.zwzw;
 	}
 
 	startCoord = (aCoord + translate) * scaleRatio + viewport.xy;
 	endCoord = (bCoord + translate) * scaleRatio + viewport.xy;
 
-	tangent = currTangent;
-
-	fragColor = (lineEnd * bColor + lineStart * aColor) / 255.;
+	gl_Position = vec4(position  * 2.0 - 1.0, depth, 1);
 }
