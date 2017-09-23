@@ -18,6 +18,9 @@ varying float startMiter, endMiter;
 const float REVERSE_MITER = -1e-5;
 const float MAX_LINES = 256.;
 
+//TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead
+//TODO: precalculate dot products, normalize things etc.
+
 float distToLine(vec2 p, vec2 a, vec2 b) {
 	vec2 diff = b - a;
 	vec2 perp = normalize(vec2(-diff.y, diff.x));
@@ -108,8 +111,7 @@ void main() {
 	endTopJoin = sign(endJoinShift) * endJoin * .5;
 	endBotJoin = -endTopJoin;
 
-	vec4 startMiterWidth = vec4(startJoinNormal, endJoinNormal) * thickness * miterLimit * .5;
-	vec4 endMiterWidth = startMiterWidth;
+	vec4 miterWidth = vec4(startJoinNormal, endJoinNormal) * thickness * miterLimit * .5;
 
 	vec2 aTopCoord = aCoord + normalWidth * startTopJoin;
 	vec2 bTopCoord = bCoord + normalWidth * endTopJoin;
@@ -127,8 +129,9 @@ void main() {
 
 	if (prevReverse) {
 		//make join rectangular
-		aBotCoord = aCoord - normalWidth * currNormal * .5;
-		aTopCoord = aCoord + normalWidth * currNormal * .5;
+		vec2 miterCoord = normalWidth * startJoinNormal * miterLimit * .5;
+		aBotCoord = aCoord + miterCoord - normalWidth * currNormal * .5;
+		aTopCoord = aCoord + miterCoord + normalWidth * currNormal * .5;
 	}
 	else if (!nextReverse && baClipping > 0. && baClipping < length(normalWidth * endBotJoin)) {
 		//miter anti-clipping
@@ -138,9 +141,9 @@ void main() {
 
 	if (nextReverse) {
 		//make join rectangular
-		//TODO: append miterWidth to coord offset here
-		bBotCoord = bCoord - normalWidth * currNormal * .5;
-		bTopCoord = bCoord + normalWidth * currNormal * .5;
+		vec2 miterCoord = normalWidth * endJoinNormal * miterLimit * .5;
+		bBotCoord = bCoord + miterCoord - normalWidth * currNormal * .5;
+		bTopCoord = bCoord + miterCoord + normalWidth * currNormal * .5;
 	}
 	else if (!prevReverse && abClipping > 0. && abClipping < length(normalWidth * startBotJoin)) {
 		//miter anti-clipping
@@ -167,7 +170,7 @@ void main() {
 		startCutoff.zw += (prevCoord == aCoord ? startBotJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
 		startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
 		startCutoff += viewport.xyxy;
-		startCutoff += startMiterWidth.xyxy;
+		startCutoff += miterWidth.xyxy;
 	}
 
 	endMiter = 0.;
@@ -177,7 +180,7 @@ void main() {
 		endCutoff.zw += (nextCoord == bCoord ? endTopJoin :  vec2(-endJoinNormal.y, endJoinNormal.x))  / scaleRatio;
 		endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
 		endCutoff += viewport.xyxy;
-		endCutoff += endMiterWidth.zwzw;
+		endCutoff += miterWidth.zwzw;
 	}
 
 	startCoord = (aCoord + translate) * scaleRatio + viewport.xy;
