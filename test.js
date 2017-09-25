@@ -147,7 +147,7 @@ t('miter clipping', t => {
   scale(positions, .85, .85)
   translate(positions, 0.5, -5.5)
 
-  batch.push(extend({}, options, {overlay: true, positions: positions, miterlimit: 3, thickness: 30, dash: [9, 1]}))
+  batch.push(extend({}, options, {overlay: true, positions: positions, miterlimit: 0, thickness: 30, dash: [9, 1]}))
 
   t.end()
 })

@@ -15,8 +15,8 @@ varying vec2 tangent;
 varying vec2 startCoord, endCoord;
 varying float startMiter, endMiter;
 
-const float REVERSE_MITER = -1e-5;
 const float MAX_LINES = 256.;
+const float REVERSE_THRESHOLD = -.875;
 
 //TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead
 //TODO: precalculate dot products, normalize things etc.
@@ -123,15 +123,16 @@ void main() {
 	float abClipping = distToLine(aCoord, bCoord, bTopCoord) / dot(normalize(normalWidth * startBotJoin), normalize(normalWidth.yx * vec2(-endBotJoin.y, endBotJoin.x)));
 
 	//prevent close to reverse direction switch
-	bool prevReverse = dot(currTangent, prevTangent) <= -.875 && abs(dot(currTangent, prevNormal)) * min(length(prevDiff), length(currDiff)) <  length(normalWidth * currNormal);
-	bool nextReverse = dot(currTangent, nextTangent) <= -.875
+	bool prevReverse = dot(currTangent, prevTangent) <= REVERSE_THRESHOLD && abs(dot(currTangent, prevNormal)) * min(length(prevDiff), length(currDiff)) <  length(normalWidth * currNormal);
+	bool nextReverse = dot(currTangent, nextTangent) <= REVERSE_THRESHOLD
 		&& abs(dot(currTangent, nextNormal)) * min(length(nextDiff), length(currDiff)) <  length(normalWidth * currNormal);
 
 	if (prevReverse) {
 		//make join rectangular
-		vec2 miterCoord = normalWidth * startJoinNormal * miterLimit * .5;
-		aBotCoord = aCoord + miterCoord - normalWidth * currNormal * .5;
-		aTopCoord = aCoord + miterCoord + normalWidth * currNormal * .5;
+		vec2 miterShift = normalWidth * startJoinNormal * miterLimit * .5;
+		float normalAdjust = 1. - min(miterLimit / startMiterRatio, 1.);
+		aBotCoord = aCoord + miterShift - normalAdjust * normalWidth * currNormal * .5;
+		aTopCoord = aCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;
 	}
 	else if (!nextReverse && baClipping > 0. && baClipping < length(normalWidth * endBotJoin)) {
 		//miter anti-clipping
@@ -141,9 +142,10 @@ void main() {
 
 	if (nextReverse) {
 		//make join rectangular
-		vec2 miterCoord = normalWidth * endJoinNormal * miterLimit * .5;
-		bBotCoord = bCoord + miterCoord - normalWidth * currNormal * .5;
-		bTopCoord = bCoord + miterCoord + normalWidth * currNormal * .5;
+		vec2 miterShift = normalWidth * endJoinNormal * miterLimit * .5;
+		float normalAdjust = 1. - min(miterLimit / endMiterRatio, 1.);
+		bBotCoord = bCoord + miterShift - normalAdjust * normalWidth * currNormal * .5;
+		bTopCoord = bCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;
 	}
 	else if (!prevReverse && abClipping > 0. && abClipping < length(normalWidth * startBotJoin)) {
 		//miter anti-clipping
