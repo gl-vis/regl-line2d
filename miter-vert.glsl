@@ -46,18 +46,6 @@ void main() {
 	vec2 currDirection = normalize(currDiff);
 	vec2 nextDirection = normalize(nextDiff);
 
-	if (dot(currDirection, nextDirection) == -1.) {
-		nextCoord = bCoord;
-		nextDiff = nextCoord - bCoord;
-	}
-	if (dot(currDirection, prevDirection) == -1.) {
-		if (length(currDiff) <= length(prevDiff)) {
-			return;
-		}
-		aCoord = prevCoord;
-		currDiff = bCoord - aCoord;
-	}
-
 	vec2 prevTangent = normalize(prevDiff * scaleRatio);
 	vec2 currTangent = normalize(currDiff * scaleRatio);
 	vec2 nextTangent = normalize(nextDiff * scaleRatio);
@@ -135,7 +123,7 @@ void main() {
 		aTopCoord = aCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;
 	}
 	else if (!nextReverse && baClipping > 0. && baClipping < length(normalWidth * endBotJoin)) {
-		//miter anti-clipping
+		//handle miter clipping
 		bTopCoord -= normalWidth * endTopJoin;
 		bTopCoord += normalize(endTopJoin * normalWidth) * baClipping;
 	}
@@ -148,16 +136,14 @@ void main() {
 		bTopCoord = bCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;
 	}
 	else if (!prevReverse && abClipping > 0. && abClipping < length(normalWidth * startBotJoin)) {
-		//miter anti-clipping
+		//handle miter clipping
 		aBotCoord -= normalWidth * startBotJoin;
 		aBotCoord += normalize(startBotJoin * normalWidth) * abClipping;
 	}
 
-	vec2 aPosition = (aCoord + translate) * scale;
 	vec2 aTopPosition = (aTopCoord + translate) * scale;
 	vec2 aBotPosition = (aBotCoord + translate) * scale;
 
-	vec2 bPosition = (bCoord + translate) * scale;
 	vec2 bTopPosition = (bTopCoord + translate) * scale;
 	vec2 bBotPosition = (bBotCoord + translate) * scale;
 

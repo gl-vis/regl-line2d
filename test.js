@@ -102,7 +102,7 @@ panZoom(cnv, e => {
 /** Test cases */
 
 t('multiple points', t => {
-  let N = 1e4
+  let N = 1e5
   let positions = Array(2 * N)
   for(var i=0; i<2*N; i+=2) {
     // positions[i]   = (i/N)*10.0-10.0
@@ -135,7 +135,7 @@ t('basic edge cases', t => {
   scale(positions, .25, .25)
   translate(positions, 1.5, -3)
 
-  batch.push(extend({}, options, {overlay: false, positions: positions, thickness: 10, dash: [15, 5]}))
+  batch.push(extend({}, options, {overlay: true, positions: positions, thickness: 10, dash: [15, 5]}))
 
   t.end()
 })

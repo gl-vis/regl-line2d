@@ -21,14 +21,14 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, gl, properties, drawLine, colorBuffer, offsetBuffer, positionBuffer, dashTexture, fbo,
+	let regl, gl, properties, drawMiterLine, drawRectLine, colorBuffer, offsetBuffer, positionBuffer, dashTexture, fbo,
 
 		// used to for new lines instances
 		defaultOptions = {
 			positions: [],
 			precise: false,
 			dashes: null,
-			join: 'bevel',
+			join: null,
 			miterLimit: 1,
 			thickness: 10,
 			cap: 'square',
@@ -116,23 +116,48 @@ function createLine (options) {
 	update(options)
 
 
-
-
-	//create regl draw
-	drawLine = regl({
+	let shaderOptions = {
 		primitive: 'triangle strip',
 		instances: (ctx, prop) => prop.count - 1,
 		count: 4,
 		offset: 0,
+		blend: {
+			enable: true,
+			color: [0,0,0,0],
+			equation: {
+				rgb: 'add',
+				alpha: 'add'
+			},
+			func: {
+				srcRGB: 'src alpha',
+				dstRGB: 'one minus src alpha',
+				srcAlpha: 'one minus dst alpha',
+				dstAlpha: 'one'
+			}
+		},
+		depth: {
+			enable: (ctx, prop) => {
+				return !prop.overlay
+			}
+		},
+		scissor: {
+			enable: true,
+			box: regl.prop('viewport')
+		},
+		stencil: false,
+		viewport: regl.prop('viewport')
+	}
 
+	//create regl draw
+	drawMiterLine = regl(extend({
 		//culling removes polygon creasing
 		cull: {
 			enable: true,
 			face: 'back'
 		},
 
-		vert: glslify('./vert.glsl'),
-		frag: glslify('./frag.glsl'),
+		vert: glslify('./miter-vert.glsl'),
+		frag: glslify('./miter-frag.glsl'),
 
 		uniforms: {
 			miterLimit: regl.prop('miterLimit'),
@@ -142,7 +167,6 @@ function createLine (options) {
 			dashPattern: dashTexture,
 			dashLength: regl.prop('dashLength'),
 			dashShape: [dashTextureWidth, dashTextureHeight],
-			totalDistance: regl.prop('totalDistance'),
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),
@@ -201,39 +225,61 @@ function createLine (options) {
 				offset: (ctx, prop) => 24 + prop.offset * 8,
 				divisor: 1
 			}
-		},
+		}
+	}, shaderOptions))
 
-		blend: {
-			enable: true,
-			color: () => [0,0,0,0],
-			equation: {
-				rgb: 'add',
-				alpha: 'add'
+	//simplified rect line shader
+	drawRectLine = regl(extend({
+		vert: glslify('./rect-vert.glsl'),
+		frag: glslify('./rect-frag.glsl'),
+
+		uniforms: {
+			scale: regl.prop('scale'),
+			translate: regl.prop('translate'),
+			thickness: regl.prop('thickness'),
+			dashPattern: dashTexture,
+			dashLength: regl.prop('dashLength'),
+			dashShape: [dashTextureWidth, dashTextureHeight],
+			opacity: regl.prop('opacity'),
+			pixelRatio: regl.context('pixelRatio'),
+			id: regl.prop('id'),
+			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
+		},
+		attributes: {
+			lineEnd: {
+				buffer: offsetBuffer,
+				divisor: 0,
+				stride: 8,
+				offset: 0
 			},
-			func: {
-				srcRGB: 'src alpha',
-				dstRGB: 'one minus src alpha',
-				srcAlpha: 'one minus dst alpha',
-				dstAlpha: 'one'
+			lineTop: {
+				buffer: offsetBuffer,
+				divisor: 0,
+				stride: 8,
+				offset: 4
+			},
+			aCoord: {
+				buffer: positionBuffer,
+				stride: 8,
+				offset: (ctx, prop) => 8 + prop.offset * 8,
+				divisor: 1
+			},
+			bCoord: {
+				buffer: positionBuffer,
+				stride: 8,
+				offset: (ctx, prop) => 16 + prop.offset * 8,
+				divisor: 1
+			},
+			color: (ctx, prop) => prop.color.length > 4 ? {
+				buffer: colorBuffer,
+				stride: 4,
+				offset: 0,
+				divisor: 1
+			} : {
+				constant: prop.color
 			}
-		},
-
-		depth: {
-			enable: (ctx, prop) => {
-				return !prop.overlay
-			},
-			func: 'less'
-		},
-
-		scissor: {
-			enable: true,
-			box: regl.prop('viewport')
-		},
-
-		stencil: false,
-
-		viewport: regl.prop('viewport')
-	})
+		}
+	}, shaderOptions));
 
 
 	function line2d (opts) {
@@ -248,11 +294,20 @@ function createLine (options) {
 		}
 
 		//render multiple polylines via regl batch
-		let batch = lines.filter(state => {
-			return state.count
-		})
+		let batch = lines.filter(state => state.count)
 
-		drawLine(batch)
+ 		let [rectBatch, miterBatch] = batch.reduce((acc, s, i) => {
+ 			if (s.join === 'rect') {
+ 				acc[0].push(s)
+ 			}
+ 			else acc[1].push(s)
+			return acc
+ 		}, [[], []])
+
+ 		regl._refresh()
+		drawMiterLine(miterBatch)
+ 		regl._refresh()
+		drawRectLine(rectBatch)
 	}
 
 
@@ -517,6 +572,11 @@ function createLine (options) {
 					return viewport
 				}
 			}))
+
+			//detect join type
+			if (!state.join && state.thickness <= 2) {
+				state.join = 'rect'
+			}
 
 			return state
 		})

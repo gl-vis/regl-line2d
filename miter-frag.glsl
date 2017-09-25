@@ -5,7 +5,6 @@ uniform vec2 dashShape;
 uniform float dashLength, pixelRatio, thickness, opacity, id;
 
 varying vec4 fragColor;
-varying float fragLength;
 varying vec2 tangent;
 varying vec4 startCutoff, endCutoff;
 varying vec2 startCoord, endCoord;

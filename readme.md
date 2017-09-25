@@ -54,7 +54,7 @@ Option | Alias | Default | Description
 `miterlimit` |  | `1` | The limit on the ratio of the miter length to the thickness.
 `range` | `dataBox` | `null` | Limit visible data.
 `viewport` | `viewBox` | `null` | Limit visible area within the canvas.
-`join` | | `bevel` | Join style: `'rect'`, `'round'`, `'bevel'`.
+`join` | | `bevel` | Join style: `'rect'` (fastest), `'round'`, `'bevel'`.
 `cap` | | `square` | Cap style for not closed path: `rect`, `round`.
 `close` | | `false` | Connect last point with the first point with a segment.
 `fill` | | `none` | Fills area enclosed by line.
