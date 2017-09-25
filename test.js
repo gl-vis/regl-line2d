@@ -48,8 +48,8 @@ let drawPoints = createScatter({
 })
 
 function draw(opts) {
-  regl._refresh()
-  drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
+  // regl._refresh()
+  // drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
 
   regl._refresh()
   drawLine(opts)
@@ -124,7 +124,7 @@ t('closed circuit', t => {
   scale(positions, .25, .25)
   translate(positions, -1.5, -3)
 
-  batch.push(extend({}, options, {positions: positions, overlay: true, thickness: 30, dash: [8, 2]}))
+  batch.push(extend({}, options, {positions: positions, overlay: false, thickness: 30, dash: [8, 2]}))
 
   t.end()
 })
@@ -135,7 +135,7 @@ t('basic edge cases', t => {
   scale(positions, .25, .25)
   translate(positions, 1.5, -3)
 
-  batch.push(extend({}, options, {overlay: true, positions: positions, thickness: 10, dash: [15, 5]}))
+  batch.push(extend({}, options, {overlay: false, positions: positions, thickness: 10, dash: [15, 5]}))
 
   t.end()
 })

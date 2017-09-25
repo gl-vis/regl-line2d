@@ -23,20 +23,20 @@ void main() {
 	//bevel miter
 	if (startMiter > 0.) {
 		distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
-		if (distToStart < 0.) {
+		if (distToStart < -1.) {
 			discard;
 			return;
 		}
-		alpha *= min(max(distToStart, 0.), 1.);
+		alpha *= min(max(distToStart + 1., 0.), 1.);
 	}
 
 	if (endMiter > 0.) {
 		distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
-		if (distToEnd < 0.) {
+		if (distToEnd < -1.) {
 			discard;
 			return;
 		}
-		alpha *= min(max(distToEnd, 0.), 1.);
+		alpha *= min(max(distToEnd + 1., 0.), 1.);
 	}
 
 
