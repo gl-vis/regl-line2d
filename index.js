@@ -574,7 +574,7 @@ function createLine (options) {
 			}))
 
 			//detect join type
-			if (!state.join && state.thickness <= 2) {
+			if (!state.join && (state.thickness <= 2 || state.positions.length >= 1e4)) {
 				state.join = 'rect'
 			}
 
