@@ -102,7 +102,7 @@ panZoom(cnv, e => {
 /** Test cases */
 
 t('multiple points', t => {
-  let N = 1e5
+  let N = 1e4
   let positions = Array(2 * N)
   for(var i=0; i<2*N; i+=2) {
     // positions[i]   = (i/N)*10.0-10.0

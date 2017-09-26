@@ -36,7 +36,8 @@ function createLine (options) {
 			opacity: 1,
 			overlay: false,
 			viewport: null,
-			range: null
+			range: null,
+			close: null
 		},
 
 		// list of options for lines
@@ -509,8 +510,8 @@ function createLine (options) {
 
 				close: close => {
 					if (close != null) return close
-					if (state.positions[0] === state.positions[count - 2] &&
-						state.positions[1] === state.positions[count - 1]) {
+					if (state.positions[0] === state.positions[state.positions.length - 2] &&
+						state.positions[1] === state.positions[state.positions.length - 1]) {
 						return true
 					}
 					return false
