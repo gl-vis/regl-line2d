@@ -4,7 +4,7 @@ attribute vec2 aCoord, bCoord, nextCoord, prevCoord;
 attribute vec4 aColor, bColor;
 attribute float lineEnd, lineTop;
 
-uniform vec2 scale, translate;
+uniform vec2 scale, translate, scaleRatio;
 uniform float thickness, pixelRatio, id;
 uniform vec4 viewport;
 uniform float miterLimit, dashLength;
@@ -29,7 +29,6 @@ float distToLine(vec2 p, vec2 a, vec2 b) {
 
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
-	vec2 scaleRatio = scale * viewport.zw;
 	vec2 normalWidth = thickness / scaleRatio;
 
 	float lineStart = 1. - lineEnd;

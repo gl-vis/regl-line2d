@@ -122,6 +122,24 @@ function createLine (options) {
 		instances: regl.prop('count'),
 		count: 4,
 		offset: 0,
+
+		uniforms: {
+			miterLimit: regl.prop('miterLimit'),
+			scale: regl.prop('scale'),
+			translate: regl.prop('translate'),
+			thickness: regl.prop('thickness'),
+			dashPattern: dashTexture,
+			dashLength: regl.prop('dashLength'),
+			dashShape: [dashTextureWidth, dashTextureHeight],
+			opacity: regl.prop('opacity'),
+			pixelRatio: regl.context('pixelRatio'),
+			id: regl.prop('id'),
+			scaleRatio: (ctx, prop) => {
+				return [prop.scale[0] * ctx.viewportWidth, prop.scale[1] * ctx.viewportHeight]
+			},
+			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
+		},
+
 		blend: {
 			enable: true,
 			color: [0,0,0,0],
@@ -160,19 +178,6 @@ function createLine (options) {
 		vert: glslify('./miter-vert.glsl'),
 		frag: glslify('./miter-frag.glsl'),
 
-		uniforms: {
-			miterLimit: regl.prop('miterLimit'),
-			scale: regl.prop('scale'),
-			translate: regl.prop('translate'),
-			thickness: regl.prop('thickness'),
-			dashPattern: dashTexture,
-			dashLength: regl.prop('dashLength'),
-			dashShape: [dashTextureWidth, dashTextureHeight],
-			opacity: regl.prop('opacity'),
-			pixelRatio: regl.context('pixelRatio'),
-			id: regl.prop('id'),
-			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
-		},
 		attributes: {
 			lineEnd: {
 				buffer: offsetBuffer,
@@ -234,18 +239,6 @@ function createLine (options) {
 		vert: glslify('./rect-vert.glsl'),
 		frag: glslify('./rect-frag.glsl'),
 
-		uniforms: {
-			scale: regl.prop('scale'),
-			translate: regl.prop('translate'),
-			thickness: regl.prop('thickness'),
-			dashPattern: dashTexture,
-			dashLength: regl.prop('dashLength'),
-			dashShape: [dashTextureWidth, dashTextureHeight],
-			opacity: regl.prop('opacity'),
-			pixelRatio: regl.context('pixelRatio'),
-			id: regl.prop('id'),
-			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
-		},
 		attributes: {
 			lineEnd: {
 				buffer: offsetBuffer,
