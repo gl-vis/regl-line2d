@@ -13,6 +13,7 @@ const createScatter = require('regl-scatter2d')
 const t = require('tape')
 const normalize = require('array-normalize')
 const extend = require('object-assign')
+const arc = require('arc-to')
 const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint', 'EXT_blend_minmax']})
 
 
@@ -31,7 +32,6 @@ let options = {
   color: 'rgba(0,0,255,1)',//[palette[0]],
   miterlimit: 1,
   dashes: [8, 2],
-  closed: true,
   range
 }
 let batch = []
@@ -177,31 +177,43 @@ t('plotly linear approx', t => {
   t.end()
 })
 
-t('viewport', t => {
+t('closed path', t => {
+  let positions
+
+  positions = [0,0, 1,0, 1,1, 0,1, 0,0]
+  translate(positions, 4, 2)
+  batch.push(extend({}, options, {overlay: true, close: true, positions: positions, thickness: 30, dash: null}))
+
+  positions = [0,0, 1,0, .5,1]
+  translate(positions, 5, 2)
+  batch.push(extend({}, options, {overlay: true, close: true, positions: positions, thickness: 30, dash: null}))
+
+
+  positions = circle(3.5, 2.5, .5)
+  batch.push(extend({}, options, {overlay: true, close: true, positions: positions, thickness: 30, dash: null}))
+})
+
+t.skip('viewport', t => {
   let viewport = null// [0, 300, 600, 500]
 
   t.end()
 })
 
-t('colors', t => {
+t.skip('colors', t => {
   // let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
 
   t.end()
 })
 
-t('round join', t => {
+t.skip('round join', t => {
   t.end()
 })
 
-t('rect line', t => {
+t.skip('rect line', t => {
   t.end()
 })
 
-t('batch options', t => {
-
-})
-
-t('painting', t => {
+t.skip('painting', t => {
   pan = false
 })
 
@@ -222,4 +234,10 @@ function scale (arr, x, y) {
     arr[i+1] *= y
   }
   return arr
+}
+
+function circle(x, y, radius) {
+  var c = arc(x, y, radius, 0, Math.PI*2, false)
+  c.pop()
+  return c
 }

@@ -10,8 +10,8 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * Bevel, round and rectangular joins
 * Correct transparent color handling in joins
 * Optimized performance via instanced draws
-* Multiline batch rendering
-* `<polyline>`-compatible API
+* Multiple line rendering
+* [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline)-compatible API
 
 [Demo](https://dfcreative.github.io/regl-line2d).
 
@@ -41,9 +41,9 @@ Option | Default | Description
 
 `drawLine` is invoked with the rest of options.
 
-### `drawLine(points|options?)`
+### `drawLine(points|options|list?)`
 
-Draw line and optionally update options. If plain `points` array passed - it will just update the positions. `null` argument will destroy instance and dispose resources. To batch render multiple lines - pass array with options for separate lines.
+Draw line and optionally update options. If plain `points` array passed - it will just update the positions. `null` argument will destroy instance and dispose resources. To render multiple lines - pass an array with options for every lines.
 
 Option | Alias | Default | Description
 ---|---|---|---
@@ -56,7 +56,7 @@ Option | Alias | Default | Description
 `viewport` | `viewBox` | `null` | Limit visible area within the canvas.
 `join` | | `bevel` | Join style: `'rect'` (fastest), `'round'`, `'bevel'`.
 `cap` | | `square` | Cap style for not closed path: `rect`, `round`.
-`close` | | `false` | Connect last point with the first point with a segment.
+`close` | `closed`, `closePath` | `false` | Connect last point with the first point with a segment.
 `fill` | | `none` | Fills area enclosed by line.
 `precise` | | `true` | Enable float64 precision. Affects performance insignificantly.
 `overlay` | | `false` | Enable overlay of line segments.
@@ -70,7 +70,7 @@ Processed options are exposed in `drawLine.state` object, along with `drawLine.d
 
 ## See also
 
-* [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit) svg element.
+* [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline) svg element.
 
 
 ## License

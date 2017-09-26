@@ -118,7 +118,7 @@ function createLine (options) {
 
 	let shaderOptions = {
 		primitive: 'triangle strip',
-		instances: (ctx, prop) => prop.count - 1,
+		instances: regl.prop('count'),
 		count: 4,
 		offset: 0,
 		blend: {
@@ -353,6 +353,7 @@ function createLine (options) {
 				color: 'color stroke colors stroke-color strokeColor',
 				opacity: 'alpha opacity',
 				overlay: 'overlay crease overlap',
+				close: 'closed close closed-path closePath',
 
 				range: 'bounds range dataBox',
 				viewport: 'viewport viewBox',
@@ -374,7 +375,6 @@ function createLine (options) {
 				opacity: parseFloat,
 				miterLimit: parseFloat,
 				overlay: Boolean,
-				// join: j => join = j,
 
 				positions: positions => {
 					positions = flatten(positions)
@@ -405,22 +405,13 @@ function createLine (options) {
 					let count = state.count = Math.floor(positions.length / 2)
 					let bounds = state.bounds = getBounds(positions, 2)
 
+					//remove repeating tail/beginning points
+
 					if (!state.range) state.range = bounds
 
 					pointCount += count
 
 					return positions
-
-					// let positionData = new Float32Array(count * 2 + 4)
-
-					//we duplicate first and last points to get [prev, a, b, next] coords valid
-					// positionData[0] = positions[0]
-					// positionData[1] = positions[1]
-					// positionData.set(positions, 2)
-					// positionData[count*2 + 2] = positionData[count*2 + 0]
-					// positionData[count*2 + 3] = positionData[count*2 + 1]
-
-					// return positionData
 				},
 
 				color: colors => {
@@ -504,11 +495,30 @@ function createLine (options) {
 					state.dashLength = dashLength
 
 					return dashData
+				}
+			}))
+
+			//codependent properties
+			extend(state, mapProp(options, {
+				join: join => {
+					if (!state.join && (state.thickness <= 2 || state.positions.length >= 1e4)) {
+						return 'rect'
+					}
+					return 'bevel'
+				},
+
+				close: close => {
+					if (close != null) return close
+					if (state.positions[0] === state.positions[count - 2] &&
+						state.positions[1] === state.positions[count - 1]) {
+						return true
+					}
+					return false
 				},
 
 				range: range => {
 					let bounds = state.bounds
-					if (!range) range = state.range = bounds
+					if (!range) range = bounds
 
 					if (state.precise) {
 						let boundX = bounds[2] - bounds[0],
@@ -573,17 +583,13 @@ function createLine (options) {
 				}
 			}))
 
-			//detect join type
-			if (!state.join && (state.thickness <= 2 || state.positions.length >= 1e4)) {
-				state.join = 'rect'
-			}
 
 			return state
 		})
 
 		//put collected data into buffers
 		if (pointCount) {
-			let positionData = new Float32Array(pointCount * 2 + lines.length * 4 )
+			let positionData = new Float32Array(pointCount * 2 + lines.length * 6 )
 			let offset = 0
 			lines.forEach((state, i) => {
 				let {positions, count} = state
@@ -591,13 +597,51 @@ function createLine (options) {
 
 				if (!count) return
 
-				positionData[offset * 2 + 0] = positions[0]
-				positionData[offset * 2 + 1] = positions[1]
-				positionData.set(positions, offset * 2 + 2)
-				positionData[offset * 2 + count*2 + 2] = positions[count*2 - 2]
-				positionData[offset * 2 + count*2 + 3] = positions[count*2 - 1]
+				//rotate first segment join
+				if (state.close) {
+					if (positions[0] === positions[count*2 - 2] &&
+						positions[1] === positions[count*2 - 1]) {
+						positionData[offset*2 + 0] = positions[count*2 - 4]
+						positionData[offset*2 + 1] = positions[count*2 - 3]
+					}
+					else {
+						positionData[offset*2 + 0] = positions[count*2 - 2]
+						positionData[offset*2 + 1] = positions[count*2 - 1]
+					}
+				}
+				else {
+					positionData[offset*2 + 0] = positions[0]
+					positionData[offset*2 + 1] = positions[1]
+				}
 
-				offset += count + 2
+				positionData.set(positions, offset * 2 + 2)
+
+				//add last segment
+				if (state.close) {
+					//ignore coinciding start/end
+					if (positions[0] === positions[count*2 - 2] &&
+						positions[1] === positions[count*2 - 1]) {
+						positionData[offset*2 + count*2 + 2] = positions[2]
+						positionData[offset*2 + count*2 + 3] = positions[3]
+						offset += count + 2
+						state.count -= 1
+					}
+					else {
+						positionData[offset*2 + count*2 + 2] = positions[0]
+						positionData[offset*2 + count*2 + 3] = positions[1]
+						positionData[offset*2 + count*2 + 4] = positions[2]
+						positionData[offset*2 + count*2 + 5] = positions[3]
+						offset += count + 3
+					}
+				}
+				//add stub
+				else {
+					positionData[offset*2 + count*2 + 2] = positions[count*2 - 2]
+					positionData[offset*2 + count*2 + 3] = positions[count*2 - 1]
+					positionData[offset*2 + count*2 + 4] = positions[count*2 - 2]
+					positionData[offset*2 + count*2 + 5] = positions[count*2 - 1]
+					offset += count + 3
+				}
 			})
 			positionBuffer(positionData)
 		}
