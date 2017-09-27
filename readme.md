@@ -8,9 +8,9 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 
 * GPU miter calculation
 * Bevel, round and rectangular joins
-* Correct transparent color handling in joins
-* Optimized performance via instanced draws
-* Multiple line rendering
+* Customizable dash patterns
+* Proper sharp-angle joins handling with transparent colors
+* Multiple lines batch rendering
 * Float64 point precision for `rect` join mode
 * [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline)-compatible API
 
@@ -67,10 +67,6 @@ Processed options are exposed in `drawLine.state` object, along with `drawLine.d
 
 * [regl-scatter2d](https://github.com/dfcreative/regl-scatter2d)
 * [regl-error2d](https://github.com/dfcreative/regl-error2d)
-
-## See also
-
-* [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline) svg element.
 
 
 ## License
