@@ -11,7 +11,7 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * Correct transparent color handling in joins
 * Optimized performance via instanced draws
 * Multiple line rendering
-* High point precision
+* Float64 point precision for `rect` join mode
 * [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline)-compatible API
 
 [Demo](https://dfcreative.github.io/regl-line2d).
