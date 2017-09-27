@@ -14,6 +14,8 @@ const t = require('tape')
 const normalize = require('array-normalize')
 const extend = require('object-assign')
 const arc = require('arc-to')
+const curve = require('adaptive-bezier-curve')
+const flatten = require('flatten-vertex-data')
 const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint', 'EXT_blend_minmax']})
 
 
@@ -203,6 +205,17 @@ t('fill', t => {
     close: false,
     positions: translate(scale([0,40, 40,40, 40,80, 80,80, 80,120, 120,120, 120,160],.015,.015), 0, -1.5),
     range
+  })
+
+  t.end()
+})
+
+t.only('colorscale', t => {
+  batch.push({
+    positions: translate(scale(flatten(curve([4, 4], [7, 10], [12, 2], [20, 4], 5)), .25, .25), -3, -1),
+    color: 'red',
+    range,
+    thickness: 60
   })
 
   t.end()

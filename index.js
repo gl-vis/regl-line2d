@@ -585,7 +585,8 @@ function createLine (options) {
 			extend(state, mapProp(options, {
 				close: close => {
 					if (close != null) return close
-					if (state.positions[0] === state.positions[state.positions.length - 2] &&
+					if (state.positions.length >= 4 &&
+						state.positions[0] === state.positions[state.positions.length - 2] &&
 						state.positions[1] === state.positions[state.positions.length - 1]) {
 						return true
 					}
