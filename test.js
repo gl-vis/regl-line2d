@@ -32,6 +32,7 @@ let options = {
   color: 'rgba(0,0,255,1)',//[palette[0]],
   miterlimit: 1,
   dashes: [8, 2],
+  // viewport: [200,400,800,600],
   range
 }
 let batch = []
@@ -42,14 +43,14 @@ let batch = []
 let drawLine = createLine(regl)
 let drawPoints = createScatter({
   regl, range,
-  size: 15,
+  size: 10,
   borderSize: 0,
   color: 'rgba(255,0,0,.25)'
 })
 
 function draw(opts) {
-  // regl._refresh()
-  // drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
+  regl._refresh()
+  drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
 
   regl._refresh()
   drawLine(opts)
@@ -113,7 +114,7 @@ t('multiple points', t => {
   scale(positions, .15, .15)
   translate(positions, -5, -3)
 
-  batch.push(extend({}, options, {positions, thickness: 1, range, dash: [3, 3]}))
+  batch.push(extend({}, options, {positions, thickness: 3, range, dash: [3, 3]}))
 
   t.end()
 })
@@ -191,12 +192,6 @@ t('closed path', t => {
 
   positions = circle(3.5, 2.5, .5)
   batch.push(extend({}, options, {overlay: true, close: true, positions: positions, thickness: 30, dash: null}))
-})
-
-t.skip('viewport', t => {
-  let viewport = null// [0, 300, 600, 500]
-
-  t.end()
 })
 
 t.skip('colors', t => {

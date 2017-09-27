@@ -21,12 +21,11 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, gl, properties, drawMiterLine, drawRectLine, colorBuffer, offsetBuffer, positionBuffer, dashTexture, fbo,
+	let regl, gl, properties, drawMiterLine, drawRectLine, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture, fbo,
 
 		// used to for new lines instances
 		defaultOptions = {
 			positions: [],
-			precise: false,
 			dashes: null,
 			join: null,
 			miterLimit: 1,
@@ -43,7 +42,7 @@ function createLine (options) {
 		// list of options for lines
 		lines = []
 
-	const dashMult = 2, dashTextureWidth = 1024, dashTextureHeight = 256
+	const dashMult = 2, dashTextureWidth = 1024, dashTextureHeight = 256, precisionThreshold = 3e6
 
 
 	// regl instance
@@ -89,6 +88,11 @@ function createLine (options) {
 		type: 'float',
 		data: null
 	})
+	positionFractBuffer = regl.buffer({
+		usage: 'dynamic',
+		type: 'float',
+		data: null
+	})
 	dashTexture = regl.texture({
 		channels: 1,
 		width: dashTextureWidth,
@@ -126,6 +130,8 @@ function createLine (options) {
 		uniforms: {
 			miterLimit: regl.prop('miterLimit'),
 			scale: regl.prop('scale'),
+			scaleFract: regl.prop('scaleFract'),
+			translateFract: regl.prop('translateFract'),
 			translate: regl.prop('translate'),
 			thickness: regl.prop('thickness'),
 			dashPattern: dashTexture,
@@ -134,9 +140,7 @@ function createLine (options) {
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),
-			scaleRatio: (ctx, prop) => {
-				return [prop.scale[0] * ctx.viewportWidth, prop.scale[1] * ctx.viewportHeight]
-			},
+			scaleRatio: regl.prop('scaleRatio'),
 			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
 		},
 
@@ -264,6 +268,18 @@ function createLine (options) {
 				offset: (ctx, prop) => 16 + prop.offset * 8,
 				divisor: 1
 			},
+			aCoordFract: {
+				buffer: positionFractBuffer,
+				stride: 8,
+				offset: (ctx, prop) => 8 + prop.offset * 8,
+				divisor: 1
+			},
+			bCoordFract: {
+				buffer: positionFractBuffer,
+				stride: 8,
+				offset: (ctx, prop) => 16 + prop.offset * 8,
+				divisor: 1
+			},
 			color: (ctx, prop) => prop.color.length > 4 ? {
 				buffer: colorBuffer,
 				stride: 4,
@@ -291,7 +307,15 @@ function createLine (options) {
 		let batch = lines.filter(state => state.count)
 
  		let [rectBatch, miterBatch] = batch.reduce((acc, s, i) => {
- 			if (s.join === 'rect') {
+ 			s.scaleRatio = [s.scale[0] * s.viewport.width, s.scale[1] * s.viewport.height]
+
+ 			//high scale is only available for rect mode with precision
+ 			if (s.scaleRatio[0] > precisionThreshold || s.scaleRatio[1] > precisionThreshold) {
+ 				acc[0].push(s)
+ 				console.log('rect')
+ 			}
+
+ 			else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= 1e4))) {
  				acc[0].push(s)
  			}
  			else acc[1].push(s)
@@ -300,6 +324,7 @@ function createLine (options) {
 
  		regl._refresh()
 		drawMiterLine(miterBatch)
+
  		regl._refresh()
 		drawRectLine(rectBatch)
 	}
@@ -340,18 +365,16 @@ function createLine (options) {
 			//reduce by aliases
 			options = pick(options, {
 				positions: 'positions points data',
-				thickness: 'thickness lineWidth lineWidths  line-width linewidth width stroke-width strokewidth strokeWidth',
+				thickness: 'thickness lineWidth lineWidths line-width linewidth width stroke-width strokewidth strokeWidth',
 				join: 'lineJoin linejoin join',
 				miterLimit: 'miterlimit miterLimit',
 				dashes: 'dash dashes dasharray dash-array dashArray',
 				color: 'color stroke colors stroke-color strokeColor',
 				opacity: 'alpha opacity',
-				overlay: 'overlay crease overlap',
+				overlay: 'overlay crease overlap intersect',
 				close: 'closed close closed-path closePath',
-
 				range: 'bounds range dataBox',
-				viewport: 'viewport viewBox',
-				precise: 'precise hiprecision'
+				viewport: 'viewport viewBox'
 			})
 
 			//consider only not changed properties
@@ -369,32 +392,10 @@ function createLine (options) {
 				opacity: parseFloat,
 				miterLimit: parseFloat,
 				overlay: Boolean,
+				join: j => j,
 
 				positions: positions => {
-					positions = flatten(positions)
-
-					//hi-precision buffer has normalized coords and [hi,hi, lo,lo, hi,hi, lo,lo...] layout
-					// if (precise) {
-					// 	precisePositions = new Float32Array(count * 2)
-					// }
-					// else {
-					// 	let precisePositions = new Float32Array(count * 4)
-
-					// 	//float numbers are more precise around 0
-					// 	let boundX = bounds[2] - bounds[0], boundY = bounds[3] - bounds[1]
-
-					// 	for (let i = 0, l = count; i < l; i++) {
-					// 		let nx = (unrolled[i * 2] - bounds[0]) / boundX
-					// 		let ny = (unrolled[i * 2 + 1] - bounds[1]) / boundY
-
-					// 		precisePositions[i * 4] = nx
-					// 		precisePositions[i * 4 + 1] = ny
-					// 		precisePositions[i * 4 + 2] = nx - precisePositions[i * 4]
-					// 		precisePositions[i * 4 + 3] = ny - precisePositions[i * 4 + 1]
-					// 	}
-
-					// 	positionBuffer(precisePositions)
-					// }
+					positions = flatten(positions, 'float64')
 
 					let count = state.count = Math.floor(positions.length / 2)
 					let bounds = state.bounds = getBounds(positions, 2)
@@ -492,15 +493,8 @@ function createLine (options) {
 				}
 			}))
 
-			//codependent properties
+			//dependent properties & complement actions
 			extend(state, mapProp(options, {
-				join: join => {
-					if (!state.join && (state.thickness <= 2 || state.positions.length >= 1e4)) {
-						return 'rect'
-					}
-					return 'bevel'
-				},
-
 				close: close => {
 					if (close != null) return close
 					if (state.positions[0] === state.positions[state.positions.length - 2] &&
@@ -514,30 +508,11 @@ function createLine (options) {
 					let bounds = state.bounds
 					if (!range) range = bounds
 
-					if (state.precise) {
-						let boundX = bounds[2] - bounds[0],
-							boundY = bounds[3] - bounds[1]
+					state.scale = [1 / (range[2] - range[0]), 1 / (range[3] - range[1])]
+					state.translate = [-range[0], -range[1]]
 
-						let nrange = [
-							(range[0] - bounds[0]) / boundX,
-							(range[1] - bounds[1]) / boundY,
-							(range[2] - bounds[0]) / boundX,
-							(range[3] - bounds[1]) / boundY
-						]
-
-						state.scale = [1 / (nrange[2] - nrange[0]), 1 / (nrange[3] - nrange[1])]
-						state.translate = [-nrange[0], -nrange[1]]
-
-						// scaleFract = fract32(scale)
-						// translateFract = fract32(translate)
-					}
-					else {
-						state.scale = [1 / (range[2] - range[0]), 1 / (range[3] - range[1])]
-						state.translate = [-range[0], -range[1]]
-
-						// scaleFract = [0, 0]
-						// translateFract = [0, 0]
-					}
+					state.scaleFract = fract32(state.scale)
+					state.translateFract = fract32(state.translate)
 
 					return range
 				},
@@ -582,9 +557,12 @@ function createLine (options) {
 		})
 
 		//put collected data into buffers
+		//FIXME: possible optimization is updating only segment subdata
 		if (pointCount) {
-			let positionData = new Float32Array(pointCount * 2 + lines.length * 6 )
+			let len = pointCount * 2 + lines.length * 6;
+			let positionData = new Float64Array(len)
 			let offset = 0
+
 			lines.forEach((state, i) => {
 				let {positions, count} = state
 				state.offset = offset
@@ -637,7 +615,9 @@ function createLine (options) {
 					offset += count + 3
 				}
 			})
-			positionBuffer(positionData)
+
+			positionBuffer(float32(positionData))
+			positionFractBuffer(fract32(positionData))
 		}
 
 		return line2d
@@ -653,4 +633,22 @@ function createLine (options) {
 	}
 
 	return line2d
+}
+
+
+//return fractional part of float32 array
+function fract32 (arr) {
+	let fract = new Float32Array(arr.length)
+	fract.set(arr)
+	for (let i = 0, l = fract.length; i < l; i++) {
+		fract[i] = arr[i] - fract[i]
+	}
+	return fract
+}
+function float32 (arr) {
+	if (arr instanceof Float32Array) return arr
+
+	let float = new Float32Array(arr)
+	float.set(arr)
+	return float
 }

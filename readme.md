@@ -11,6 +11,7 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * Correct transparent color handling in joins
 * Optimized performance via instanced draws
 * Multiple line rendering
+* High point precision
 * [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline)-compatible API
 
 [Demo](https://dfcreative.github.io/regl-line2d).
@@ -54,11 +55,10 @@ Option | Alias | Default | Description
 `miterlimit` |  | `1` | The limit on the ratio of the miter length to the thickness.
 `range` | `dataBox` | `null` | Limit visible data.
 `viewport` | `viewBox` | `null` | Limit visible area within the canvas.
-`join` | | `bevel` | Join style: `'rect'` (fastest), `'round'`, `'bevel'`.
+`join` | | `bevel` | Join style: `'rect'`, `'round'`, `'bevel'`.
 `cap` | | `square` | Cap style for not closed path: `rect`, `round`.
 `close` | `closed`, `closePath` | `false` | Connect last point with the first point with a segment.
 `fill` | | `none` | Fills area enclosed by line.
-`precise` | | `true` | Enable float64 precision. Affects performance insignificantly.
 `overlay` | | `false` | Enable overlay of line segments.
 
 Processed options are exposed in `drawLine.state` object, along with `drawLine.draw`, `drawLine.update` and `drawLine.destroy` methods.
