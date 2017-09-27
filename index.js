@@ -11,7 +11,7 @@ const mapProp = require('obj-map-prop')
 const flatten = require('flatten-vertex-data')
 const blacklist = require('blacklist')
 const dprop = require('dprop')
-const triangulate = require('delaunay-triangulate')
+const triangulate = require('earcut')
 
 module.exports = createLine
 
@@ -594,7 +594,7 @@ function createLine (options) {
 
 				positions: p => {
 					if (state.fill && p.length) {
-						state.triangles = triangulate(state.points)
+						state.triangles = triangulate(state.positions)
 					}
 				},
 

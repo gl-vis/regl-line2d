@@ -182,15 +182,28 @@ t('closed path', t => {
 
   positions = [0,0, 1,0, 1,1, 0,1, 0,0]
   translate(positions, 4, 2)
-  batch.push(extend({}, options, {overlay: true, close: true, positions: positions, thickness: 30, dash: null}))
+  batch.push(extend({}, options, {overlay: true, fill: 'green', close: true, positions: positions, thickness: 10, dash: null}))
 
   positions = [0,0, 1,0, .5,1]
   translate(positions, 5, 2)
-  batch.push(extend({}, options, {overlay: true, close: true, positions: positions, thickness: 30, dash: null}))
+  batch.push(extend({}, options, {overlay: true, fill: 'blue', close: true, positions: positions, thickness: 10, dash: null}))
 
 
   positions = circle(3.5, 2.5, .5)
-  batch.push(extend({}, options, {overlay: true, close: true, positions: positions, thickness: 30, dash: null}))
+  batch.push(extend({}, options, {overlay: true, fill: 'red', close: true, positions: positions, thickness: 10, dash: null}))
+
+  t.end()
+})
+
+t('fill', t => {
+  batch.push({
+    fill: '#F9F38C',
+    strokeWidth: 6,
+    stroke: '#D07735',
+    close: false,
+    positions: translate(scale([0,40, 40,40, 40,80, 80,80, 80,120, 120,120, 120,160],.015,.015), 0, -1.5),
+    range
+  })
 
   t.end()
 })
@@ -211,12 +224,6 @@ t.skip('rect line', t => {
 
 t.skip('painting', t => {
   pan = false
-  t.end()
-})
-
-t('fill', t => {
-  batch.push(extend({}, options, {positions: circle(-5, 3, .75), fill: 'rgba(255,0,0,.5)', close: true, dash: [4,4], thickness: 2, color: 'blue'}))
-
   t.end()
 })
 
