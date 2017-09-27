@@ -31,7 +31,6 @@ let options = {
   thickness: 20,
   color: 'rgba(0,0,255,1)',//[palette[0]],
   miterlimit: 1,
-  dashes: [8, 2],
   // viewport: [200,400,800,600],
   range
 }
@@ -192,6 +191,8 @@ t('closed path', t => {
 
   positions = circle(3.5, 2.5, .5)
   batch.push(extend({}, options, {overlay: true, close: true, positions: positions, thickness: 30, dash: null}))
+
+  t.end()
 })
 
 t.skip('colors', t => {
@@ -210,9 +211,14 @@ t.skip('rect line', t => {
 
 t.skip('painting', t => {
   pan = false
+  t.end()
 })
 
+t('fill', t => {
+  batch.push(extend({}, options, {positions: circle(-5, 3, .75), fill: 'rgba(255,0,0,.5)', close: true, dash: [4,4], thickness: 2, color: 'blue'}))
 
+  t.end()
+})
 
 
 function translate (arr, x, y) {

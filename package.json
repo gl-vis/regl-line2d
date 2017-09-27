@@ -37,6 +37,7 @@
     "blacklist": "^1.1.4",
     "bubleify": "^0.7.0",
     "color-rgba": "^1.1.0",
+    "delaunay-triangulate": "^1.1.6",
     "filter-obj": "^1.1.0",
     "flatten-vertex-data": "^1.0.0",
     "glslify": "^6.1.0",

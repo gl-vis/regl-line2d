@@ -11,6 +11,7 @@ const mapProp = require('obj-map-prop')
 const flatten = require('flatten-vertex-data')
 const blacklist = require('blacklist')
 const dprop = require('dprop')
+const triangulate = require('delaunay-triangulate')
 
 module.exports = createLine
 
@@ -21,7 +22,7 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, gl, properties, drawMiterLine, drawRectLine, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture, fbo,
+	let regl, gl, properties, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture, fbo,
 
 		// used to for new lines instances
 		defaultOptions = {
@@ -36,7 +37,8 @@ function createLine (options) {
 			overlay: false,
 			viewport: null,
 			range: null,
-			close: null
+			close: null,
+			fill: null
 		},
 
 		// list of options for lines
@@ -238,7 +240,7 @@ function createLine (options) {
 		}
 	}, shaderOptions))
 
-	//simplified rect line shader
+	//simplified rectangular line shader
 	drawRectLine = regl(extend({
 		vert: glslify('./rect-vert.glsl'),
 		frag: glslify('./rect-frag.glsl'),
@@ -289,7 +291,53 @@ function createLine (options) {
 				constant: prop.color
 			}
 		}
-	}, shaderOptions));
+	}, shaderOptions))
+
+
+	//fill shader
+	drawFill = regl({
+		primitive: 'triangle',
+		elements: (ctx, prop) => prop.triangles,
+		offset: 0,
+
+		vert: glslify('./fill-vert.glsl'),
+		frag: glslify('./fill-frag.glsl'),
+
+		uniforms: {
+			scale: regl.prop('scale'),
+			color: regl.prop('fill'),
+			scaleFract: regl.prop('scaleFract'),
+			translateFract: regl.prop('translateFract'),
+			translate: regl.prop('translate'),
+			opacity: regl.prop('opacity'),
+			pixelRatio: regl.context('pixelRatio'),
+			id: regl.prop('id'),
+			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
+		},
+
+		attributes: {
+			position: {
+				buffer: positionBuffer,
+				stride: 8,
+				offset: (ctx, prop) => 8 + prop.offset * 8
+			},
+			positionFract: {
+				buffer: positionFractBuffer,
+				stride: 8,
+				offset: (ctx, prop) => 8 + prop.offset * 8
+			}
+		},
+
+
+		blend: shaderOptions.blend,
+
+		depth: {
+			enable: false
+		},
+		scissor: shaderOptions.scissor,
+		stencil: shaderOptions.stencil,
+		viewport: shaderOptions.viewport
+	})
 
 
 	function line2d (opts) {
@@ -306,13 +354,19 @@ function createLine (options) {
 		//render multiple polylines via regl batch
 		let batch = lines.filter(state => state.count)
 
- 		let [rectBatch, miterBatch] = batch.reduce((acc, s, i) => {
- 			s.scaleRatio = [s.scale[0] * s.viewport.width, s.scale[1] * s.viewport.height]
+ 		let [rectBatch, miterBatch, fillBatch] = batch.reduce((acc, s, i) => {
+ 			if (s.fill) acc[2].push(s)
+
+ 			if (!s.thickness || !s.count || !s.color || !s.opacity) return acc
+
+ 			s.scaleRatio = [
+ 				s.scale[0] * s.viewport.width,
+ 				s.scale[1] * s.viewport.height
+ 			]
 
  			//high scale is only available for rect mode with precision
  			if (s.scaleRatio[0] > precisionThreshold || s.scaleRatio[1] > precisionThreshold) {
  				acc[0].push(s)
- 				console.log('rect')
  			}
 
  			else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= 1e4))) {
@@ -320,7 +374,10 @@ function createLine (options) {
  			}
  			else acc[1].push(s)
 			return acc
- 		}, [[], []])
+ 		}, [[], [], []])
+
+		regl._refresh()
+		drawFill(fillBatch)
 
  		regl._refresh()
 		drawMiterLine(miterBatch)
@@ -348,6 +405,22 @@ function createLine (options) {
 
 			let state = lines[i]
 
+			//reduce by aliases
+			options = pick(options, {
+				positions: 'positions points data',
+				thickness: 'thickness lineWidth lineWidths line-width linewidth width stroke-width strokewidth strokeWidth',
+				join: 'lineJoin linejoin join',
+				miterLimit: 'miterlimit miterLimit',
+				dashes: 'dash dashes dasharray dash-array dashArray',
+				color: 'color stroke colors stroke-color strokeColor',
+				fill: 'fill fill-color fillColor',
+				opacity: 'alpha opacity',
+				overlay: 'overlay crease overlap intersect',
+				close: 'closed close closed-path closePath',
+				range: 'bounds range dataBox',
+				viewport: 'viewport viewBox'
+			})
+
 			//prototype here keeps defaultOptions live-updated
 			if (!state) {
 				lines[i] = state = {
@@ -361,21 +434,6 @@ function createLine (options) {
 				}
 				options = extend({}, defaultOptions, options)
 			}
-
-			//reduce by aliases
-			options = pick(options, {
-				positions: 'positions points data',
-				thickness: 'thickness lineWidth lineWidths line-width linewidth width stroke-width strokewidth strokeWidth',
-				join: 'lineJoin linejoin join',
-				miterLimit: 'miterlimit miterLimit',
-				dashes: 'dash dashes dasharray dash-array dashArray',
-				color: 'color stroke colors stroke-color strokeColor',
-				opacity: 'alpha opacity',
-				overlay: 'overlay crease overlap intersect',
-				close: 'closed close closed-path closePath',
-				range: 'bounds range dataBox',
-				viewport: 'viewport viewBox'
-			})
 
 			//consider only not changed properties
 			options = filter(options, (key, value) => {
@@ -400,6 +458,16 @@ function createLine (options) {
 					let count = state.count = Math.floor(positions.length / 2)
 					let bounds = state.bounds = getBounds(positions, 2)
 
+					//grouped positions
+					let points = Array(count)
+					for (let i = 0; i < count; i++) {
+						points[i] = [
+							positions[i*2],
+							positions[i*2+1]
+						]
+					}
+					state.points = points
+
 					//remove repeating tail/beginning points
 
 					if (!state.range) state.range = bounds
@@ -409,8 +477,27 @@ function createLine (options) {
 					return positions
 				},
 
+				fill: c => {
+					if (typeof c === 'string') {
+						c = rgba(c, false)
+						c[3] *= 255
+						c = new Uint8Array(c)
+					}
+					else if (Array.isArray(c) || c instanceof Float32Array || c instanceof Float64Array) {
+						c = new Uint8Array(c)
+						c[0] *= 255
+						c[1] *= 255
+						c[2] *= 255
+						c[3] *= 255
+					}
+
+					return c
+				},
+
 				color: colors => {
 					let color
+
+					if (!colors) colors = 'transparent'
 
 					// 'black' or [0,0,0,0] case
 					if (!Array.isArray(colors) || typeof colors[0] === 'number') {
@@ -447,6 +534,7 @@ function createLine (options) {
 						color[3] *= 255
 						color = new Uint8Array(color)
 					}
+
 
 					return color
 				},
@@ -502,6 +590,12 @@ function createLine (options) {
 						return true
 					}
 					return false
+				},
+
+				positions: p => {
+					if (state.fill && p.length) {
+						state.triangles = triangulate(state.points)
+					}
 				},
 
 				range: range => {
