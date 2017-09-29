@@ -17,6 +17,7 @@ varying float startMiter, endMiter;
 
 const float MAX_LINES = 256.;
 const float REVERSE_THRESHOLD = -.875;
+const float MIN_DIST = 1.;
 
 //TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead
 //TODO: precalculate dot products, normalize things etc.
@@ -30,12 +31,16 @@ float distToLine(vec2 p, vec2 a, vec2 b) {
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
 	vec2 normalWidth = thickness / scaleRatio;
+	// bool isL
 
 	float lineStart = 1. - lineEnd;
 	float lineBot = 1. - lineTop;
 	float depth = (MAX_LINES - 1. - id) / (MAX_LINES);
 
 	fragColor = (lineEnd * bColor + lineStart * aColor) / 255.;
+
+	if (aCoord == prevCoord) prevCoord = aCoord + normalize(bCoord - aCoord);
+	if (bCoord == nextCoord) nextCoord = bCoord - normalize(bCoord - aCoord);
 
 	vec2 prevDiff = aCoord - prevCoord;
 	vec2 currDiff = bCoord - aCoord;
@@ -53,43 +58,43 @@ void main() {
 	vec2 currNormal = vec2(-currTangent.y, currTangent.x);
 	vec2 nextNormal = vec2(-nextTangent.y, nextTangent.x);
 
-	vec2 startJoinNormal = normalize(prevTangent - currTangent);
-	vec2 endJoinNormal = normalize(currTangent - nextTangent);
+	vec2 startJoinDirection = normalize(prevTangent - currTangent);
+	vec2 endJoinDirection = normalize(currTangent - nextTangent);
 
 	//collapsed/unidirectional segment cases
-	if (prevDirection == currDirection) {
-		startJoinNormal = currNormal;
-	}
-	if (nextDirection == currDirection) {
-		endJoinNormal = currNormal;
-	}
-	if (prevCoord == aCoord) {
-		startJoinNormal = currNormal;
-		prevTangent = currTangent;
-		prevNormal = currNormal;
-	}
+	// if (prevDirection == currDirection) {
+	// 	startJoinDirection = currNormal;
+	// }
+	// if (nextDirection == currDirection) {
+	// 	endJoinDirection = currNormal;
+	// }
+	// if (prevCoord == aCoord) {
+	// 	startJoinDirection = currNormal;
+	// 	prevTangent = currTangent;
+	// 	prevNormal = currNormal;
+	// }
 	if (aCoord == bCoord) {
-		endJoinNormal = startJoinNormal;
+		endJoinDirection = startJoinDirection;
 		currNormal = prevNormal;
 		currTangent = prevTangent;
 	}
-	if (bCoord == nextCoord) {
-		endJoinNormal = currNormal;
-		nextTangent = currTangent;
-		nextNormal = currNormal;
-	}
+	// if (bCoord == nextCoord) {
+	// 	endJoinDirection = currNormal;
+	// 	nextTangent = currTangent;
+	// 	nextNormal = currNormal;
+	// }
 
 	tangent = currTangent;
 
 	//calculate join shifts relative to normals
-	float startJoinShift = dot(currNormal, startJoinNormal);
-	float endJoinShift = dot(currNormal, endJoinNormal);
+	float startJoinShift = dot(currNormal, startJoinDirection);
+	float endJoinShift = dot(currNormal, endJoinDirection);
 
 	float startMiterRatio = abs(1. / startJoinShift);
 	float endMiterRatio = abs(1. / endJoinShift);
 
-	vec2 startJoin = startJoinNormal * startMiterRatio;
-	vec2 endJoin = endJoinNormal * endMiterRatio;
+	vec2 startJoin = startJoinDirection * startMiterRatio;
+	vec2 endJoin = endJoinDirection * endMiterRatio;
 
 	vec2 startTopJoin, startBotJoin, endTopJoin, endBotJoin;
 	startTopJoin = sign(startJoinShift) * startJoin * .5;
@@ -97,8 +102,6 @@ void main() {
 
 	endTopJoin = sign(endJoinShift) * endJoin * .5;
 	endBotJoin = -endTopJoin;
-
-	vec4 miterWidth = vec4(startJoinNormal, endJoinNormal) * thickness * miterLimit * .5;
 
 	vec2 aTopCoord = aCoord + normalWidth * startTopJoin;
 	vec2 bTopCoord = bCoord + normalWidth * endTopJoin;
@@ -111,12 +114,11 @@ void main() {
 
 	//prevent close to reverse direction switch
 	bool prevReverse = dot(currTangent, prevTangent) <= REVERSE_THRESHOLD && abs(dot(currTangent, prevNormal)) * min(length(prevDiff), length(currDiff)) <  length(normalWidth * currNormal);
-	bool nextReverse = dot(currTangent, nextTangent) <= REVERSE_THRESHOLD
-		&& abs(dot(currTangent, nextNormal)) * min(length(nextDiff), length(currDiff)) <  length(normalWidth * currNormal);
+	bool nextReverse = dot(currTangent, nextTangent) <= REVERSE_THRESHOLD && abs(dot(currTangent, nextNormal)) * min(length(nextDiff), length(currDiff)) <  length(normalWidth * currNormal);
 
 	if (prevReverse) {
 		//make join rectangular
-		vec2 miterShift = normalWidth * startJoinNormal * miterLimit * .5;
+		vec2 miterShift = normalWidth * startJoinDirection * miterLimit * .5;
 		float normalAdjust = 1. - min(miterLimit / startMiterRatio, 1.);
 		aBotCoord = aCoord + miterShift - normalAdjust * normalWidth * currNormal * .5;
 		aTopCoord = aCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;
@@ -129,7 +131,7 @@ void main() {
 
 	if (nextReverse) {
 		//make join rectangular
-		vec2 miterShift = normalWidth * endJoinNormal * miterLimit * .5;
+		vec2 miterShift = normalWidth * endJoinDirection * miterLimit * .5;
 		float normalAdjust = 1. - min(miterLimit / endMiterRatio, 1.);
 		bBotCoord = bCoord + miterShift - normalAdjust * normalWidth * currNormal * .5;
 		bTopCoord = bCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;
@@ -149,26 +151,48 @@ void main() {
 	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
 
-	//bevel miter cutoffs
-	startMiter = 0.;
-	if (dot(currTangent, prevTangent) < .5) {
-		startMiter = 1.;
-		startCutoff = vec4(aCoord, aCoord);
-		startCutoff.zw += (prevCoord == aCoord ? startBotJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
-		startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
-		startCutoff += viewport.xyxy;
-		startCutoff += miterWidth.xyxy;
-	}
 
-	endMiter = 0.;
-	if (dot(currTangent, nextTangent) < .5) {
-		endMiter = 1.;
-		endCutoff = vec4(bCoord, bCoord);
-		endCutoff.zw += (nextCoord == bCoord ? endTopJoin :  vec2(-endJoinNormal.y, endJoinNormal.x))  / scaleRatio;
-		endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
-		endCutoff += viewport.xyxy;
-		endCutoff += miterWidth.zwzw;
-	}
+	//bevel miter cutoffs
+	// vec2 startMiterWidth = vec2(startJoinDirection) * thickness * miterLimit * .5;
+	// vec2 endMiterWidth = vec2(endJoinDirection) * thickness * miterLimit * .5;
+	// startMiter = 0.;
+	// if (dot(currTangent, prevTangent) < .5) {
+	// 	startMiter = 1.;
+	// 	startCutoff = vec4(aCoord, aCoord);
+	// 	startCutoff.zw += (prevCoord == aCoord ? startBotJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
+	// 	startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
+	// 	startCutoff += viewport.xyxy;
+	// 	startCutoff += startMiterWidth.xyxy;
+	// }
+
+	// endMiter = 0.;
+	// if (dot(currTangent, nextTangent) < .5) {
+	// 	endMiter = 1.;
+	// 	endCutoff = vec4(bCoord, bCoord);
+	// 	endCutoff.zw += (nextCoord == bCoord ? endTopJoin :  vec2(-endJoinDirection.y, endJoinDirection.x))  / scaleRatio;
+	// 	endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
+	// 	endCutoff += viewport.xyxy;
+	// 	endCutoff += endMiterWidth.xyxy;
+	// }
+
+	//round miter cutoffs
+	vec2 startMiterWidth = vec2(startJoinDirection) * thickness * abs(dot(startJoinDirection, currNormal)) * .5;
+	startMiter = 1.;
+	startCutoff = vec4(aCoord, aCoord);
+	startCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;
+	startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
+	startCutoff += viewport.xyxy;
+	startCutoff += startMiterWidth.xyxy;
+
+
+	vec2 endMiterWidth = vec2(endJoinDirection) * thickness * abs(dot(endJoinDirection, currNormal)) * .5;
+	endMiter = 1.;
+	endCutoff = vec4(bCoord, bCoord);
+	endCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;
+	endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
+	endCutoff += viewport.xyxy;
+	endCutoff += endMiterWidth.xyxy;
+
 
 	startCoord = (aCoord + translate) * scaleRatio + viewport.xy;
 	endCoord = (bCoord + translate) * scaleRatio + viewport.xy;

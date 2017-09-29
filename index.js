@@ -22,7 +22,7 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, gl, properties, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture, fbo,
+	let regl, gl, properties, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture, fbo, colorTexture,
 
 		// used to for new lines instances
 		defaultOptions = {
@@ -44,7 +44,7 @@ function createLine (options) {
 		// list of options for lines
 		lines = []
 
-	const dashMult = 2, dashTextureWidth = 1024, dashTextureHeight = 256, precisionThreshold = 3e6
+	const dashMult = 2, maxPatternLength = 256, maxLinesNumber = 256, precisionThreshold = 3e6, maxColorSteps = 1024
 
 
 	// regl instance
@@ -97,8 +97,15 @@ function createLine (options) {
 	})
 	dashTexture = regl.texture({
 		channels: 1,
-		width: dashTextureWidth,
-		height: dashTextureHeight,
+		width: maxPatternLength,
+		height: maxLinesNumber,
+		mag: 'linear',
+		min: 'linear'
+	})
+	colorTexture = regl.texture({
+		format: 'rgba',
+		width: maxColorSteps,
+		height: maxLinesNumber,
 		mag: 'linear',
 		min: 'linear'
 	})
@@ -138,7 +145,7 @@ function createLine (options) {
 			thickness: regl.prop('thickness'),
 			dashPattern: dashTexture,
 			dashLength: regl.prop('dashLength'),
-			dashShape: [dashTextureWidth, dashTextureHeight],
+			dashShape: [maxPatternLength, maxLinesNumber],
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),

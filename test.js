@@ -33,7 +33,7 @@ let options = {
   thickness: 20,
   color: 'rgba(0,0,255,1)',//[palette[0]],
   miterlimit: 1,
-  // viewport: [200,400,800,600],
+  viewport: [200,400,800,600],
   range
 }
 let batch = []
@@ -51,10 +51,10 @@ let drawPoints = createScatter({
 
 function draw(opts) {
   regl._refresh()
-  drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
+  drawLine(opts)
 
   regl._refresh()
-  drawLine(opts)
+  drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
 }
 
 setTimeout(() => {
@@ -142,19 +142,7 @@ t('basic edge cases', t => {
   t.end()
 })
 
-t('miter clipping', t => {
-  let thickness = 100
-  let positions = [4.2,4, 4,2, 4,5, 3,6.5]
-
-  scale(positions, .85, .85)
-  translate(positions, 0.5, -5.5)
-
-  batch.push(extend({}, options, {overlay: true, positions: positions, miterlimit: 0, thickness: 30, dash: [9, 1]}))
-
-  t.end()
-})
-
-t('near-opposite directions', t => {
+t('near-opposite directions / miter clipping', t => {
   let positions = [0,1, 0.25,4, .25,-4, .5,-1, .65,0]
 
   // normalize(positions, 2)
@@ -210,7 +198,7 @@ t('fill', t => {
   t.end()
 })
 
-t.only('colorscale', t => {
+t.skip('colorscale', t => {
   batch.push({
     positions: translate(scale(flatten(curve([4, 4], [7, 10], [12, 2], [20, 4], 5)), .25, .25), -3, -1),
     color: 'red',
@@ -221,13 +209,16 @@ t.only('colorscale', t => {
   t.end()
 })
 
-t.skip('colors', t => {
-  // let colors = Array(N).fill(0).map(() => palette[Math.floor(Math.random() * palette.length)])
 
-  t.end()
-})
+t.only('round join', t => {
+  let thickness = 100
+  let positions = [-1,-.9, -1,-1, -1,1, -.9,-.9, -.8,.8, -.7,-.6, -.5,.4, -.2,-.2, .4,0, .8,0]
 
-t.skip('round join', t => {
+  scale(positions, 5, 3)
+  // translate(positions, 0.5, -5.5)
+
+  batch.push(extend({}, options, {overlay: true, positions: positions, miterlimit: 1, thickness: 30, dash: [9, 1]}))
+
   t.end()
 })
 

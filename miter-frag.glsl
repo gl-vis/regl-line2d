@@ -18,49 +18,52 @@ float distToLine(vec2 p, vec2 a, vec2 b) {
 
 void main() {
 	float alpha = 1., distToStart, distToEnd;
+	float cutoff = thickness * .5;
 
 	//bevel miter
-	if (startMiter > 0.) {
-		distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
-		if (distToStart < -1.) {
-			discard;
-			return;
-		}
-		alpha *= min(max(distToStart + 1., 0.), 1.);
-	}
+	// if (startMiter > 0.) {
+	// 	distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
+	// 	if (distToStart < -1.) {
+	// 		discard;
+	// 		return;
+	// 	}
+	// 	alpha *= min(max(distToStart + 1., 0.), 1.);
+	// }
 
-	if (endMiter > 0.) {
-		distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
-		if (distToEnd < -1.) {
-			discard;
-			return;
-		}
-		alpha *= min(max(distToEnd + 1., 0.), 1.);
-	}
+	// if (endMiter > 0.) {
+	// 	distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
+	// 	if (distToEnd < -1.) {
+	// 		discard;
+	// 		return;
+	// 	}
+	// 	alpha *= min(max(distToEnd + 1., 0.), 1.);
+	// }
 
 
 	// round miter
-	// distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
-	// if (distToStart < 0.) {
-	// 	float radius = length(gl_FragCoord.xy - startCoord);
+	distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
+	if (distToStart < 0.) {
+		float radius = length(gl_FragCoord.xy - startCoord);
 
-	// 	if(radius > thickness * pixelRatio * .5) {
-	// 		discard;
-	// 		return;
-	// 	}
-	// }
+		if(radius > cutoff) {
+			discard;
+			return;
+		}
 
-	// distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
-	// if (distToEnd < 0.) {
-	// 	float radius = length(gl_FragCoord.xy - endCoord);
+		alpha -= smoothstep(cutoff - 1., cutoff, radius);
+	}
 
-	// 	if(radius > thickness * pixelRatio * .5) {
-	// 		discard;
-	// 		return;
-	// 	}
-	// }
+	distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
+	if (distToEnd < 0.) {
+		float radius = length(gl_FragCoord.xy - endCoord);
 
-	// alpha -= smoothstep(1.0 - delta, 1.0 + delta, radius);
+		if(radius > cutoff) {
+			discard;
+			return;
+		}
+
+		alpha -= smoothstep(cutoff - 1., cutoff, radius);
+	}
 
 	float t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;
 	float dash = texture2D(dashPattern, vec2(t * dashLength * 2. / dashShape.x, (id + .5) / dashShape.y)).r;
