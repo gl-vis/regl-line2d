@@ -2,13 +2,13 @@ precision highp float;
 
 uniform sampler2D dashPattern;
 uniform vec2 dashShape;
-uniform float dashLength, pixelRatio, thickness, opacity, id;
+uniform float dashLength, pixelRatio, thickness, opacity, id, miterMode;
 
 varying vec4 fragColor;
 varying vec2 tangent;
 varying vec4 startCutoff, endCutoff;
 varying vec2 startCoord, endCoord;
-varying float startMiter, endMiter;
+varying float enableStartMiter, enableEndMiter;
 
 float distToLine(vec2 p, vec2 a, vec2 b) {
 	vec2 diff = b - a;
@@ -21,48 +21,55 @@ void main() {
 	float cutoff = thickness * .5;
 
 	//bevel miter
-	// if (startMiter > 0.) {
-	// 	distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
-	// 	if (distToStart < -1.) {
-	// 		discard;
-	// 		return;
-	// 	}
-	// 	alpha *= min(max(distToStart + 1., 0.), 1.);
-	// }
-
-	// if (endMiter > 0.) {
-	// 	distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
-	// 	if (distToEnd < -1.) {
-	// 		discard;
-	// 		return;
-	// 	}
-	// 	alpha *= min(max(distToEnd + 1., 0.), 1.);
-	// }
-
-
-	// round miter
-	distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
-	if (distToStart < 0.) {
-		float radius = length(gl_FragCoord.xy - startCoord);
-
-		if(radius > cutoff) {
-			discard;
-			return;
+	if (miterMode == 1.) {
+		if (enableStartMiter == 1.) {
+			distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
+			if (distToStart < -1.) {
+				discard;
+				return;
+			}
+			alpha *= min(max(distToStart + 1., 0.), 1.);
 		}
 
-		alpha -= smoothstep(cutoff - 1., cutoff, radius);
+		if (enableEndMiter == 1.) {
+			distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
+			if (distToEnd < -1.) {
+				discard;
+				return;
+			}
+			alpha *= min(max(distToEnd + 1., 0.), 1.);
+		}
 	}
 
-	distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
-	if (distToEnd < 0.) {
-		float radius = length(gl_FragCoord.xy - endCoord);
+	// round miter
+	else if (miterMode == 2.) {
+		if (enableStartMiter == 1.) {
+			distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
+			if (distToStart < 0.) {
+				float radius = length(gl_FragCoord.xy - startCoord);
 
-		if(radius > cutoff) {
-			discard;
-			return;
+				if(radius > cutoff + .5) {
+					discard;
+					return;
+				}
+
+				alpha -= smoothstep(cutoff - .5, cutoff + .5, radius);
+			}
 		}
 
-		alpha -= smoothstep(cutoff - 1., cutoff, radius);
+		if (enableEndMiter == 1.) {
+			distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
+			if (distToEnd < 0.) {
+				float radius = length(gl_FragCoord.xy - endCoord);
+
+				if(radius > cutoff + .5) {
+					discard;
+					return;
+				}
+
+				alpha -= smoothstep(cutoff - .5, cutoff + .5, radius);
+			}
+		}
 	}
 
 	float t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;

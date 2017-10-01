@@ -7,7 +7,7 @@ const extend = require('object-assign')
 const glslify = require('glslify')
 const pick = require('pick-by-alias')
 const filter = require('filter-obj')
-const mapProp = require('obj-map-prop')
+const updateDiff = require('update-diff')
 const flatten = require('flatten-vertex-data')
 const blacklist = require('blacklist')
 const dprop = require('dprop')
@@ -137,6 +137,7 @@ function createLine (options) {
 		offset: 0,
 
 		uniforms: {
+			miterMode: (ctx, prop) => prop.join === 'round' ? 2 : 1,
 			miterLimit: regl.prop('miterLimit'),
 			scale: regl.prop('scale'),
 			scaleFract: regl.prop('scaleFract'),
@@ -448,18 +449,15 @@ function createLine (options) {
 				return value !== undefined && state.raw[key] !== value
 			})
 
-			//cache properties
-			extend(state.raw, options)
-
 			//calculate state values
-			extend(state, mapProp(options, {
+			updateDiff(state, options, [{
 				thickness: parseFloat,
 				opacity: parseFloat,
 				miterLimit: parseFloat,
 				overlay: Boolean,
 				join: j => j,
 
-				positions: positions => {
+				positions: (positions, options, state) => {
 					positions = flatten(positions, 'float64')
 
 					let count = state.count = Math.floor(positions.length / 2)
@@ -501,8 +499,9 @@ function createLine (options) {
 					return c
 				},
 
-				color: colors => {
+				color: (colors, options, state) => {
 					let color
+					let count = state.points.length
 
 					if (!colors) colors = 'transparent'
 
@@ -546,7 +545,7 @@ function createLine (options) {
 					return color
 				},
 
-				dashes: dashes => {
+				dashes: (dashes, options, state) => {
 					let dashLength = state.dashLength,
 						dashData
 
@@ -585,12 +584,13 @@ function createLine (options) {
 					state.dashLength = dashLength
 
 					return dashData
-				}
-			}))
+				},
+			},
+
 
 			//dependent properties & complement actions
-			extend(state, mapProp(options, {
-				close: close => {
+			{
+				close: (close, options, state) => {
 					if (close != null) return close
 					if (state.positions.length >= 4 &&
 						state.positions[0] === state.positions[state.positions.length - 2] &&
@@ -600,13 +600,13 @@ function createLine (options) {
 					return false
 				},
 
-				positions: p => {
+				positions: (p, options, state) => {
 					if (state.fill && p.length) {
 						state.triangles = triangulate(state.positions)
 					}
 				},
 
-				range: range => {
+				range: (range, options, state) => {
 					let bounds = state.bounds
 					if (!range) range = bounds
 
@@ -652,8 +652,7 @@ function createLine (options) {
 
 					return viewport
 				}
-			}))
-
+			}])
 
 			return state
 		})

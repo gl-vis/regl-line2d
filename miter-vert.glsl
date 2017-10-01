@@ -7,13 +7,13 @@ attribute float lineEnd, lineTop;
 uniform vec2 scale, translate, scaleRatio;
 uniform float thickness, pixelRatio, id;
 uniform vec4 viewport;
-uniform float miterLimit, dashLength;
+uniform float miterLimit, dashLength, miterMode;
 
 varying vec4 fragColor;
 varying vec4 startCutoff, endCutoff;
 varying vec2 tangent;
 varying vec2 startCoord, endCoord;
-varying float startMiter, endMiter;
+varying float enableStartMiter, enableEndMiter;
 
 const float MAX_LINES = 256.;
 const float REVERSE_THRESHOLD = -.875;
@@ -31,13 +31,12 @@ float distToLine(vec2 p, vec2 a, vec2 b) {
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
 	vec2 normalWidth = thickness / scaleRatio;
-	// bool isL
 
 	float lineStart = 1. - lineEnd;
 	float lineBot = 1. - lineTop;
-	float depth = (MAX_LINES - 1. - id) / (MAX_LINES);
+	float depth = (MAX_LINES - 1. - id) / MAX_LINES;
 
-	fragColor = (lineEnd * bColor + lineStart * aColor) / 255.;
+	fragColor = (lineStart * aColor + lineEnd * bColor) / 255.;
 
 	if (aCoord == prevCoord) prevCoord = aCoord + normalize(bCoord - aCoord);
 	if (bCoord == nextCoord) nextCoord = bCoord - normalize(bCoord - aCoord);
@@ -62,27 +61,17 @@ void main() {
 	vec2 endJoinDirection = normalize(currTangent - nextTangent);
 
 	//collapsed/unidirectional segment cases
-	// if (prevDirection == currDirection) {
-	// 	startJoinDirection = currNormal;
-	// }
-	// if (nextDirection == currDirection) {
-	// 	endJoinDirection = currNormal;
-	// }
-	// if (prevCoord == aCoord) {
-	// 	startJoinDirection = currNormal;
-	// 	prevTangent = currTangent;
-	// 	prevNormal = currNormal;
-	// }
+	if (prevDirection == currDirection) {
+		startJoinDirection = currNormal;
+	}
+	if (nextDirection == currDirection) {
+		endJoinDirection = currNormal;
+	}
 	if (aCoord == bCoord) {
 		endJoinDirection = startJoinDirection;
 		currNormal = prevNormal;
 		currTangent = prevTangent;
 	}
-	// if (bCoord == nextCoord) {
-	// 	endJoinDirection = currNormal;
-	// 	nextTangent = currTangent;
-	// 	nextNormal = currNormal;
-	// }
 
 	tangent = currTangent;
 
@@ -151,51 +140,53 @@ void main() {
 	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
 
-
-	//bevel miter cutoffs
-	// vec2 startMiterWidth = vec2(startJoinDirection) * thickness * miterLimit * .5;
-	// vec2 endMiterWidth = vec2(endJoinDirection) * thickness * miterLimit * .5;
-	// startMiter = 0.;
-	// if (dot(currTangent, prevTangent) < .5) {
-	// 	startMiter = 1.;
-	// 	startCutoff = vec4(aCoord, aCoord);
-	// 	startCutoff.zw += (prevCoord == aCoord ? startBotJoin : vec2(-startJoin.y, startJoin.x)) / scaleRatio;
-	// 	startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
-	// 	startCutoff += viewport.xyxy;
-	// 	startCutoff += startMiterWidth.xyxy;
-	// }
-
-	// endMiter = 0.;
-	// if (dot(currTangent, nextTangent) < .5) {
-	// 	endMiter = 1.;
-	// 	endCutoff = vec4(bCoord, bCoord);
-	// 	endCutoff.zw += (nextCoord == bCoord ? endTopJoin :  vec2(-endJoinDirection.y, endJoinDirection.x))  / scaleRatio;
-	// 	endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
-	// 	endCutoff += viewport.xyxy;
-	// 	endCutoff += endMiterWidth.xyxy;
-	// }
-
-	//round miter cutoffs
-	vec2 startMiterWidth = vec2(startJoinDirection) * thickness * abs(dot(startJoinDirection, currNormal)) * .5;
-	startMiter = 1.;
-	startCutoff = vec4(aCoord, aCoord);
-	startCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;
-	startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
-	startCutoff += viewport.xyxy;
-	startCutoff += startMiterWidth.xyxy;
-
-
-	vec2 endMiterWidth = vec2(endJoinDirection) * thickness * abs(dot(endJoinDirection, currNormal)) * .5;
-	endMiter = 1.;
-	endCutoff = vec4(bCoord, bCoord);
-	endCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;
-	endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
-	endCutoff += viewport.xyxy;
-	endCutoff += endMiterWidth.xyxy;
-
-
 	startCoord = (aCoord + translate) * scaleRatio + viewport.xy;
 	endCoord = (bCoord + translate) * scaleRatio + viewport.xy;
 
 	gl_Position = vec4(position  * 2.0 - 1.0, depth, 1);
+
+	enableStartMiter = step(dot(currTangent, prevTangent), .5);
+	enableEndMiter = step(dot(currTangent, nextTangent), .5);
+
+	//bevel miter cutoffs
+	if (miterMode == 1.) {
+		if (enableStartMiter == 1.) {
+			vec2 startMiterWidth = vec2(startJoinDirection) * thickness * miterLimit * .5;
+			startCutoff = vec4(aCoord, aCoord);
+			startCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;
+			startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
+			startCutoff += viewport.xyxy;
+			startCutoff += startMiterWidth.xyxy;
+		}
+
+		if (enableEndMiter == 1.) {
+			vec2 endMiterWidth = vec2(endJoinDirection) * thickness * miterLimit * .5;
+			endCutoff = vec4(bCoord, bCoord);
+			endCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;
+			endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
+			endCutoff += viewport.xyxy;
+			endCutoff += endMiterWidth.xyxy;
+		}
+	}
+
+	//round miter cutoffs
+	else if (miterMode == 2.) {
+		if (enableStartMiter == 1.) {
+			vec2 startMiterWidth = vec2(startJoinDirection) * thickness * abs(dot(startJoinDirection, currNormal)) * .5;
+			startCutoff = vec4(aCoord, aCoord);
+			startCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;
+			startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
+			startCutoff += viewport.xyxy;
+			startCutoff += startMiterWidth.xyxy;
+		}
+
+		if (enableEndMiter == 1.) {
+			vec2 endMiterWidth = vec2(endJoinDirection) * thickness * abs(dot(endJoinDirection, currNormal)) * .5;
+			endCutoff = vec4(bCoord, bCoord);
+			endCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;
+			endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
+			endCutoff += viewport.xyxy;
+			endCutoff += endMiterWidth.xyxy;
+		}
+	}
 }
