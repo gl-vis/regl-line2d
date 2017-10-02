@@ -115,7 +115,10 @@ t('multiple points', t => {
   scale(positions, .15, .15)
   translate(positions, -5, -3)
 
-  batch.push(extend({}, options, {positions, thickness: 3, range, dash: [3, 3]}))
+  batch.push(extend({}, options, {
+    color: 'red',
+    positions, thickness: 3, range, dash: [3, 3]
+  }))
 
   t.end()
 })
@@ -126,7 +129,10 @@ t('closed circuit', t => {
   scale(positions, .25, .25)
   translate(positions, -1.5, -3)
 
-  batch.push(extend({}, options, {positions: positions, overlay: false, thickness: 30, dash: [8, 2]}))
+  batch.push(extend({}, options, {
+    color: 'green',
+    positions: positions, overlay: false, thickness: 30, dash: [8, 2]
+  }))
 
   t.end()
 })
@@ -214,7 +220,7 @@ t('colorscale', t => {
 })
 
 
-t.only('round join', t => {
+t('round join', t => {
   let thickness = 100
   let positions = [-1,-.9, -1,-1, -1,1, -.9,-.9, -.8,.8, -.7,-.6, -.5,.4, -.2,-.2, .4,0, .8,0]
   let colors = ['black', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'gray', 'blue', 'black']

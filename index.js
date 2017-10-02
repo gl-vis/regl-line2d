@@ -6,7 +6,6 @@ const getBounds = require('array-bounds')
 const extend = require('object-assign')
 const glslify = require('glslify')
 const pick = require('pick-by-alias')
-const filter = require('filter-obj')
 const updateDiff = require('update-diff')
 const flatten = require('flatten-vertex-data')
 const blacklist = require('blacklist')
@@ -22,7 +21,7 @@ function createLine (options) {
 	else if (options.length) options = {positions: options}
 
 	// persistent variables
-	let regl, gl, properties, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture, fbo, colorTexture,
+	let regl, gl, properties, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture, fbo,
 
 		// used to for new lines instances
 		defaultOptions = {
@@ -44,7 +43,7 @@ function createLine (options) {
 		// list of options for lines
 		lines = []
 
-	const dashMult = 2, maxPatternLength = 256, maxLinesNumber = 256, precisionThreshold = 3e6, maxColorSteps = 1024
+	const dashMult = 2, maxPatternLength = 256, maxLinesNumber = 256, precisionThreshold = 3e6
 
 
 	// regl instance
@@ -98,13 +97,6 @@ function createLine (options) {
 	dashTexture = regl.texture({
 		channels: 1,
 		width: maxPatternLength,
-		height: maxLinesNumber,
-		mag: 'linear',
-		min: 'linear'
-	})
-	colorTexture = regl.texture({
-		format: 'rgba',
-		width: maxColorSteps,
 		height: maxLinesNumber,
 		mag: 'linear',
 		min: 'linear'
@@ -205,21 +197,17 @@ function createLine (options) {
 				stride: 8,
 				offset: 4
 			},
-			aColor: (ctx, prop) => prop.color.length > 4 ? {
+			aColor: {
 				buffer: colorBuffer,
 				stride: 4,
-				offset: 0,
+				offset: (ctx, prop) => prop.offset * 4,
 				divisor: 1
-			} : {
-				constant: prop.color
 			},
-			bColor: (ctx, prop) => prop.color.length > 4 ? {
+			bColor: {
 				buffer: colorBuffer,
 				stride: 4,
-				offset: 4,
+				offset: (ctx, prop) => prop.offset * 4 + 4,
 				divisor: 1
-			} : {
-				constant: prop.color
 			},
 			prevCoord: {
 				buffer: positionBuffer,
@@ -290,13 +278,11 @@ function createLine (options) {
 				offset: (ctx, prop) => 16 + prop.offset * 8,
 				divisor: 1
 			},
-			color: (ctx, prop) => prop.color.length > 4 ? {
+			color: {
 				buffer: colorBuffer,
 				stride: 4,
-				offset: 0,
+				offset: (ctx, prop) => prop.offset * 4,
 				divisor: 1
-			} : {
-				constant: prop.color
 			}
 		}
 	}, shaderOptions))
@@ -384,14 +370,20 @@ function createLine (options) {
 			return acc
  		}, [[], [], []])
 
-		regl._refresh()
-		drawFill(fillBatch)
+ 		if (fillBatch.length) {
+			regl._refresh()
+			drawFill(fillBatch)
+		}
 
- 		regl._refresh()
-		drawMiterLine(miterBatch)
+ 		if (miterBatch.length) {
+	 		regl._refresh()
+			drawMiterLine(miterBatch)
+		}
 
- 		regl._refresh()
-		drawRectLine(rectBatch)
+		if (rectBatch.length) {
+	 		regl._refresh()
+			drawRectLine(rectBatch)
+		}
 	}
 
 
@@ -443,12 +435,6 @@ function createLine (options) {
 				options = extend({}, defaultOptions, options)
 			}
 
-			//consider only not changed properties
-			options = filter(options, (key, value) => {
-				if (Array.isArray(value)) return true
-				return value !== undefined && state.raw[key] !== value
-			})
-
 			//calculate state values
 			updateDiff(state, options, [{
 				thickness: parseFloat,
@@ -497,52 +483,6 @@ function createLine (options) {
 					}
 
 					return c
-				},
-
-				color: (colors, options, state) => {
-					let color
-					let count = state.points.length
-
-					if (!colors) colors = 'transparent'
-
-					// 'black' or [0,0,0,0] case
-					if (!Array.isArray(colors) || typeof colors[0] === 'number') {
-						colors = [colors]
-					}
-
-					if (colors.length > 1 && colors.length < count) throw Error('Not enough colors')
-
-					if (colors.length > 1) {
-						color = new Uint8Array(count * 4 + 4)
-
-						//convert colors to float arrays
-						for (let i = 0; i < colors.length; i++) {
-							let c = colors[i]
-							if (typeof c === 'string') {
-								c = rgba(c, false)
-							}
-							color[i*4] = c[0]
-							color[i*4 + 1] = c[1]
-							color[i*4 + 2] = c[2]
-							color[i*4 + 3] = c[3] * 255
-						}
-
-						//put last color
-						color[count*4 + 0] = color[count*4 - 4]
-						color[count*4 + 1] = color[count*4 - 3]
-						color[count*4 + 2] = color[count*4 - 2]
-						color[count*4 + 3] = color[count*4 - 1]
-
-						colorBuffer(color)
-					}
-					else {
-						color = rgba(colors[0], false)
-						color[3] *= 255
-						color = new Uint8Array(color)
-					}
-
-
-					return color
 				},
 
 				dashes: (dashes, options, state) => {
@@ -606,6 +546,36 @@ function createLine (options) {
 					}
 				},
 
+				color: (colors, options, state) => {
+					let count = state.points.length
+
+					if (!colors) colors = 'transparent'
+
+					// 'black' or [0,0,0,0] case
+					if (!Array.isArray(colors) || typeof colors[0] === 'number') {
+						colors = Array(count).fill(colors)
+					}
+
+					if (colors.length < count) throw Error('Not enough colors')
+
+					let colorData = new Uint8Array(count * 4 + 4)
+
+					//convert colors to float arrays
+					for (let i = 0; i < count; i++) {
+						let c = colors[i]
+						if (typeof c === 'string') {
+							c = rgba(c, false)
+						}
+						colorData[i*4] = c[0]
+						colorData[i*4 + 1] = c[1]
+						colorData[i*4 + 2] = c[2]
+						colorData[i*4 + 3] = c[3] * 255
+					}
+
+					return colorData
+				},
+
+
 				range: (range, options, state) => {
 					let bounds = state.bounds
 					if (!range) range = bounds
@@ -663,9 +633,10 @@ function createLine (options) {
 			let len = pointCount * 2 + lines.length * 6;
 			let positionData = new Float64Array(len)
 			let offset = 0
+			let colorData = new Uint8Array(len * 2)
 
 			lines.forEach((state, i) => {
-				let {positions, count} = state
+				let {positions, count, color} = state
 				state.offset = offset
 
 				if (!count) return
@@ -688,6 +659,7 @@ function createLine (options) {
 				}
 
 				positionData.set(positions, offset * 2 + 2)
+				colorData.set(color, offset * 4)
 
 				//add last segment
 				if (state.close) {
@@ -717,6 +689,7 @@ function createLine (options) {
 				}
 			})
 
+			colorBuffer(colorData)
 			positionBuffer(float32(positionData))
 			positionFractBuffer(fract32(positionData))
 		}
