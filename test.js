@@ -42,19 +42,19 @@ let batch = []
 // createPanel(options, opts => draw(opts))
 
 let drawLine = createLine(regl)
-let drawPoints = createScatter({
-  regl, range,
-  size: 10,
-  borderSize: 0,
-  color: 'rgba(255,0,0,.25)'
-})
+// let drawPoints = createScatter({
+//   regl, range,
+//   size: 10,
+//   borderSize: 0,
+//   color: 'rgba(255,0,0,.25)'
+// })
 
 function draw(opts) {
   regl._refresh()
   drawLine(opts)
 
-  regl._refresh()
-  drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
+  // regl._refresh()
+  // drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
 }
 
 setTimeout(() => {

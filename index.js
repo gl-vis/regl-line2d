@@ -43,7 +43,7 @@ function createLine (options) {
 		// list of options for lines
 		lines = []
 
-	const dashMult = 2, maxPatternLength = 256, maxLinesNumber = 256, precisionThreshold = 3e6
+	const dashMult = 2, maxPatternLength = 256, maxLinesNumber = 256, precisionThreshold = 3e6, maxPoints = 1e4
 
 
 	// regl instance
@@ -107,20 +107,8 @@ function createLine (options) {
 		depthStencil: false
 	})
 
-	//expose API
-	extend(line2d, {
-		update: update,
-		draw: line2d,
-		destroy: destroy,
-		regl: regl,
-		gl: gl,
-		canvas: gl.canvas,
-		lines: lines
-	})
-
 	//init defaults
 	update(options)
-
 
 	let shaderOptions = {
 		primitive: 'triangle strip',
@@ -333,6 +321,16 @@ function createLine (options) {
 		viewport: shaderOptions.viewport
 	})
 
+	//expose API
+	extend(line2d, {
+		update: update,
+		draw: draw,
+		destroy: destroy,
+		regl: regl,
+		gl: gl,
+		canvas: gl.canvas,
+		lines: lines
+	})
 
 	function line2d (opts) {
 		//update
@@ -345,13 +343,30 @@ function createLine (options) {
 			destroy()
 		}
 
+		draw(opts)
+	}
+
+	function draw (options) {
+		//make options a batch
+		if (options && !Array.isArray(options)) options = [options]
+
 		//render multiple polylines via regl batch
-		let batch = lines.filter(state => state.count)
+		lines.filter(s => s && s.thickness && s.count && s.color && s.opacity)
+			.forEach((s, i) => {
+			if (options) {
+				if (!options[i]) s.draw = false
+				else s.draw = true
+			}
 
- 		let [rectBatch, miterBatch, fillBatch] = batch.reduce((acc, s, i) => {
- 			if (s.fill) acc[2].push(s)
+			//ignore draw flag for one pass
+			if (!s.draw) {
+				s.draw = true;
+				return
+			}
 
- 			if (!s.thickness || !s.count || !s.color || !s.opacity) return acc
+ 			if (s.fill) {
+ 				drawFill(s)
+ 			}
 
  			s.scaleRatio = [
  				s.scale[0] * s.viewport.width,
@@ -360,32 +375,20 @@ function createLine (options) {
 
  			//high scale is only available for rect mode with precision
  			if (s.scaleRatio[0] > precisionThreshold || s.scaleRatio[1] > precisionThreshold) {
- 				acc[0].push(s)
+ 				drawRectLine(s)
  			}
 
- 			else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= 1e4))) {
- 				acc[0].push(s)
+ 			//thin lines or too many points are rendered as simplified rect shader
+ 			else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= maxPoints))) {
+ 				drawRectLine(s)
  			}
- 			else acc[1].push(s)
-			return acc
- 		}, [[], [], []])
+ 			else {
+ 				drawMiterLine(s)
+ 			}
 
- 		if (fillBatch.length) {
-			regl._refresh()
-			drawFill(fillBatch)
-		}
-
- 		if (miterBatch.length) {
-	 		regl._refresh()
-			drawMiterLine(miterBatch)
-		}
-
-		if (rectBatch.length) {
-	 		regl._refresh()
-			drawRectLine(rectBatch)
-		}
+ 			if (s.after) s.after(s)
+ 		})
 	}
-
 
 	function update (options) {
 		if (options.length != null) {
@@ -400,10 +403,21 @@ function createLine (options) {
 
 		//process per-line settings
 		lines = options.map((options, i) => {
-			if (!options) return
-			if (typeof options[0] === 'number') options = {positions: options}
-
 			let state = lines[i]
+
+			if (!options) {
+				if (options === false) {
+					//set ignore draw flag for one pass
+					state.draw = false
+				}
+				return
+			}
+			else if (options === true) {
+				state.draw = true
+				return
+			}
+			else if (typeof options === 'function') options = {after: options}
+			else if (typeof options[0] === 'number') options = {positions: options}
 
 			//reduce by aliases
 			options = pick(options, {
@@ -418,7 +432,8 @@ function createLine (options) {
 				overlay: 'overlay crease overlap intersect',
 				close: 'closed close closed-path closePath',
 				range: 'bounds range dataBox',
-				viewport: 'viewport viewBox'
+				viewport: 'viewport viewBox',
+				after: 'after callback done pass'
 			})
 
 			//prototype here keeps defaultOptions live-updated
@@ -430,7 +445,8 @@ function createLine (options) {
 					translate: null,
 					count: 0,
 					offset: 0,
-					dashLength: 0
+					dashLength: 0,
+					draw: false
 				}
 				options = extend({}, defaultOptions, options)
 			}
@@ -442,6 +458,7 @@ function createLine (options) {
 				miterLimit: parseFloat,
 				overlay: Boolean,
 				join: j => j,
+				after: fn => fn,
 
 				positions: (positions, options, state) => {
 					positions = flatten(positions, 'float64')
@@ -698,7 +715,6 @@ function createLine (options) {
 	}
 
 	function destroy () {
-		rawOptions = null
 		colorBuffer.destroy()
 		offsetBuffer.destroy()
 		positionBuffer.destroy()
