@@ -9,7 +9,7 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * GPU join calculation
 * Bevel, round and rectangular joins
 * Customizable dash patterns
-* Proper sharp-angle joins handling with transparent colors
+* Sharp angle joins handling with transparent colors
 * Multiline rendering
 * Float64 point precision
 * [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline)-compatible API
@@ -23,10 +23,26 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 ```js
 let drawLines = require('regl-line2d')(require('regl')())
 
+//draw single line
 drawLines({
-  positions: data,
+  positions: [0,0, 1,1],
   color: 'rgba(0, 100, 200, .75)'
 })
+
+//draw red triangle
+drawLine({thickness: 4, points: [0,0, 1,1, 1,0], close: true, color: 'red'})
+
+//draw multiple lines
+drawLine([
+  {thickness: 2, points: [0,0, 1,1], color: 'blue'},
+  {thickness: 2, points: [0,1, 1,0], color: 'blue'}
+])
+
+//redraw the first previously drawn line
+drawLine([true, false])
+
+//redraw both lines
+drawLine()
 ```
 
 ## API
@@ -42,26 +58,10 @@ Option | Default | Description
 
 `drawLine` is invoked with the rest of options.
 
-### `drawLine(points|options|list?)`
+### `drawLine(options|list?)`
 
-Draw line and optionally update options. If plain `points` array passed - it will just update the positions. `null` argument will destroy instance and dispose resources. To render multiple lines - pass an array with options for every line.
+Draw line and optionally update options. To render multiple lines - pass an array with options for every line. `null` argument will destroy `drawLine` instance and dispose resources.
 
-```js
-//draw red triangle
-drawLine({thickness: 4, points: [0,0, 1,1, 1,0], close: true, color: 'red'})
-
-//draw multiple lines
-drawLine([
-	{thickness: 2, points: [0,0, 1,1], color: 'blue'},
-	{thickness: 2, points: [0,1, 1,0], color: 'blue'}
-])
-
-//redraw first previously drawn lines
-drawLine([true, false])
-
-//redraw both lines
-drawLine()
-```
 
 #### options
 
@@ -79,7 +79,7 @@ Option | Alias | Default | Description
 `fill` | | `none` | Fills area enclosed by line.
 `overlay` | | `false` | Enable overlay of line segments.
 
-Additional methods are exposed as `drawLine.draw`, `drawLine.update` and `drawLine.destroy`.
+Additional methods exposed as `drawLine.draw`, `drawLine.update` and `drawLine.destroy`.
 
 ## Related
 
