@@ -408,7 +408,7 @@ function createLine (options) {
 
 			//reduce by aliases
 			options = pick(options, {
-				positions: 'positions points data',
+				positions: 'positions points data coords',
 				thickness: 'thickness lineWidth lineWidths line-width linewidth width stroke-width strokewidth strokeWidth',
 				join: 'lineJoin linejoin join',
 				miterLimit: 'miterlimit miterLimit',
