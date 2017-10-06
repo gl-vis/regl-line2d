@@ -403,7 +403,8 @@ function createLine (options) {
 		lines = options.map((options, i) => {
 			let state = lines[i]
 
-			if (typeof options === 'function') options = {after: options}
+			if (!options) options = {}
+			else if (typeof options === 'function') options = {after: options}
 			else if (typeof options[0] === 'number') options = {positions: options}
 
 			//reduce by aliases
