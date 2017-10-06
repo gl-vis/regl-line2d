@@ -56,7 +56,7 @@ Option | Default | Description
 `regl` | `null` | Regl instance to reuse, otherwise new regl is created.
 `gl`, `canvas`, `container`, `pixelRatio` | `null` | Options for `regl`, if new regl instance is created.
 
-`drawLine` is invoked with the rest of options.
+Rest of options initialize `drawLine`.
 
 ### `drawLine(options|list?)`
 
@@ -65,19 +65,20 @@ Draw line and optionally update options. To render multiple lines - pass an arra
 
 #### options
 
-Option | Alias | Default | Description
----|---|---|---
-`positions` | `points`, `data` | `[]` | Array with sequence of coordinates for polyline, akin to sequence of `ctx.lineTo()` calls, eg. `[0,0, 1,1, 0,2, 1,-1]` or `[[0,0], [1,1], [0,2], [1,-1]]`.
-`color` | `colors`, `stroke` | `black` | Color can be a css color string or an array with float `0..1` values.
-`width` | `thickness`, `lineWidth`, `strokeWidth` | `1` | Line width or array with widths corresponding to polylines.
-`dashes` | `dash`, `dasharray` | `null` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`. Dash length is defined in pixels. If `null`, solid line will be rendered.
-`miterLimit` | `miterlimit` | `1` | The limit on the ratio of the miter length to the thickness.
-`range` | `dataBox` | `null` | Limit visible data.
-`viewport` | `viewBox` | `null` | Limit visible area within the canvas.
-`join` | | `bevel` | Join style: `'rect'`, `'round'`, `'bevel'`. Applied to caps too.
-`close` | `closed`, `closePath` | `false` | Connect last point with the first point with a segment.
-`fill` | | `none` | Fills area enclosed by line.
-`overlay` | | `false` | Enable overlay of line segments.
+Option | Default | Description
+---|---|---
+`positions, points`, `data` | `[]` | Array with sequence of coordinates for polyline, akin to sequence of `ctx.lineTo()` calls, eg. `[0,0, 1,1, 0,2, 1,-1]` or `[[0,0], [1,1], [0,2], [1,-1]]`.
+`color, colors`, `stroke` | `black` | Color can be a css color string or an array with float `0..1` values.
+`opacity` | `1` | Regulate transparency separately from colors.
+`width, thickness`, `lineWidth`, `strokeWidth` | `1` | Line width or array with widths corresponding to polylines.
+`dashes, dash`, `dasharray` | `null` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`. Dash length is defined in pixels. If `null`, solid line will be rendered.
+`miterLimit, miterlimit` | `1` | The limit on the ratio of the miter length to the thickness.
+`range, dataBox` | `null` | Limit visible data.
+`viewport, viewBox` | `null` | Limit visible area within the canvas.
+`join` | `bevel` | Join style: `'rect'`, `'round'`, `'bevel'`. Applied to caps too.
+`close, closed`, `closePath` | `false` | Connect last point with the first point with a segment.
+`fill` | `none` | Fills area enclosed by line.
+`overlay` | `false` | Enable overlay of line segments.
 
 Additional methods exposed as `drawLine.draw`, `drawLine.update` and `drawLine.destroy`.
 

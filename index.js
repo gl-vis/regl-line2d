@@ -18,7 +18,6 @@ module.exports = createLine
 function createLine (options) {
 	if (!options) options = {}
 	else if (typeof options === 'function') options = {regl: options}
-	else if (options.length) options = {positions: options}
 
 	// persistent variables
 	let regl, gl, properties, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture, fbo,
@@ -405,18 +404,7 @@ function createLine (options) {
 		lines = options.map((options, i) => {
 			let state = lines[i]
 
-			if (!options) {
-				if (options === false) {
-					//set ignore draw flag for one pass
-					state.draw = false
-				}
-				return
-			}
-			else if (options === true) {
-				state.draw = true
-				return
-			}
-			else if (typeof options === 'function') options = {after: options}
+			if (typeof options === 'function') options = {after: options}
 			else if (typeof options[0] === 'number') options = {positions: options}
 
 			//reduce by aliases
@@ -431,22 +419,22 @@ function createLine (options) {
 				opacity: 'alpha opacity',
 				overlay: 'overlay crease overlap intersect',
 				close: 'closed close closed-path closePath',
-				range: 'bounds range dataBox',
+				range: 'range dataBox',
 				viewport: 'viewport viewBox',
 				after: 'after callback done pass'
 			})
 
-			//prototype here keeps defaultOptions live-updated
 			if (!state) {
 				lines[i] = state = {
 					id: i,
-					raw: {},
 					scale: null,
+					scaleFract: null,
 					translate: null,
+					translateFract: null,
 					count: 0,
 					offset: 0,
 					dashLength: 0,
-					draw: false
+					draw: true
 				}
 				options = extend({}, defaultOptions, options)
 			}
@@ -460,7 +448,7 @@ function createLine (options) {
 				join: j => j,
 				after: fn => fn,
 
-				positions: (positions, options, state) => {
+				positions: (positions, state, options) => {
 					positions = flatten(positions, 'float64')
 
 					let count = state.count = Math.floor(positions.length / 2)
@@ -475,8 +463,6 @@ function createLine (options) {
 						]
 					}
 					state.points = points
-
-					//remove repeating tail/beginning points
 
 					if (!state.range) state.range = bounds
 
@@ -502,7 +488,7 @@ function createLine (options) {
 					return c
 				},
 
-				dashes: (dashes, options, state) => {
+				dashes: (dashes, state, options) => {
 					let dashLength = state.dashLength,
 						dashData
 
@@ -544,10 +530,9 @@ function createLine (options) {
 				},
 			},
 
-
 			//dependent properties & complement actions
 			{
-				close: (close, options, state) => {
+				close: (close, state, options) => {
 					if (close != null) return close
 					if (state.positions.length >= 4 &&
 						state.positions[0] === state.positions[state.positions.length - 2] &&
@@ -557,13 +542,13 @@ function createLine (options) {
 					return false
 				},
 
-				positions: (p, options, state) => {
+				positions: (p, state, options) => {
 					if (state.fill && p.length) {
 						state.triangles = triangulate(state.positions)
 					}
 				},
 
-				color: (colors, options, state) => {
+				color: (colors, state, options) => {
 					let count = state.points.length
 
 					if (!colors) colors = 'transparent'
@@ -593,7 +578,7 @@ function createLine (options) {
 				},
 
 
-				range: (range, options, state) => {
+				range: (range, state, options) => {
 					let bounds = state.bounds
 					if (!range) range = bounds
 
@@ -674,9 +659,13 @@ function createLine (options) {
 					positionData[offset*2 + 0] = positions[0]
 					positionData[offset*2 + 1] = positions[1]
 				}
+				colorData[offset*4 + 0] = color[0]
+				colorData[offset*4 + 1] = color[1]
+				colorData[offset*4 + 2] = color[2]
+				colorData[offset*4 + 3] = color[3]
 
 				positionData.set(positions, offset * 2 + 2)
-				colorData.set(color, offset * 4)
+				colorData.set(color, offset * 4 + 4)
 
 				//add last segment
 				if (state.close) {
@@ -715,6 +704,7 @@ function createLine (options) {
 	}
 
 	function destroy () {
+		lines.length = 0
 		colorBuffer.destroy()
 		offsetBuffer.destroy()
 		positionBuffer.destroy()
