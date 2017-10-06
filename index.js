@@ -8,7 +8,6 @@ const glslify = require('glslify')
 const pick = require('pick-by-alias')
 const updateDiff = require('update-diff')
 const flatten = require('flatten-vertex-data')
-const blacklist = require('blacklist')
 const dprop = require('dprop')
 const triangulate = require('earcut')
 
