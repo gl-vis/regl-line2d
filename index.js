@@ -8,7 +8,6 @@ const glslify = require('glslify')
 const pick = require('pick-by-alias')
 const updateDiff = require('update-diff')
 const flatten = require('flatten-vertex-data')
-const dprop = require('dprop')
 const triangulate = require('earcut')
 
 module.exports = createLine
@@ -19,7 +18,7 @@ function createLine (options) {
 	else if (typeof options === 'function') options = {regl: options}
 
 	// persistent variables
-	let regl, gl, properties, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture, fbo,
+	let regl, gl, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture,
 
 		// used to for new lines instances
 		defaultOptions = {
@@ -41,7 +40,7 @@ function createLine (options) {
 		// list of options for lines
 		lines = []
 
-	const dashMult = 2, maxPatternLength = 256, maxLinesNumber = 256, precisionThreshold = 3e6, maxPoints = 1e4
+	const dashMult = 2, maxPatternLength = 256, maxLinesNumber = 2048, precisionThreshold = 3e6, maxPoints = 1e4
 
 
 	// regl instance
@@ -345,11 +344,13 @@ function createLine (options) {
 	}
 
 	function draw (options) {
+		if (typeof options === 'number') return drawLine(options)
+
 		//make options a batch
 		if (options && !Array.isArray(options)) options = [options]
 
 		//render multiple polylines via regl batch
-		lines.filter(s => s && s.thickness && s.count && s.color && s.opacity)
+		lines.filter(s => s && s.thickness && s.count && s.color && s.opacity && s.positions > 2)
 			.forEach((s, i) => {
 			if (options) {
 				if (!options[i]) s.draw = false
@@ -362,30 +363,39 @@ function createLine (options) {
 				return
 			}
 
- 			if (s.fill) {
- 				drawFill(s)
- 			}
-
- 			s.scaleRatio = [
- 				s.scale[0] * s.viewport.width,
- 				s.scale[1] * s.viewport.height
- 			]
-
- 			//high scale is only available for rect mode with precision
- 			if (s.scaleRatio[0] > precisionThreshold || s.scaleRatio[1] > precisionThreshold) {
- 				drawRectLine(s)
- 			}
-
- 			//thin lines or too many points are rendered as simplified rect shader
- 			else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= maxPoints))) {
- 				drawRectLine(s)
- 			}
- 			else {
- 				drawMiterLine(s)
- 			}
-
- 			if (s.after) s.after(s)
+ 			drawLine(i)
  		})
+	}
+
+	//draw single line by id
+	function drawLine (i) {
+		let s = lines[i]
+
+		if (!s) return
+
+		if (s.fill) {
+			drawFill(s)
+		}
+
+		s.scaleRatio = [
+			s.scale[0] * s.viewport.width,
+			s.scale[1] * s.viewport.height
+		]
+
+		//high scale is only available for rect mode with precision
+		if (s.scaleRatio[0] > precisionThreshold || s.scaleRatio[1] > precisionThreshold) {
+			drawRectLine(s)
+		}
+
+		//thin lines or too many points are rendered as simplified rect shader
+		else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= maxPoints))) {
+			drawRectLine(s)
+		}
+		else {
+			drawMiterLine(s)
+		}
+
+		if (s.after) s.after(s)
 	}
 
 	function update (options) {
