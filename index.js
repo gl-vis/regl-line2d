@@ -98,11 +98,6 @@ function createLine (options) {
 		mag: 'linear',
 		min: 'linear'
 	})
-	fbo = regl.framebuffer({
-		width: gl.drawingBufferWidth,
-		height: gl.drawingBufferHeight,
-		depthStencil: false
-	})
 
 	//init defaults
 	update(options)
@@ -350,8 +345,7 @@ function createLine (options) {
 		if (options && !Array.isArray(options)) options = [options]
 
 		//render multiple polylines via regl batch
-		lines.filter(s => s && s.thickness && s.count && s.color && s.opacity && s.positions > 2)
-			.forEach((s, i) => {
+		lines.forEach((s, i) => {
 			if (options) {
 				if (!options[i]) s.draw = false
 				else s.draw = true
@@ -363,19 +357,23 @@ function createLine (options) {
 				return
 			}
 
- 			drawLine(i)
- 		})
+			drawLine(i)
+		})
 	}
 
 	//draw single line by id
-	function drawLine (i) {
-		let s = lines[i]
+	function drawLine (s) {
+		if (typeof s === 'number') s = lines[s]
 
-		if (!s) return
+		if (!(s && s.count && s.opacity && s.positions && s.positions.length > 2)) return
 
-		if (s.fill) {
+		regl._refresh()
+
+		if (s.fill && s.triangles && s.triangles.length > 2) {
 			drawFill(s)
 		}
+
+		if (!s.thickness || !s.color) return
 
 		s.scaleRatio = [
 			s.scale[0] * s.viewport.width,
@@ -554,12 +552,41 @@ function createLine (options) {
 
 				positions: (p, state, options) => {
 					if (state.fill && p.length) {
-						state.triangles = triangulate(state.positions)
+						let pos = []
+
+						//filter bad vertices and remap triangles to ensure shape
+						let ids = {}
+						let lastX = state.positions[0],
+							lastY = state.positions[1],
+							lastId = 0
+
+						for (let i = 0, ptr = 0, l = state.count; i < l; i++) {
+							let x = state.positions[i*2]
+							let y = state.positions[i*2 + 1]
+							if (Number.isNaN(x) || Number.isNaN(y)) {
+								x = state.positions[lastId*2]
+								y = state.positions[lastId*2 + 1]
+								ids[i] = lastId
+							}
+							else {
+								lastId = i
+							}
+							pos[ptr++] = x
+							pos[ptr++] = y
+						}
+						let triangles = triangulate(pos)
+
+						for (let i = 0, l = triangles.length; i < l; i++) {
+							if (ids[triangles[i]] != null) triangles[i] = ids[triangles[i]]
+						}
+
+						state.triangles = triangles
 					}
+					return state.positions
 				},
 
 				color: (colors, state, options) => {
-					let count = state.points.length
+					let count = state.count
 
 					if (!colors) colors = 'transparent'
 

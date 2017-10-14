@@ -28,6 +28,10 @@ float distToLine(vec2 p, vec2 a, vec2 b) {
 	return dot(p - a, perp);
 }
 
+bool isNaN( float val ){
+  return ( val < 0.0 || 0.0 < val || val == 0.0 ) ? false : true;
+}
+
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
 	vec2 normalWidth = thickness / scaleRatio;
@@ -37,6 +41,8 @@ void main() {
 	float depth = (MAX_LINES - 1. - id) / MAX_LINES;
 
 	fragColor = (lineStart * aColor + lineEnd * bColor) / 255.;
+
+	if (isNaN(aCoord.x) || isNaN(aCoord.y) || isNaN(bCoord.x) || isNaN(bCoord.y)) return;
 
 	if (aCoord == prevCoord) prevCoord = aCoord + normalize(bCoord - aCoord);
 	if (bCoord == nextCoord) nextCoord = bCoord - normalize(bCoord - aCoord);
