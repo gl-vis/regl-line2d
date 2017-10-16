@@ -41,10 +41,10 @@
     "glslify": "^6.1.0",
     "object-assign": "^4.1.1",
     "pick-by-alias": "^1.1.0",
-    "regl": "^1.3.0",
     "update-diff": "^1.0.2"
   },
   "devDependencies": {
+    "regl": "^1.3.0",
     "adaptive-bezier-curve": "^1.0.3",
     "arc-to": "^1.0.1",
     "array-normalize": "^1.1.3",

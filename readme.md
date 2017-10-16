@@ -11,7 +11,7 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * Customizable dash patterns
 * Sharp angle joins handling with transparent colors
 * Multiline rendering
-* Float64 point precision
+* Float64 precision
 * [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline)-compatible API
 
 [Demo](https://dfcreative.github.io/regl-line2d).
@@ -21,44 +21,31 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 [![npm install regl-line2d](https://nodei.co/npm/regl-line2d.png?mini=true)](https://npmjs.org/package/regl-line2d/)
 
 ```js
-let drawLines = require('regl-line2d')(require('regl')())
+let regl = require('regl')({extensions: 'angle_instanced_arrays'})
+let createLine2d = require('regl-line2d')
+
+let line2d = createLine2d(regl)
 
 // draw single line
-drawLines([0,0, 1,1])
+line2d([0,0, 1,1])
 
 // draw red triangle
-drawLine({thickness: 4, points: [0,0, 1,1, 1,0], close: true, color: 'red'})
+line2d({thickness: 4, points: [0,0, 1,1, 1,0], close: true, color: 'red'})
 
 // draw multiple lines
-drawLine([
+line2d([
   {thickness: 2, points: [0,0, 1,1], color: 'blue'},
   {thickness: 2, points: [0,1, 1,0], color: 'blue'}
 ])
-
-// redraw the first previously drawn line
-drawLine([true, false])
-
-//redraw both lines
-drawLine()
 ```
 
-## API
+### `createLine2d(regl, options?)`
 
-### `drawLine = require('regl-line2d')(options|regl)`
+Create new line2d instance from `regl` and initial `options`. Note that `regl` instance should have `ANGLE_instanced_arrays` extension enabled.
 
-Create a function drawing line for connected points.
+### `line2d(options|list?)`
 
-Option | Default | Description
----|---|---
-`regl` | `null` | Regl instance to reuse, otherwise new regl is created.
-`gl`, `canvas`, `container`, `pixelRatio` | `null` | Options for `regl`, if new regl instance is created.
-
-Rest of options initialize `drawLine`.
-
-### `drawLine(options|list?)`
-
-Draw line and optionally update options. To render multiple lines - pass an array with options for every line. `null` argument will destroy `drawLine` instance and dispose resources.
-
+Draw line and optionally update options.
 
 Option | Default | Description
 ---|---|---
@@ -75,7 +62,20 @@ Option | Default | Description
 `close`, `closed`, `closePath` | `false` | Connect last point with the first point with a segment.
 `overlay` | `false` | Enable overlay of line segments.
 
-Additional methods exposed as `drawLine.draw`, `drawLine.update` and `drawLine.destroy`.
+To render multiple lines - pass an array with options for every line. `null` argument will destroy `drawLine` instance and dispose resources.
+
+### `line2d.update(options|list)`
+
+Update options, not incurring redraw.
+
+### `line2d.draw(id?)`
+
+Draw lines based on last options. `id` integer can specify a line to redraw.
+
+### `line2d.destroy()`
+
+Dispose line2d and associated resources.
+
 
 ## Related
 

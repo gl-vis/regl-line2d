@@ -1,6 +1,5 @@
 'use strict'
 
-const createRegl = require('regl')
 const rgba = require('color-rgba')
 const getBounds = require('array-bounds')
 const extend = require('object-assign')
@@ -13,15 +12,26 @@ const triangulate = require('earcut')
 module.exports = createLine
 
 
-function createLine (options) {
-	if (!options) options = {}
-	else if (typeof options === 'function') options = {regl: options}
+function createLine (regl, options) {
+	if (typeof regl === 'function') {
+		if (!options) options = {}
+		options.regl = regl
+	}
+	else {
+		options = regl
+	}
+	if (options.length) options.positions = options
+	regl = options.regl
+
+	if (!regl.hasExtension('ANGLE_instanced_arrays')) {
+		throw Error('regl-error2d: `ANGLE_instanced_arrays` extension should be enabled');
+	}
 
 	// persistent variables
-	let regl, gl, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture,
+	let gl = regl._gl, drawMiterLine, drawRectLine, drawFill, colorBuffer, offsetBuffer, positionBuffer, positionFractBuffer, dashTexture,
 
 		// used to for new lines instances
-		defaultOptions = {
+		defaults = {
 			positions: [],
 			dashes: null,
 			join: null,
@@ -42,33 +52,6 @@ function createLine (options) {
 
 	const dashMult = 2, maxPatternLength = 256, maxLinesNumber = 2048, precisionThreshold = 3e6, maxPoints = 1e4
 
-
-	// regl instance
-	if (options.regl) regl = options.regl
-
-	// container/gl/canvas case
-	else {
-		let opts
-
-		if (options instanceof HTMLCanvasElement) opts = {canvas: options}
-		else if (options instanceof HTMLElement) opts = {container: options}
-		else if (options.drawingBufferWidth || options.drawingBufferHeight) opts = {gl: options}
-
-		else {
-			opts = pick(options, 'pixelRatio canvas container gl extensions')
-		}
-
-		if (!opts.extensions) opts.extensions = []
-		if (!opts.optionalExtensions) opts.optionalExtensions = []
-
-		//FIXME: use fallback if not available
-		opts.extensions.push('ANGLE_instanced_arrays')
-		opts.optionalExtensions.push('EXT_blend_minmax')
-
-		regl = createRegl(opts)
-	}
-
-	gl = regl._gl
 
 	//color per-point
 	colorBuffer = regl.buffer({
@@ -444,7 +427,7 @@ function createLine (options) {
 					dashLength: 0,
 					draw: true
 				}
-				options = extend({}, defaultOptions, options)
+				options = extend({}, defaults, options)
 			}
 
 			//calculate state values
