@@ -539,9 +539,7 @@ function createLine (regl, options) {
 
 						//filter bad vertices and remap triangles to ensure shape
 						let ids = {}
-						let lastX = state.positions[0],
-							lastY = state.positions[1],
-							lastId = 0
+						let lastId = 0
 
 						for (let i = 0, ptr = 0, l = state.count; i < l; i++) {
 							let x = state.positions[i*2]
