@@ -57,12 +57,12 @@ Option | Default | Description
 `dashes`, `dash`, `dasharray` | `null` | Array with dash lengths, altering color/space pairs, ie. `[2,10, 5,10, ...]`. Dash length is defined in pixels. If `null`, solid line will be rendered.
 `miterLimit` | `1` | The limit on the ratio of the miter length to the thickness.
 `range`, `dataBox` | `null` | Limit visible data.
-`viewport`, `viewBox` | `null` | Limit visible area within the canvas.
+`viewport`, `viewBox` | `null` | Limit visible area within the canvas, can be an array `[left, top, right, bottom]` or an object `{x, y, w, h}` or `{left, top, bottom, right}`.
 `join` | `bevel` | Join style: `'rect'`, `'round'`, `'bevel'`. Applied to caps too.
 `close`, `closed`, `closePath` | `false` | Connect last point with the first point with a segment.
 `overlay` | `false` | Enable overlay of line segments.
 
-To render multiple lines - pass an array with options for every line. `null` argument will destroy `drawLine` instance and dispose resources.
+To render multiple lines - pass an array with options for every line (`list`). `null` argument will destroy `line2d` instance and dispose resources.
 
 ### `line2d.update(options|list)`
 

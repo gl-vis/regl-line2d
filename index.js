@@ -727,7 +727,6 @@ function createLine (regl, options) {
 		offsetBuffer.destroy()
 		positionBuffer.destroy()
 		dashTexture.destroy()
-		regl.destroy()
 	}
 
 	return line2d
