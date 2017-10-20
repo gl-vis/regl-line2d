@@ -22,17 +22,11 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 
 ```js
 let regl = require('regl')({extensions: 'angle_instanced_arrays'})
-let createLine2d = require('regl-line2d')
-
-let line2d = createLine2d(regl)
+let line2d = require('regl-line2d')(regl)
 
 // draw red triangle
 line2d({thickness: 4, points: [0,0, 1,1, 1,0], close: true, color: 'red'})
 ```
-
-### `createLine2d(regl, options?)`
-
-Create new line2d instance from `regl` and initial `options`. Note that `regl` instance should have `ANGLE_instanced_arrays` extension enabled.
 
 ### `line2d(options|list?)`
 
