@@ -30,7 +30,7 @@ line2d({thickness: 4, points: [0,0, 1,1, 1,0], close: true, color: 'red'})
 
 ### `line2d(options|list?)`
 
-Draw line and optionally update options.
+Draw line or multiple lines and update options.
 
 Option | Default | Description
 ---|---|---
@@ -47,10 +47,9 @@ Option | Default | Description
 `close`, `closed`, `closePath` | `false` | Connect last point with the first point with a segment.
 `overlay` | `false` | Enable overlay of line segments.
 
-To render multiple lines - pass an array with options for every line (`list`):
+To render multiple lines pass an array with options for every line as `list`:
 
 ```js
-// draw multiple lines
 line2d([
   {thickness: 2, points: [0,0, 1,1], color: 'blue'},
   {thickness: 2, points: [0,1, 1,0], color: 'blue'}
@@ -61,15 +60,15 @@ line2d([
 
 ### `line2d.update(options|list)`
 
-Update options, not incurring redraw.
+Update line(s) not incurring redraw.
 
 ### `line2d.draw(id?)`
 
-Draw lines based on last options. `id` integer can specify a line to redraw.
+Draw lines from last updated options. `id` integer can specify a single line from the `list` to redraw.
 
 ### `line2d.destroy()`
 
-Dispose line2d and associated resources.
+Dispose `line2d` and associated resources.
 
 
 ## Related
