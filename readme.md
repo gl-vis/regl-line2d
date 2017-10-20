@@ -26,17 +26,8 @@ let createLine2d = require('regl-line2d')
 
 let line2d = createLine2d(regl)
 
-// draw single line
-line2d([0,0, 1,1])
-
 // draw red triangle
 line2d({thickness: 4, points: [0,0, 1,1, 1,0], close: true, color: 'red'})
-
-// draw multiple lines
-line2d([
-  {thickness: 2, points: [0,0, 1,1], color: 'blue'},
-  {thickness: 2, points: [0,1, 1,0], color: 'blue'}
-])
 ```
 
 ### `createLine2d(regl, options?)`
@@ -62,7 +53,17 @@ Option | Default | Description
 `close`, `closed`, `closePath` | `false` | Connect last point with the first point with a segment.
 `overlay` | `false` | Enable overlay of line segments.
 
-To render multiple lines - pass an array with options for every line (`list`). `null` argument will destroy `line2d` instance and dispose resources.
+To render multiple lines - pass an array with options for every line (`list`):
+
+```js
+// draw multiple lines
+line2d([
+  {thickness: 2, points: [0,0, 1,1], color: 'blue'},
+  {thickness: 2, points: [0,1, 1,0], color: 'blue'}
+])
+```
+
+`null` argument will destroy `line2d` instance and dispose resources.
 
 ### `line2d.update(options|list)`
 
