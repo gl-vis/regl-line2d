@@ -35,7 +35,7 @@
   "dependencies": {
     "array-bounds": "^1.0.0",
     "bubleify": "^0.7.0",
-    "color-rgba": "^1.1.0",
+    "color-normalize": "^1.0.0",
     "earcut": "^2.1.1",
     "flatten-vertex-data": "^1.0.0",
     "glslify": "^6.1.0",

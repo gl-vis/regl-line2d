@@ -1,6 +1,6 @@
 'use strict'
 
-const rgba = require('color-rgba')
+const rgba = require('color-normalize')
 const getBounds = require('array-bounds')
 const extend = require('object-assign')
 const glslify = require('glslify')
@@ -463,20 +463,7 @@ function createLine (regl, options) {
 				},
 
 				fill: c => {
-					if (typeof c === 'string') {
-						c = rgba(c, false)
-						c[3] *= 255
-						c = new Uint8Array(c)
-					}
-					else if (Array.isArray(c) || c instanceof Float32Array || c instanceof Float64Array) {
-						c = new Uint8Array(c)
-						c[0] *= 255
-						c[1] *= 255
-						c[2] *= 255
-						c[3] *= 255
-					}
-
-					return c
+					return !c ? null : rgba(c, 'uint8')
 				},
 
 				dashes: (dashes, state, options) => {
@@ -582,14 +569,8 @@ function createLine (regl, options) {
 
 					//convert colors to float arrays
 					for (let i = 0; i < count; i++) {
-						let c = colors[i]
-						if (typeof c === 'string') {
-							c = rgba(c, false)
-						}
-						colorData[i*4] = c[0]
-						colorData[i*4 + 1] = c[1]
-						colorData[i*4 + 2] = c[2]
-						colorData[i*4 + 3] = c[3] * 255
+						let c = rgba(colors[i], 'uint8')
+						colorData.set(c, i * 4)
 					}
 
 					return colorData
