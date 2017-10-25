@@ -381,11 +381,11 @@ function createLine (regl, options) {
 
 	function update (options) {
 		if (options.length != null) {
-			if (typeof options[0] === 'number') options = {positions: options}
+			if (typeof options[0] === 'number') options = [{positions: options}]
 		}
 
 		//make options a batch
-		if (!Array.isArray(options)) options = [options]
+		else if (!Array.isArray(options)) options = [options]
 
 		//global count of points
 		let pointCount = 0
@@ -394,7 +394,7 @@ function createLine (regl, options) {
 		lines = options.map((options, i) => {
 			let state = lines[i]
 
-			if (!options) options = {}
+			if (!options) return state
 			else if (typeof options === 'function') options = {after: options}
 			else if (typeof options[0] === 'number') options = {positions: options}
 
@@ -637,6 +637,8 @@ function createLine (regl, options) {
 			let colorData = new Uint8Array(len * 2)
 
 			lines.forEach((state, i) => {
+				if (!state) return
+
 				let {positions, count, color} = state
 				state.offset = offset
 
