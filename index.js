@@ -444,8 +444,8 @@ function createLine (regl, options) {
 				positions: (positions, state, options) => {
 					positions = flatten(positions, 'float64')
 
-					let count = state.count = Math.floor(positions.length / 2)
-					let bounds = state.bounds = getBounds(positions, 2)
+					let count = Math.floor(positions.length / 2)
+					let bounds = getBounds(positions, 2)
 
 					//grouped positions
 					let points = Array(count)
@@ -457,7 +457,12 @@ function createLine (regl, options) {
 					}
 					state.points = points
 
-					if (!state.range) options.range = bounds
+					if (!state.range && !options.range) {
+						options.range = bounds
+					}
+
+					state.count = count
+					state.bounds = bounds
 
 					pointCount += count
 
