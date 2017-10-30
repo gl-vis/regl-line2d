@@ -16,7 +16,9 @@ const extend = require('object-assign')
 const arc = require('arc-to')
 const curve = require('adaptive-bezier-curve')
 const flatten = require('flatten-vertex-data')
-const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint', 'EXT_blend_minmax']})
+const createRegl = require('regl')
+
+const regl = createRegl({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint', 'EXT_blend_minmax']})
 
 
 // document.documentElement.style.background = 'url(https://images.unsplash.com/photo-1461958723673-f65d980244f1?dpr=1&auto=format&fit=crop&w=1080&h=720&q=80&cs=tinysrgb&crop=)';

@@ -40,7 +40,7 @@ Option | Default | Description
 `opacity` | `1` | Line transparency regardless of color.
 `thickness`, `lineWidth`, `width`, `strokeWidth` | `1` | Line width in px.
 `dashes`, `dash`, `dasharray` | `null` | Array with dash lengths in px, altering color/space pairs, ie. `[2,10, 5,10, ...]`. `null` corresponds to solid line.
-`join` | `bevel` | Join style: `'rect'`, `'round'`, `'bevel'`. Applied to caps too.
+`join`, `type` | `bevel` | Join style: `'rect'`, `'round'`, `'bevel'`. Applied to caps too.
 `miterLimit` | `1` | Max ratio of the join length to the thickness.
 `close`, `closed`, `closePath` | `false` | Connect last point with the first point with a segment.
 `overlay` | `false` | Enable overlay of line segments.

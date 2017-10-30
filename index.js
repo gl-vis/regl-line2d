@@ -380,6 +380,8 @@ function createLine (regl, options) {
 	}
 
 	function update (options) {
+		if (!options) return
+
 		if (options.length != null) {
 			if (typeof options[0] === 'number') options = [{positions: options}]
 		}
@@ -402,7 +404,7 @@ function createLine (regl, options) {
 			options = pick(options, {
 				positions: 'positions points data coords',
 				thickness: 'thickness lineWidth lineWidths line-width linewidth width stroke-width strokewidth strokeWidth',
-				join: 'lineJoin linejoin join',
+				join: 'lineJoin linejoin join type mode',
 				miterLimit: 'miterlimit miterLimit',
 				dashes: 'dash dashes dasharray dash-array dashArray',
 				color: 'color stroke colors stroke-color strokeColor',
@@ -455,7 +457,7 @@ function createLine (regl, options) {
 					}
 					state.points = points
 
-					if (!state.range) state.range = bounds
+					if (!state.range) options.range = bounds
 
 					pointCount += count
 
@@ -505,7 +507,7 @@ function createLine (regl, options) {
 					state.dashLength = dashLength
 
 					return dashData
-				},
+				}
 			},
 
 			//dependent properties & complement actions
@@ -576,8 +578,9 @@ function createLine (regl, options) {
 					return colorData
 				},
 
-
 				range: (range, state, options) => {
+					if (!state.count) return null
+
 					let bounds = state.bounds
 					if (!range) range = bounds
 
