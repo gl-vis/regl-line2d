@@ -8,6 +8,7 @@ const pick = require('pick-by-alias')
 const updateDiff = require('update-diff')
 const flatten = require('flatten-vertex-data')
 const triangulate = require('earcut')
+const normalize = require('array-normalize')
 
 module.exports = createLine
 
@@ -447,16 +448,6 @@ function createLine (regl, options) {
 					let count = Math.floor(positions.length / 2)
 					let bounds = getBounds(positions, 2)
 
-					//grouped positions
-					let points = Array(count)
-					for (let i = 0; i < count; i++) {
-						points[i] = [
-							positions[i*2],
-							positions[i*2+1]
-						]
-					}
-					state.points = points
-
 					if (!state.range && !options.range) {
 						options.range = bounds
 					}
@@ -589,8 +580,10 @@ function createLine (regl, options) {
 					let bounds = state.bounds
 					if (!range) range = bounds
 
-					state.scale = [1 / (range[2] - range[0]), 1 / (range[3] - range[1])]
-					state.translate = [-range[0], -range[1]]
+					let nrange = normalize(range.slice(), 2, bounds)
+
+					state.scale = [1 / (nrange[2] - nrange[0]), 1 / (nrange[3] - nrange[1])]
+					state.translate = [-nrange[0], -nrange[1]]
 
 					state.scaleFract = fract32(state.scale)
 					state.translateFract = fract32(state.translate)
@@ -652,28 +645,33 @@ function createLine (regl, options) {
 
 				if (!count) return
 
+				//provide normalized positions
+				let npos = new Float64Array(positions.length)
+				npos.set(positions)
+				normalize(npos, 2, state.bounds)
+
 				//rotate first segment join
 				if (state.close) {
 					if (positions[0] === positions[count*2 - 2] &&
 						positions[1] === positions[count*2 - 1]) {
-						positionData[offset*2 + 0] = positions[count*2 - 4]
-						positionData[offset*2 + 1] = positions[count*2 - 3]
+						positionData[offset*2 + 0] = npos[count*2 - 4]
+						positionData[offset*2 + 1] = npos[count*2 - 3]
 					}
 					else {
-						positionData[offset*2 + 0] = positions[count*2 - 2]
-						positionData[offset*2 + 1] = positions[count*2 - 1]
+						positionData[offset*2 + 0] = npos[count*2 - 2]
+						positionData[offset*2 + 1] = npos[count*2 - 1]
 					}
 				}
 				else {
-					positionData[offset*2 + 0] = positions[0]
-					positionData[offset*2 + 1] = positions[1]
+					positionData[offset*2 + 0] = npos[0]
+					positionData[offset*2 + 1] = npos[1]
 				}
 				colorData[offset*4 + 0] = color[0]
 				colorData[offset*4 + 1] = color[1]
 				colorData[offset*4 + 2] = color[2]
 				colorData[offset*4 + 3] = color[3]
 
-				positionData.set(positions, offset * 2 + 2)
+				positionData.set(npos, offset * 2 + 2)
 				colorData.set(color, offset * 4 + 4)
 
 				//add last segment
@@ -681,25 +679,25 @@ function createLine (regl, options) {
 					//ignore coinciding start/end
 					if (positions[0] === positions[count*2 - 2] &&
 						positions[1] === positions[count*2 - 1]) {
-						positionData[offset*2 + count*2 + 2] = positions[2]
-						positionData[offset*2 + count*2 + 3] = positions[3]
+						positionData[offset*2 + count*2 + 2] = npos[2]
+						positionData[offset*2 + count*2 + 3] = npos[3]
 						offset += count + 2
 						state.count -= 1
 					}
 					else {
-						positionData[offset*2 + count*2 + 2] = positions[0]
-						positionData[offset*2 + count*2 + 3] = positions[1]
-						positionData[offset*2 + count*2 + 4] = positions[2]
-						positionData[offset*2 + count*2 + 5] = positions[3]
+						positionData[offset*2 + count*2 + 2] = npos[0]
+						positionData[offset*2 + count*2 + 3] = npos[1]
+						positionData[offset*2 + count*2 + 4] = npos[2]
+						positionData[offset*2 + count*2 + 5] = npos[3]
 						offset += count + 3
 					}
 				}
 				//add stub
 				else {
-					positionData[offset*2 + count*2 + 2] = positions[count*2 - 2]
-					positionData[offset*2 + count*2 + 3] = positions[count*2 - 1]
-					positionData[offset*2 + count*2 + 4] = positions[count*2 - 2]
-					positionData[offset*2 + count*2 + 5] = positions[count*2 - 1]
+					positionData[offset*2 + count*2 + 2] = npos[count*2 - 2]
+					positionData[offset*2 + count*2 + 3] = npos[count*2 - 1]
+					positionData[offset*2 + count*2 + 4] = npos[count*2 - 2]
+					positionData[offset*2 + count*2 + 5] = npos[count*2 - 1]
 					offset += count + 3
 				}
 			})

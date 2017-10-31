@@ -28,7 +28,7 @@ void main() {
 	float lineOffset = lineTop * 2. - 1.;
 	float depth = (MAX_LINES - 1. - id) / (MAX_LINES);
 
-	vec2 diff = bCoord - aCoord;
+	vec2 diff = (bCoord + bCoordFract - aCoord - aCoordFract);
 	tangent = normalize(diff * scaleRatio);
 	vec2 normal = vec2(-tangent.y, tangent.x);
 
