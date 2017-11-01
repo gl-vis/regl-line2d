@@ -208,6 +208,15 @@ t('time case', t => {
   t.end()
 })
 
+t.skip('disconnected', t => {
+  batch.push({
+    type: 'round',
+    positions: [1, -2, 2, -2, 3, NaN, 4, 2, 5, 2],
+    width: 20,
+    color: 'red'
+  })
+})
+
 t('fill', t => {
   batch.push({
     fill: '#F9F38C',

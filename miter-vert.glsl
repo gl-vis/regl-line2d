@@ -20,7 +20,7 @@ const float REVERSE_THRESHOLD = -.875;
 const float MIN_DIST = 1.;
 
 //TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead
-//TODO: precalculate dot products, normalize things etc.
+//TODO: precalculate dot products, normalize things beforehead etc.
 
 float distToLine(vec2 p, vec2 a, vec2 b) {
 	vec2 diff = b - a;
