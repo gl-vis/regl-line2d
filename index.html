@@ -7112,7 +7112,7 @@ function float32 (arr) {
 	float.set(arr)
 	return float
 }
-},{"array-bounds":38,"array-normalize":39,"color-normalize":43,"earcut":57,"flatten-vertex-data":67,"glslify":76,"object-assign":88,"pick-by-alias":94,"update-diff":115}],35:[function(require,module,exports){
+},{"array-bounds":38,"array-normalize":39,"color-normalize":43,"earcut":57,"flatten-vertex-data":65,"glslify":73,"object-assign":84,"pick-by-alias":90,"update-diff":110}],35:[function(require,module,exports){
 function clone(point) { //TODO: use gl-vec2 for this
     return [point[0], point[1]]
 }
@@ -7834,7 +7834,7 @@ function parse (cstr) {
 	}
 }
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"color-name":42,"defined":54,"is-plain-obj":83}],45:[function(require,module,exports){
+},{"color-name":42,"defined":54,"is-plain-obj":79}],45:[function(require,module,exports){
 /** @module  color-rgba */
 
 'use strict'
@@ -8044,7 +8044,7 @@ function parse (cstr) {
 	};
 }
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"color-name":42,"is-plain-obj":83}],47:[function(require,module,exports){
+},{"color-name":42,"is-plain-obj":79}],47:[function(require,module,exports){
 /** @module  color-rgba */
 
 'use strict'
@@ -8393,7 +8393,7 @@ defineProperties.supportsDescriptors = !!supportsDescriptors;
 
 module.exports = defineProperties;
 
-},{"foreach":69,"object-keys":89}],54:[function(require,module,exports){
+},{"foreach":67,"object-keys":85}],54:[function(require,module,exports){
 module.exports = function () {
     var arguments$1 = arguments;
 
@@ -9087,84 +9087,6 @@ earcut.flatten = function (data) {
 };
 
 },{}],58:[function(require,module,exports){
-if (!Array.prototype.fill) {
-  Array.prototype.fill = function(value) {
-
-    // Steps 1-2.
-    if (this == null) {
-      throw new TypeError('this is null or not defined');
-    }
-
-    var O = Object(this);
-
-    // Steps 3-5.
-    var len = O.length >>> 0;
-
-    // Steps 6-7.
-    var start = arguments[1];
-    var relativeStart = start >> 0;
-
-    // Step 8.
-    var k = relativeStart < 0 ?
-      Math.max(len + relativeStart, 0) :
-      Math.min(relativeStart, len);
-
-    // Steps 9-10.
-    var end = arguments[2];
-    var relativeEnd = end === undefined ?
-      len : end >> 0;
-
-    // Step 11.
-    var final = relativeEnd < 0 ?
-      Math.max(len + relativeEnd, 0) :
-      Math.min(relativeEnd, len);
-
-    // Step 12.
-    while (k < final) {
-      O[k] = value;
-      k++;
-    }
-
-    // Step 13.
-    return O;
-  };
-}
-},{}],59:[function(require,module,exports){
-require('./arr-fill');
-require('typedarray-methods');
-require('get-float-time-domain-data');
-var css = require('insert-styles');
-
-
-css("/*! normalize.css v7.0.0 | MIT License | github.com/necolas/normalize.css */\n\n/* Document\n   ========================================================================== */\n\n/**\n * 1. Correct the line height in all browsers.\n * 2. Prevent adjustments of font size after orientation changes in\n *    IE on Windows Phone and in iOS.\n */\n\nhtml {\n  line-height: 1.15; /* 1 */\n  -ms-text-size-adjust: 100%; /* 2 */\n  -webkit-text-size-adjust: 100%; /* 2 */\n}\n\n/* Sections\n   ========================================================================== */\n\n/**\n * Remove the margin in all browsers (opinionated).\n */\n\nbody {\n  margin: 0;\n}\n\n/**\n * Add the correct display in IE 9-.\n */\n\narticle,\naside,\nfooter,\nheader,\nnav,\nsection {\n  display: block;\n}\n\n/**\n * Correct the font size and margin on `h1` elements within `section` and\n * `article` contexts in Chrome, Firefox, and Safari.\n */\n\nh1 {\n  font-size: 2em;\n  margin: 0.67em 0;\n}\n\n/* Grouping content\n   ========================================================================== */\n\n/**\n * Add the correct display in IE 9-.\n * 1. Add the correct display in IE.\n */\n\nfigcaption,\nfigure,\nmain { /* 1 */\n  display: block;\n}\n\n/**\n * Add the correct margin in IE 8.\n */\n\nfigure {\n  margin: 1em 40px;\n}\n\n/**\n * 1. Add the correct box sizing in Firefox.\n * 2. Show the overflow in Edge and IE.\n */\n\nhr {\n  box-sizing: content-box; /* 1 */\n  height: 0; /* 1 */\n  overflow: visible; /* 2 */\n}\n\n/**\n * 1. Correct the inheritance and scaling of font size in all browsers.\n * 2. Correct the odd `em` font sizing in all browsers.\n */\n\npre {\n  font-family: monospace, monospace; /* 1 */\n  font-size: 1em; /* 2 */\n}\n\n/* Text-level semantics\n   ========================================================================== */\n\n/**\n * 1. Remove the gray background on active links in IE 10.\n * 2. Remove gaps in links underline in iOS 8+ and Safari 8+.\n */\n\na {\n  background-color: transparent; /* 1 */\n  -webkit-text-decoration-skip: objects; /* 2 */\n}\n\n/**\n * 1. Remove the bottom border in Chrome 57- and Firefox 39-.\n * 2. Add the correct text decoration in Chrome, Edge, IE, Opera, and Safari.\n */\n\nabbr[title] {\n  border-bottom: none; /* 1 */\n  text-decoration: underline; /* 2 */\n  text-decoration: underline dotted; /* 2 */\n}\n\n/**\n * Prevent the duplicate application of `bolder` by the next rule in Safari 6.\n */\n\nb,\nstrong {\n  font-weight: inherit;\n}\n\n/**\n * Add the correct font weight in Chrome, Edge, and Safari.\n */\n\nb,\nstrong {\n  font-weight: bolder;\n}\n\n/**\n * 1. Correct the inheritance and scaling of font size in all browsers.\n * 2. Correct the odd `em` font sizing in all browsers.\n */\n\ncode,\nkbd,\nsamp {\n  font-family: monospace, monospace; /* 1 */\n  font-size: 1em; /* 2 */\n}\n\n/**\n * Add the correct font style in Android 4.3-.\n */\n\ndfn {\n  font-style: italic;\n}\n\n/**\n * Add the correct background and color in IE 9-.\n */\n\nmark {\n  background-color: #ff0;\n  color: #000;\n}\n\n/**\n * Add the correct font size in all browsers.\n */\n\nsmall {\n  font-size: 80%;\n}\n\n/**\n * Prevent `sub` and `sup` elements from affecting the line height in\n * all browsers.\n */\n\nsub,\nsup {\n  font-size: 75%;\n  line-height: 0;\n  position: relative;\n  vertical-align: baseline;\n}\n\nsub {\n  bottom: -0.25em;\n}\n\nsup {\n  top: -0.5em;\n}\n\n/* Embedded content\n   ========================================================================== */\n\n/**\n * Add the correct display in IE 9-.\n */\n\naudio,\nvideo {\n  display: inline-block;\n}\n\n/**\n * Add the correct display in iOS 4-7.\n */\n\naudio:not([controls]) {\n  display: none;\n  height: 0;\n}\n\n/**\n * Remove the border on images inside links in IE 10-.\n */\n\nimg {\n  border-style: none;\n}\n\n/**\n * Hide the overflow in IE.\n */\n\nsvg:not(:root) {\n  overflow: hidden;\n}\n\n/* Forms\n   ========================================================================== */\n\n/**\n * 1. Change the font styles in all browsers (opinionated).\n * 2. Remove the margin in Firefox and Safari.\n */\n\nbutton,\ninput,\noptgroup,\nselect,\ntextarea {\n  font-family: sans-serif; /* 1 */\n  font-size: 100%; /* 1 */\n  line-height: 1.15; /* 1 */\n  margin: 0; /* 2 */\n}\n\n/**\n * Show the overflow in IE.\n * 1. Show the overflow in Edge.\n */\n\nbutton,\ninput { /* 1 */\n  overflow: visible;\n}\n\n/**\n * Remove the inheritance of text transform in Edge, Firefox, and IE.\n * 1. Remove the inheritance of text transform in Firefox.\n */\n\nbutton,\nselect { /* 1 */\n  text-transform: none;\n}\n\n/**\n * 1. Prevent a WebKit bug where (2) destroys native `audio` and `video`\n *    controls in Android 4.\n * 2. Correct the inability to style clickable types in iOS and Safari.\n */\n\nbutton,\nhtml [type=\"button\"], /* 1 */\n[type=\"reset\"],\n[type=\"submit\"] {\n  -webkit-appearance: button; /* 2 */\n}\n\n/**\n * Remove the inner border and padding in Firefox.\n */\n\nbutton::-moz-focus-inner,\n[type=\"button\"]::-moz-focus-inner,\n[type=\"reset\"]::-moz-focus-inner,\n[type=\"submit\"]::-moz-focus-inner {\n  border-style: none;\n  padding: 0;\n}\n\n/**\n * Restore the focus styles unset by the previous rule.\n */\n\nbutton:-moz-focusring,\n[type=\"button\"]:-moz-focusring,\n[type=\"reset\"]:-moz-focusring,\n[type=\"submit\"]:-moz-focusring {\n  outline: 1px dotted ButtonText;\n}\n\n/**\n * Correct the padding in Firefox.\n */\n\nfieldset {\n  padding: 0.35em 0.75em 0.625em;\n}\n\n/**\n * 1. Correct the text wrapping in Edge and IE.\n * 2. Correct the color inheritance from `fieldset` elements in IE.\n * 3. Remove the padding so developers are not caught out when they zero out\n *    `fieldset` elements in all browsers.\n */\n\nlegend {\n  box-sizing: border-box; /* 1 */\n  color: inherit; /* 2 */\n  display: table; /* 1 */\n  max-width: 100%; /* 1 */\n  padding: 0; /* 3 */\n  white-space: normal; /* 1 */\n}\n\n/**\n * 1. Add the correct display in IE 9-.\n * 2. Add the correct vertical alignment in Chrome, Firefox, and Opera.\n */\n\nprogress {\n  display: inline-block; /* 1 */\n  vertical-align: baseline; /* 2 */\n}\n\n/**\n * Remove the default vertical scrollbar in IE.\n */\n\ntextarea {\n  overflow: auto;\n}\n\n/**\n * 1. Add the correct box sizing in IE 10-.\n * 2. Remove the padding in IE 10-.\n */\n\n[type=\"checkbox\"],\n[type=\"radio\"] {\n  box-sizing: border-box; /* 1 */\n  padding: 0; /* 2 */\n}\n\n/**\n * Correct the cursor style of increment and decrement buttons in Chrome.\n */\n\n[type=\"number\"]::-webkit-inner-spin-button,\n[type=\"number\"]::-webkit-outer-spin-button {\n  height: auto;\n}\n\n/**\n * 1. Correct the odd appearance in Chrome and Safari.\n * 2. Correct the outline style in Safari.\n */\n\n[type=\"search\"] {\n  -webkit-appearance: textfield; /* 1 */\n  outline-offset: -2px; /* 2 */\n}\n\n/**\n * Remove the inner padding and cancel buttons in Chrome and Safari on macOS.\n */\n\n[type=\"search\"]::-webkit-search-cancel-button,\n[type=\"search\"]::-webkit-search-decoration {\n  -webkit-appearance: none;\n}\n\n/**\n * 1. Correct the inability to style clickable types in iOS and Safari.\n * 2. Change font properties to `inherit` in Safari.\n */\n\n::-webkit-file-upload-button {\n  -webkit-appearance: button; /* 1 */\n  font: inherit; /* 2 */\n}\n\n/* Interactive\n   ========================================================================== */\n\n/*\n * Add the correct display in IE 9-.\n * 1. Add the correct display in Edge, IE, and Firefox.\n */\n\ndetails, /* 1 */\nmenu {\n  display: block;\n}\n\n/*\n * Add the correct display in all browsers.\n */\n\nsummary {\n  display: list-item;\n}\n\n/* Scripting\n   ========================================================================== */\n\n/**\n * Add the correct display in IE 9-.\n */\n\ncanvas {\n  display: inline-block;\n}\n\n/**\n * Add the correct display in IE.\n */\n\ntemplate {\n  display: none;\n}\n\n/* Hidden\n   ========================================================================== */\n\n/**\n * Add the correct display in IE 10-.\n */\n\n[hidden] {\n  display: none;\n}\n");
-
-css("\n\thtml {\n\t\ttouch-action: manipulation;\n\t}\n")
-
-addMeta({
-	name: 'viewport',
-	content: 'width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=0'
-});
-addMeta({
-	'http-equiv': 'x-ua-compatible',
-	content: 'ie=edge'
-});
-addMeta({
-	charset: 'utf-8'
-});
-
-
-function addMeta (obj) {
-	var meta = document.createElement('meta');
-	var qs = 'meta';
-	for (var name in obj) {
-		qs += "[" + name + "]"
-		meta.setAttribute(name, obj[name]);
-	}
-	if (!document.querySelector(qs)) {
-		document.head.insertBefore(meta, document.head.firstChild);
-	}
-}
-},{"./arr-fill":58,"get-float-time-domain-data":74,"insert-styles":80,"typedarray-methods":114}],60:[function(require,module,exports){
 'use strict';
 
 var $isNaN = require('./helpers/isNaN');
@@ -9402,28 +9324,28 @@ var ES5 = {
 
 module.exports = ES5;
 
-},{"./helpers/isFinite":61,"./helpers/isNaN":62,"./helpers/mod":63,"./helpers/sign":64,"es-to-primitive/es5":65,"has":77,"is-callable":81}],61:[function(require,module,exports){
+},{"./helpers/isFinite":59,"./helpers/isNaN":60,"./helpers/mod":61,"./helpers/sign":62,"es-to-primitive/es5":63,"has":74,"is-callable":77}],59:[function(require,module,exports){
 var $isNaN = Number.isNaN || function (a) { return a !== a; };
 
 module.exports = Number.isFinite || function (x) { return typeof x === 'number' && !$isNaN(x) && x !== Infinity && x !== -Infinity; };
 
-},{}],62:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 module.exports = Number.isNaN || function isNaN(a) {
 	return a !== a;
 };
 
-},{}],63:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 module.exports = function mod(number, modulo) {
 	var remain = number % modulo;
 	return Math.floor(remain >= 0 ? remain : remain + modulo);
 };
 
-},{}],64:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 module.exports = function sign(number) {
 	return number >= 0 ? 1 : -1;
 };
 
-},{}],65:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 'use strict';
 
 var toStr = Object.prototype.toString;
@@ -9462,12 +9384,12 @@ module.exports = function ToPrimitive(input, PreferredType) {
 	return ES5internalSlots['[[DefaultValue]]'](input, PreferredType);
 };
 
-},{"./helpers/isPrimitive":66,"is-callable":81}],66:[function(require,module,exports){
+},{"./helpers/isPrimitive":64,"is-callable":77}],64:[function(require,module,exports){
 module.exports = function isPrimitive(value) {
 	return value === null || (typeof value !== 'function' && typeof value !== 'object');
 };
 
-},{}],67:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 /*eslint new-cap:0*/
 var dtype = require('dtype')
 module.exports = flattenVertexData
@@ -9514,7 +9436,7 @@ function flattenVertexData (data, output, offset) {
   return output
 }
 
-},{"dtype":56}],68:[function(require,module,exports){
+},{"dtype":56}],66:[function(require,module,exports){
 var isFunction = require('is-function')
 
 module.exports = forEach
@@ -9562,7 +9484,7 @@ function forEachObject(object, iterator, context) {
     }
 }
 
-},{"is-function":82}],69:[function(require,module,exports){
+},{"is-function":78}],67:[function(require,module,exports){
 
 var hasOwn = Object.prototype.hasOwnProperty;
 var toString = Object.prototype.toString;
@@ -9585,7 +9507,7 @@ module.exports = function forEach (obj, fn, ctx) {
     }
 };
 
-},{}],70:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 /**
  * @module fps-indicator
  */
@@ -9698,7 +9620,7 @@ function fps (opts) {
 		raf(measure);
 	});
 }
-},{"raf":95,"right-now":99,"to-css":110}],71:[function(require,module,exports){
+},{"raf":91,"right-now":95,"to-css":106}],69:[function(require,module,exports){
 var ERROR_MESSAGE = 'Function.prototype.bind called on incompatible ';
 var slice = Array.prototype.slice;
 var toStr = Object.prototype.toString;
@@ -9748,12 +9670,12 @@ module.exports = function bind(that) {
     return bound;
 };
 
-},{}],72:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 var implementation = require('./implementation');
 
 module.exports = Function.prototype.bind || implementation;
 
-},{"./implementation":71}],73:[function(require,module,exports){
+},{"./implementation":69}],71:[function(require,module,exports){
 'use strict'
 
 module.exports = gaussRandom
@@ -9761,22 +9683,7 @@ module.exports = gaussRandom
 function gaussRandom() {
   return Math.sqrt(-2.0 * Math.log(Math.random())) * Math.cos(2.0 * Math.PI * Math.random())
 }
-},{}],74:[function(require,module,exports){
-(function (global){
-"use strict";
-
-if (global.AnalyserNode && !global.AnalyserNode.prototype.getFloatTimeDomainData) {
-  var uint8 = new Uint8Array(2048);
-  global.AnalyserNode.prototype.getFloatTimeDomainData = function(array) {
-    this.getByteTimeDomainData(uint8);
-    for (var i = 0, imax = array.length; i < imax; i++) {
-      array[i] = (uint8[i] - 128) * 0.0078125;
-    }
-  };
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],75:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 module.exports = distance
 
 /**
@@ -9791,7 +9698,7 @@ function distance(a, b) {
         y = b[1] - a[1]
     return Math.sqrt(x*x + y*y)
 }
-},{}],76:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 module.exports = function(strings) {
   if (typeof strings === 'string') { strings = [strings] }
   var exprs = [].slice.call(arguments,1)
@@ -9803,12 +9710,12 @@ module.exports = function(strings) {
   return parts.join('')
 }
 
-},{}],77:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 var bind = require('function-bind');
 
 module.exports = bind.call(Function.call, Object.prototype.hasOwnProperty);
 
-},{"function-bind":72}],78:[function(require,module,exports){
+},{"function-bind":70}],75:[function(require,module,exports){
 (function (global, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['exports', 'module'], factory);
@@ -10293,7 +10200,7 @@ module.exports = bind.call(Function.call, Object.prototype.hasOwnProperty);
     }
 });
 
-},{}],79:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -10318,43 +10225,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],80:[function(require,module,exports){
-(function (global){
-'use strict'
-
-var cache = {}
-
-function noop () {}
-
-module.exports = !global.document ? noop : insertStyles
-
-function insertStyles (styles, options) {
-  var id = options && options.id || styles
-
-  var element = cache[id] = (cache[id] || createStyle(id))
-
-  if ('textContent' in element) {
-    element.textContent = styles
-  } else {
-    element.styleSheet.cssText = styles
-  }
-}
-
-function createStyle (id) {
-  var element = document.getElementById(id)
-
-  if (element) { return element }
-
-  element = document.createElement('style')
-  element.setAttribute('type', 'text/css')
-
-  document.head.appendChild(element)
-
-  return element
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],81:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 'use strict';
 
 var fnToStr = Function.prototype.toString;
@@ -10395,7 +10266,7 @@ module.exports = function isCallable(value) {
 	return strClass === fnClass || strClass === genClass;
 };
 
-},{}],82:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 module.exports = isFunction
 
 var toString = Object.prototype.toString
@@ -10412,7 +10283,7 @@ function isFunction (fn) {
       fn === window.prompt))
 };
 
-},{}],83:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 'use strict';
 var toString = Object.prototype.toString;
 
@@ -10421,7 +10292,7 @@ module.exports = function (x) {
 	return toString.call(x) === '[object Object]' && (prototype = Object.getPrototypeOf(x), prototype === null || prototype === Object.getPrototypeOf({}));
 };
 
-},{}],84:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 var rootPosition = { left: 0, top: 0 }
 
 module.exports = mouseEventOffset
@@ -10448,7 +10319,7 @@ function getBoundingClientOffset (element) {
   }
 }
 
-},{}],85:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 'use strict'
 
 var toPX = require('to-px')
@@ -10490,7 +10361,7 @@ function mouseWheelListen(element, callback, noScroll) {
   return listener
 }
 
-},{"to-px":111}],86:[function(require,module,exports){
+},{"to-px":107}],82:[function(require,module,exports){
 'use strict'
 
 var assert = require('assert')
@@ -10527,9 +10398,9 @@ function nanoraf (render, raf) {
   }
 }
 
-},{"assert":2}],87:[function(require,module,exports){
+},{"assert":2}],83:[function(require,module,exports){
 module.exports=[["#69d2e7","#a7dbd8","#e0e4cc","#f38630","#fa6900"],["#fe4365","#fc9d9a","#f9cdad","#c8c8a9","#83af9b"],["#ecd078","#d95b43","#c02942","#542437","#53777a"],["#556270","#4ecdc4","#c7f464","#ff6b6b","#c44d58"],["#774f38","#e08e79","#f1d4af","#ece5ce","#c5e0dc"],["#e8ddcb","#cdb380","#036564","#033649","#031634"],["#490a3d","#bd1550","#e97f02","#f8ca00","#8a9b0f"],["#594f4f","#547980","#45ada8","#9de0ad","#e5fcc2"],["#00a0b0","#6a4a3c","#cc333f","#eb6841","#edc951"],["#e94e77","#d68189","#c6a49a","#c6e5d9","#f4ead5"],["#3fb8af","#7fc7af","#dad8a7","#ff9e9d","#ff3d7f"],["#d9ceb2","#948c75","#d5ded9","#7a6a53","#99b2b7"],["#ffffff","#cbe86b","#f2e9e1","#1c140d","#cbe86b"],["#efffcd","#dce9be","#555152","#2e2633","#99173c"],["#343838","#005f6b","#008c9e","#00b4cc","#00dffc"],["#413e4a","#73626e","#b38184","#f0b49e","#f7e4be"],["#ff4e50","#fc913a","#f9d423","#ede574","#e1f5c4"],["#99b898","#fecea8","#ff847c","#e84a5f","#2a363b"],["#655643","#80bca3","#f6f7bd","#e6ac27","#bf4d28"],["#00a8c6","#40c0cb","#f9f2e7","#aee239","#8fbe00"],["#351330","#424254","#64908a","#e8caa4","#cc2a41"],["#554236","#f77825","#d3ce3d","#f1efa5","#60b99a"],["#ff9900","#424242","#e9e9e9","#bcbcbc","#3299bb"],["#5d4157","#838689","#a8caba","#cad7b2","#ebe3aa"],["#8c2318","#5e8c6a","#88a65e","#bfb35a","#f2c45a"],["#fad089","#ff9c5b","#f5634a","#ed303c","#3b8183"],["#ff4242","#f4fad2","#d4ee5e","#e1edb9","#f0f2eb"],["#d1e751","#ffffff","#000000","#4dbce9","#26ade4"],["#f8b195","#f67280","#c06c84","#6c5b7b","#355c7d"],["#1b676b","#519548","#88c425","#bef202","#eafde6"],["#bcbdac","#cfbe27","#f27435","#f02475","#3b2d38"],["#5e412f","#fcebb6","#78c0a8","#f07818","#f0a830"],["#452632","#91204d","#e4844a","#e8bf56","#e2f7ce"],["#eee6ab","#c5bc8e","#696758","#45484b","#36393b"],["#f0d8a8","#3d1c00","#86b8b1","#f2d694","#fa2a00"],["#f04155","#ff823a","#f2f26f","#fff7bd","#95cfb7"],["#2a044a","#0b2e59","#0d6759","#7ab317","#a0c55f"],["#bbbb88","#ccc68d","#eedd99","#eec290","#eeaa88"],["#b9d7d9","#668284","#2a2829","#493736","#7b3b3b"],["#b3cc57","#ecf081","#ffbe40","#ef746f","#ab3e5b"],["#a3a948","#edb92e","#f85931","#ce1836","#009989"],["#67917a","#170409","#b8af03","#ccbf82","#e33258"],["#e8d5b7","#0e2430","#fc3a51","#f5b349","#e8d5b9"],["#aab3ab","#c4cbb7","#ebefc9","#eee0b7","#e8caaf"],["#300030","#480048","#601848","#c04848","#f07241"],["#ab526b","#bca297","#c5ceae","#f0e2a4","#f4ebc3"],["#607848","#789048","#c0d860","#f0f0d8","#604848"],["#a8e6ce","#dcedc2","#ffd3b5","#ffaaa6","#ff8c94"],["#3e4147","#fffedf","#dfba69","#5a2e2e","#2a2c31"],["#b6d8c0","#c8d9bf","#dadabd","#ecdbbc","#fedcba"],["#fc354c","#29221f","#13747d","#0abfbc","#fcf7c5"],["#1c2130","#028f76","#b3e099","#ffeaad","#d14334"],["#edebe6","#d6e1c7","#94c7b6","#403b33","#d3643b"],["#cc0c39","#e6781e","#c8cf02","#f8fcc1","#1693a7"],["#dad6ca","#1bb0ce","#4f8699","#6a5e72","#563444"],["#a7c5bd","#e5ddcb","#eb7b59","#cf4647","#524656"],["#fdf1cc","#c6d6b8","#987f69","#e3ad40","#fcd036"],["#5c323e","#a82743","#e15e32","#c0d23e","#e5f04c"],["#230f2b","#f21d41","#ebebbc","#bce3c5","#82b3ae"],["#b9d3b0","#81bda4","#b28774","#f88f79","#f6aa93"],["#3a111c","#574951","#83988e","#bcdea5","#e6f9bc"],["#5e3929","#cd8c52","#b7d1a3","#dee8be","#fcf7d3"],["#1c0113","#6b0103","#a30006","#c21a01","#f03c02"],["#382f32","#ffeaf2","#fcd9e5","#fbc5d8","#f1396d"],["#e3dfba","#c8d6bf","#93ccc6","#6cbdb5","#1a1f1e"],["#000000","#9f111b","#b11623","#292c37","#cccccc"],["#c1b398","#605951","#fbeec2","#61a6ab","#accec0"],["#8dccad","#988864","#fea6a2","#f9d6ac","#ffe9af"],["#f6f6f6","#e8e8e8","#333333","#990100","#b90504"],["#1b325f","#9cc4e4","#e9f2f9","#3a89c9","#f26c4f"],["#5e9fa3","#dcd1b4","#fab87f","#f87e7b","#b05574"],["#951f2b","#f5f4d7","#e0dfb1","#a5a36c","#535233"],["#413d3d","#040004","#c8ff00","#fa023c","#4b000f"],["#eff3cd","#b2d5ba","#61ada0","#248f8d","#605063"],["#2d2d29","#215a6d","#3ca2a2","#92c7a3","#dfece6"],["#cfffdd","#b4dec1","#5c5863","#a85163","#ff1f4c"],["#4e395d","#827085","#8ebe94","#ccfc8e","#dc5b3e"],["#9dc9ac","#fffec7","#f56218","#ff9d2e","#919167"],["#a1dbb2","#fee5ad","#faca66","#f7a541","#f45d4c"],["#ffefd3","#fffee4","#d0ecea","#9fd6d2","#8b7a5e"],["#a8a7a7","#cc527a","#e8175d","#474747","#363636"],["#ffedbf","#f7803c","#f54828","#2e0d23","#f8e4c1"],["#f8edd1","#d88a8a","#474843","#9d9d93","#c5cfc6"],["#f38a8a","#55443d","#a0cab5","#cde9ca","#f1edd0"],["#4e4d4a","#353432","#94ba65","#2790b0","#2b4e72"],["#0ca5b0","#4e3f30","#fefeeb","#f8f4e4","#a5b3aa"],["#a70267","#f10c49","#fb6b41","#f6d86b","#339194"],["#9d7e79","#ccac95","#9a947c","#748b83","#5b756c"],["#edf6ee","#d1c089","#b3204d","#412e28","#151101"],["#046d8b","#309292","#2fb8ac","#93a42a","#ecbe13"],["#4d3b3b","#de6262","#ffb88c","#ffd0b3","#f5e0d3"],["#fffbb7","#a6f6af","#66b6ab","#5b7c8d","#4f2958"],["#ff003c","#ff8a00","#fabe28","#88c100","#00c176"],["#fcfef5","#e9ffe1","#cdcfb7","#d6e6c3","#fafbe3"],["#9cddc8","#bfd8ad","#ddd9ab","#f7af63","#633d2e"],["#30261c","#403831","#36544f","#1f5f61","#0b8185"],["#d1313d","#e5625c","#f9bf76","#8eb2c5","#615375"],["#ffe181","#eee9e5","#fad3b2","#ffba7f","#ff9c97"],["#aaff00","#ffaa00","#ff00aa","#aa00ff","#00aaff"],["#c2412d","#d1aa34","#a7a844","#a46583","#5a1e4a"]]
-},{}],88:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 /*
 object-assign
 (c) Sindre Sorhus
@@ -10623,7 +10494,7 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 	return to;
 };
 
-},{}],89:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 'use strict';
 
 // modified from https://github.com/es-shims/es5-shim
@@ -10765,7 +10636,7 @@ keysShim.shim = function shimObjectKeys() {
 
 module.exports = keysShim;
 
-},{"./isArguments":90}],90:[function(require,module,exports){
+},{"./isArguments":86}],86:[function(require,module,exports){
 'use strict';
 
 var toStr = Object.prototype.toString;
@@ -10784,7 +10655,7 @@ module.exports = function isArguments(value) {
 	return isArgs;
 };
 
-},{}],91:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 /**
  * @module  pan-zoom
  *
@@ -10872,7 +10743,7 @@ function panzoom (target, cb) {
 		});
 	});
 }
-},{"impetus":78,"mouse-wheel":85,"touch-pinch":112,"touch-position":113}],92:[function(require,module,exports){
+},{"impetus":75,"mouse-wheel":81,"touch-pinch":108,"touch-position":109}],88:[function(require,module,exports){
 module.exports = function parseUnit(str, out) {
     if (!out)
         { out = [ 0, '' ] }
@@ -10883,7 +10754,7 @@ module.exports = function parseUnit(str, out) {
     out[1] = str.match(/[\d.\-\+]*\s*(.*)/)[1] || ''
     return out
 }
-},{}],93:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 (function (process){
 // Generated by CoffeeScript 1.12.2
 (function() {
@@ -10923,7 +10794,7 @@ module.exports = function parseUnit(str, out) {
 
 
 }).call(this,require('_process'))
-},{"_process":14}],94:[function(require,module,exports){
+},{"_process":14}],90:[function(require,module,exports){
 'use strict'
 
 
@@ -10971,7 +10842,7 @@ function toList(arg) {
 	}
 	return arg
 }
-},{}],95:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 (function (global){
 var now = require('performance-now')
   , root = typeof window === 'undefined' ? global : window
@@ -11047,7 +10918,7 @@ module.exports.polyfill = function() {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"performance-now":93}],96:[function(require,module,exports){
+},{"performance-now":89}],92:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -20554,7 +20425,7 @@ return wrapREGL;
 })));
 
 
-},{}],97:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 /*!
  * repeat-string <https://github.com/jonschlinkert/repeat-string>
  *
@@ -20626,7 +20497,7 @@ function repeat(str, num) {
   return res;
 }
 
-},{}],98:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 (function (process){
 var through = require('through');
 var nextTick = typeof setImmediate !== 'undefined'
@@ -20659,7 +20530,7 @@ module.exports = function (write, end) {
 };
 
 }).call(this,require('_process'))
-},{"_process":14,"through":109}],99:[function(require,module,exports){
+},{"_process":14,"through":105}],95:[function(require,module,exports){
 (function (global){
 module.exports =
   global.performance &&
@@ -20670,7 +20541,7 @@ module.exports =
   }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],100:[function(require,module,exports){
+},{}],96:[function(require,module,exports){
 'use strict';
 
 var bind = require('function-bind');
@@ -20685,7 +20556,7 @@ module.exports = function trim() {
 	return replace(replace(S, leftWhitespace, ''), rightWhitespace, '');
 };
 
-},{"es-abstract/es5":60,"function-bind":72}],101:[function(require,module,exports){
+},{"es-abstract/es5":58,"function-bind":70}],97:[function(require,module,exports){
 'use strict';
 
 var bind = require('function-bind');
@@ -20705,7 +20576,7 @@ define(boundTrim, {
 
 module.exports = boundTrim;
 
-},{"./implementation":100,"./polyfill":102,"./shim":103,"define-properties":53,"function-bind":72}],102:[function(require,module,exports){
+},{"./implementation":96,"./polyfill":98,"./shim":99,"define-properties":53,"function-bind":70}],98:[function(require,module,exports){
 'use strict';
 
 var implementation = require('./implementation');
@@ -20719,7 +20590,7 @@ module.exports = function getPolyfill() {
 	return implementation;
 };
 
-},{"./implementation":100}],103:[function(require,module,exports){
+},{"./implementation":96}],99:[function(require,module,exports){
 'use strict';
 
 var define = require('define-properties');
@@ -20731,7 +20602,7 @@ module.exports = function shimStringTrim() {
 	return polyfill;
 };
 
-},{"./polyfill":102,"define-properties":53}],104:[function(require,module,exports){
+},{"./polyfill":98,"define-properties":53}],100:[function(require,module,exports){
 (function (process){
 var defined = require('defined');
 var createDefaultStream = require('./lib/default_stream');
@@ -20886,7 +20757,7 @@ function createHarness (conf_) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/default_stream":105,"./lib/results":106,"./lib/test":107,"_process":14,"defined":54,"through":109}],105:[function(require,module,exports){
+},{"./lib/default_stream":101,"./lib/results":102,"./lib/test":103,"_process":14,"defined":54,"through":105}],101:[function(require,module,exports){
 (function (process){
 var through = require('through');
 var fs = require('fs');
@@ -20920,7 +20791,7 @@ module.exports = function () {
 };
 
 }).call(this,require('_process'))
-},{"_process":14,"fs":1,"through":109}],106:[function(require,module,exports){
+},{"_process":14,"fs":1,"through":105}],102:[function(require,module,exports){
 (function (process){
 var defined = require('defined');
 var EventEmitter = require('events').EventEmitter;
@@ -21115,7 +20986,7 @@ function invalidYaml (str) {
 }
 
 }).call(this,require('_process'))
-},{"_process":14,"defined":54,"events":7,"function-bind":72,"has":77,"inherits":79,"object-inspect":108,"resumer":98,"through":109}],107:[function(require,module,exports){
+},{"_process":14,"defined":54,"events":7,"function-bind":70,"has":74,"inherits":76,"object-inspect":104,"resumer":94,"through":105}],103:[function(require,module,exports){
 (function (process,__dirname){
 var deepEqual = require('deep-equal');
 var defined = require('defined');
@@ -21625,7 +21496,7 @@ Test.skip = function (name_, _opts, _cb) {
 // vim: set softtabstop=4 shiftwidth=4:
 
 }).call(this,require('_process'),"/node_modules\\tape\\lib")
-},{"_process":14,"deep-equal":50,"defined":54,"events":7,"for-each":68,"function-bind":72,"has":77,"inherits":79,"path":12,"string.prototype.trim":101}],108:[function(require,module,exports){
+},{"_process":14,"deep-equal":50,"defined":54,"events":7,"for-each":66,"function-bind":70,"has":74,"inherits":76,"path":12,"string.prototype.trim":97}],104:[function(require,module,exports){
 var hasMap = typeof Map === 'function' && Map.prototype;
 var mapSizeDescriptor = Object.getOwnPropertyDescriptor && hasMap ? Object.getOwnPropertyDescriptor(Map.prototype, 'size') : null;
 var mapSize = hasMap && mapSizeDescriptor && typeof mapSizeDescriptor.get === 'function' ? mapSizeDescriptor.get : null;
@@ -21859,7 +21730,7 @@ function arrObjKeys (obj, inspect) {
     return xs;
 }
 
-},{}],109:[function(require,module,exports){
+},{}],105:[function(require,module,exports){
 (function (process){
 var Stream = require('stream')
 
@@ -21970,7 +21841,7 @@ function through (write, end, opts) {
 }
 
 }).call(this,require('_process'))
-},{"_process":14,"stream":28}],110:[function(require,module,exports){
+},{"_process":14,"stream":28}],106:[function(require,module,exports){
 'use strict';
 var repeatString = require('repeat-string');
 var objectAssign = require('object-assign');
@@ -22100,7 +21971,7 @@ function isAtRule(prop) {
 	return prop.indexOf('@') === 0;
 }
 
-},{"arrify":40,"object-assign":88,"repeat-string":97}],111:[function(require,module,exports){
+},{"arrify":40,"object-assign":84,"repeat-string":93}],107:[function(require,module,exports){
 'use strict'
 
 var parseUnit = require('parse-unit')
@@ -22161,7 +22032,7 @@ function toPX(str, element) {
   }
   return 1
 }
-},{"parse-unit":92}],112:[function(require,module,exports){
+},{"parse-unit":88}],108:[function(require,module,exports){
 var getDistance = require('gl-vec2/distance')
 var EventEmitter = require('events').EventEmitter
 var dprop = require('dprop')
@@ -22316,7 +22187,7 @@ function Finger () {
   this.touch = null
 }
 
-},{"dprop":55,"events":7,"gl-vec2/distance":75,"mouse-event-offset":84}],113:[function(require,module,exports){
+},{"dprop":55,"events":7,"gl-vec2/distance":72,"mouse-event-offset":80}],109:[function(require,module,exports){
 var offset = require('mouse-event-offset');
 var EventEmitter = require('events').EventEmitter;
 
@@ -22365,75 +22236,7 @@ module.exports.emitter = function (opt) {
   return attach(opt);
 };
 
-},{"events":7,"mouse-event-offset":84}],114:[function(require,module,exports){
-
-/**
- * @module typedarray-polyfill
- */
-
-var methods = ['values', 'sort', 'some', 'slice', 'reverse', 'reduceRight', 'reduce', 'map', 'keys', 'lastIndexOf', 'join', 'indexOf', 'includes', 'forEach', 'find', 'findIndex', 'copyWithin', 'filter', 'entries', 'every', 'fill'];
-
-if (typeof Int8Array !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!Int8Array.prototype[method]) { Int8Array.prototype[method] = Array.prototype[method]; }
-    }
-}
-if (typeof Uint8Array !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!Uint8Array.prototype[method]) { Uint8Array.prototype[method] = Array.prototype[method]; }
-    }
-}
-if (typeof Uint8ClampedArray !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!Uint8ClampedArray.prototype[method]) { Uint8ClampedArray.prototype[method] = Array.prototype[method]; }
-    }
-}
-if (typeof Int16Array !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!Int16Array.prototype[method]) { Int16Array.prototype[method] = Array.prototype[method]; }
-    }
-}
-if (typeof Uint16Array !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!Uint16Array.prototype[method]) { Uint16Array.prototype[method] = Array.prototype[method]; }
-    }
-}
-if (typeof Int32Array !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!Int32Array.prototype[method]) { Int32Array.prototype[method] = Array.prototype[method]; }
-    }
-}
-if (typeof Uint32Array !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!Uint32Array.prototype[method]) { Uint32Array.prototype[method] = Array.prototype[method]; }
-    }
-}
-if (typeof Float32Array !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!Float32Array.prototype[method]) { Float32Array.prototype[method] = Array.prototype[method]; }
-    }
-}
-if (typeof Float64Array !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!Float64Array.prototype[method]) { Float64Array.prototype[method] = Array.prototype[method]; }
-    }
-}
-if (typeof TypedArray !== 'undefined') {
-    for (var i = methods.length; i--;) {
-        var method = methods[i];
-        if (!TypedArray.prototype[method]) { TypedArray.prototype[method] = Array.prototype[method]; }
-    }
-}
-},{}],115:[function(require,module,exports){
+},{"events":7,"mouse-event-offset":80}],110:[function(require,module,exports){
 /**
  * @module update-diff
  */
@@ -22471,12 +22274,10 @@ module.exports = function updateDiff (obj, diff, mappers) {
 
 	return obj
 }
-},{}],116:[function(require,module,exports){
+},{}],111:[function(require,module,exports){
 'use strict'
 
-require('enable-mobile')
 var createLine = require('./')
-// const createPanel = require('../settings-panel')
 var panZoom = require('pan-zoom')
 var fps = require('fps-indicator')({css:"padding: 1.4rem"})
 var random = require('gauss-random')
@@ -22492,7 +22293,7 @@ var curve = require('adaptive-bezier-curve')
 var flatten = require('flatten-vertex-data')
 var createRegl = require('regl')
 
-var regl = createRegl({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint', 'EXT_blend_minmax']})
+var regl = createRegl({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
 
 
 // document.documentElement.style.background = 'url(https://images.unsplash.com/photo-1461958723673-f65d980244f1?dpr=1&auto=format&fit=crop&w=1080&h=720&q=80&cs=tinysrgb&crop=)';
@@ -22763,7 +22564,7 @@ function circle(x, y, radius) {
   c.pop()
   return c
 }
-},{"./":34,"adaptive-bezier-curve":36,"arc-to":37,"array-normalize":39,"color-rgba":47,"enable-mobile":59,"flatten-vertex-data":67,"fps-indicator":70,"gauss-random":73,"nanoraf":86,"nice-color-palettes":87,"object-assign":88,"pan-zoom":91,"regl":96,"regl-scatter2d":117,"tape":104}],117:[function(require,module,exports){
+},{"./":34,"adaptive-bezier-curve":36,"arc-to":37,"array-normalize":39,"color-rgba":47,"flatten-vertex-data":65,"fps-indicator":68,"gauss-random":71,"nanoraf":82,"nice-color-palettes":83,"object-assign":84,"pan-zoom":87,"regl":92,"regl-scatter2d":112,"tape":100}],112:[function(require,module,exports){
 'use strict'
 
 var rgba = require('color-normalize')
@@ -23526,7 +23327,7 @@ function float32 (arr) {
 	float.set(arr)
 	return float
 }
-},{"array-bounds":118,"binary-search-bounds":119,"color-id":121,"color-normalize":123,"flatten-vertex-data":130,"glslify":131,"object-assign":133,"pick-by-alias":134,"snap-points-2d":137,"update-diff":138}],118:[function(require,module,exports){
+},{"array-bounds":113,"binary-search-bounds":114,"color-id":116,"color-normalize":118,"flatten-vertex-data":125,"glslify":126,"object-assign":128,"pick-by-alias":129,"snap-points-2d":132,"update-diff":133}],113:[function(require,module,exports){
 'use strict'
 
 module.exports = normalize;
@@ -23553,7 +23354,7 @@ function normalize (arr, dim) {
 
 	return bounds;
 }
-},{}],119:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 "use strict"
 
 function compileSearch(funcName, predicate, reversed, extraArgs, earlyOut) {
@@ -23607,7 +23408,7 @@ module.exports = {
   eq: compileBoundsSearch("-", true, "EQ", true)
 }
 
-},{}],120:[function(require,module,exports){
+},{}],115:[function(require,module,exports){
 module.exports = clamp
 
 function clamp(value, min, max) {
@@ -23616,7 +23417,7 @@ function clamp(value, min, max) {
     : (value < max ? max : value > min ? min : value)
 }
 
-},{}],121:[function(require,module,exports){
+},{}],116:[function(require,module,exports){
 /** @module  color-id */
 
 'use strict'
@@ -23664,7 +23465,7 @@ function fromNumber (n, normalized) {
 
 	return [r/255, g/255, b/255, a/255]
 }
-},{"clamp":120}],122:[function(require,module,exports){
+},{"clamp":115}],117:[function(require,module,exports){
 module.exports = {
 	"aliceblue": [240, 248, 255],
 	"antiquewhite": [250, 235, 215],
@@ -23815,7 +23616,7 @@ module.exports = {
 	"yellow": [255, 255, 0],
 	"yellowgreen": [154, 205, 50]
 };
-},{}],123:[function(require,module,exports){
+},{}],118:[function(require,module,exports){
 /** @module  color-rgba */
 
 'use strict'
@@ -23880,7 +23681,7 @@ module.exports = function normalize (color, type) {
 
 	return output
 }
-},{"clamp":120,"color-rgba":125,"dtype":129}],124:[function(require,module,exports){
+},{"clamp":115,"color-rgba":120,"dtype":124}],119:[function(require,module,exports){
 (function (global){
 /**
  * @module color-parse
@@ -24057,7 +23858,7 @@ function parse (cstr) {
 	}
 }
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"color-name":122,"defined":128,"is-plain-obj":132}],125:[function(require,module,exports){
+},{"color-name":117,"defined":123,"is-plain-obj":127}],120:[function(require,module,exports){
 /** @module  color-rgba */
 
 'use strict'
@@ -24089,7 +23890,7 @@ module.exports = function rgba (color) {
 
 	return values
 }
-},{"clamp":120,"color-parse":124,"color-space/hsl":126}],126:[function(require,module,exports){
+},{"clamp":115,"color-parse":119,"color-space/hsl":121}],121:[function(require,module,exports){
 /**
  * @module color-space/hsl
  */
@@ -24198,7 +23999,7 @@ rgb.hsl = function(rgb) {
 	return [h, s * 100, l * 100];
 };
 
-},{"./rgb":127}],127:[function(require,module,exports){
+},{"./rgb":122}],122:[function(require,module,exports){
 /**
  * RGB space.
  *
@@ -24214,7 +24015,7 @@ module.exports = {
 	alias: ['RGB']
 };
 
-},{}],128:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
 module.exports = function () {
     var arguments$1 = arguments;
 
@@ -24223,7 +24024,7 @@ module.exports = function () {
     }
 };
 
-},{}],129:[function(require,module,exports){
+},{}],124:[function(require,module,exports){
 module.exports = function(dtype) {
   switch (dtype) {
     case 'int8':
@@ -24249,7 +24050,7 @@ module.exports = function(dtype) {
   }
 }
 
-},{}],130:[function(require,module,exports){
+},{}],125:[function(require,module,exports){
 /*eslint new-cap:0*/
 var dtype = require('dtype')
 module.exports = flattenVertexData
@@ -24296,7 +24097,7 @@ function flattenVertexData (data, output, offset) {
   return output
 }
 
-},{"dtype":129}],131:[function(require,module,exports){
+},{"dtype":124}],126:[function(require,module,exports){
 module.exports = function(strings) {
   if (typeof strings === 'string') { strings = [strings] }
   var exprs = [].slice.call(arguments,1)
@@ -24308,7 +24109,7 @@ module.exports = function(strings) {
   return parts.join('')
 }
 
-},{}],132:[function(require,module,exports){
+},{}],127:[function(require,module,exports){
 'use strict';
 var toString = Object.prototype.toString;
 
@@ -24317,7 +24118,7 @@ module.exports = function (x) {
 	return toString.call(x) === '[object Object]' && (prototype = Object.getPrototypeOf(x), prototype === null || prototype === Object.getPrototypeOf({}));
 };
 
-},{}],133:[function(require,module,exports){
+},{}],128:[function(require,module,exports){
 /*
 object-assign
 (c) Sindre Sorhus
@@ -24411,7 +24212,7 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 	return to;
 };
 
-},{}],134:[function(require,module,exports){
+},{}],129:[function(require,module,exports){
 'use strict'
 
 var CACHE = {}
@@ -24444,7 +24245,7 @@ module.exports = function pick (src, props) {
 
 	return result
 }
-},{}],135:[function(require,module,exports){
+},{}],130:[function(require,module,exports){
 'use strict'
 
 module.exports = sortLevels
@@ -24741,7 +24542,7 @@ function quickSort(left, right, data_levels, data_points, data_ids, data_weights
     quickSort(less, great, data_levels, data_points, data_ids, data_weights)
   }
 }
-},{}],136:[function(require,module,exports){
+},{}],131:[function(require,module,exports){
 'use strict'
 
 module.exports = normalize;
@@ -24768,7 +24569,7 @@ function normalize (arr, dim) {
 
 	return bounds;
 }
-},{}],137:[function(require,module,exports){
+},{}],132:[function(require,module,exports){
 'use strict'
 
 var sortLevels = require('./lib/sort')
@@ -24911,7 +24712,7 @@ function snapPoints(points, ids, weights, bounds) {
 
   return lod
 }
-},{"./lib/sort":135,"array-bounds":136}],138:[function(require,module,exports){
+},{"./lib/sort":130,"array-bounds":131}],133:[function(require,module,exports){
 /**
  * @module update-diff
  */
@@ -24943,6 +24744,6 @@ module.exports = function updateDiff (obj, diff, mappers) {
 
 	return obj
 }
-},{}]},{},[116]);
+},{}]},{},[111]);
 </script>
 </html>

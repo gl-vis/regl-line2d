@@ -1,8 +1,6 @@
 'use strict'
 
-require('enable-mobile')
 const createLine = require('./')
-// const createPanel = require('../settings-panel')
 const panZoom = require('pan-zoom')
 const fps = require('fps-indicator')({css:`padding: 1.4rem`})
 const random = require('gauss-random')
@@ -18,7 +16,7 @@ const curve = require('adaptive-bezier-curve')
 const flatten = require('flatten-vertex-data')
 const createRegl = require('regl')
 
-const regl = createRegl({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint', 'EXT_blend_minmax']})
+const regl = createRegl({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
 
 
 // document.documentElement.style.background = 'url(https://images.unsplash.com/photo-1461958723673-f65d980244f1?dpr=1&auto=format&fit=crop&w=1080&h=720&q=80&cs=tinysrgb&crop=)';
