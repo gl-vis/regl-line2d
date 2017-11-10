@@ -2,7 +2,7 @@
 
 require('enable-mobile')
 const createLine = require('./')
-const createPanel = require('../settings-panel')
+// const createPanel = require('../settings-panel')
 const panZoom = require('pan-zoom')
 const fps = require('fps-indicator')({css:`padding: 1.4rem`})
 const random = require('gauss-random')
