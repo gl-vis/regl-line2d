@@ -319,7 +319,7 @@ function createLine (regl, options) {
 			destroy()
 		}
 
-		draw(opts)
+		draw()
 	}
 
 	function draw (options) {
