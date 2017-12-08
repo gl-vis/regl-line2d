@@ -286,7 +286,6 @@ function createLine (regl, options) {
 			}
 		},
 
-
 		blend: shaderOptions.blend,
 
 		depth: {
@@ -415,6 +414,7 @@ function createLine (regl, options) {
 				close: 'closed close closed-path closePath',
 				range: 'range dataBox',
 				viewport: 'viewport viewBox',
+				hole: 'holes hole hollow',
 				after: 'after callback done pass'
 			})
 
@@ -428,7 +428,7 @@ function createLine (regl, options) {
 					count: 0,
 					offset: 0,
 					dashLength: 0,
-					draw: true
+					hole: true
 				}
 				options = extend({}, defaults, options)
 			}
@@ -441,6 +441,7 @@ function createLine (regl, options) {
 				overlay: Boolean,
 				join: j => j,
 				after: fn => fn,
+				hole: h => h || [],
 
 				positions: (positions, state, options) => {
 					positions = flatten(positions, 'float64')
@@ -540,7 +541,8 @@ function createLine (regl, options) {
 							pos[ptr++] = x
 							pos[ptr++] = y
 						}
-						let triangles = triangulate(pos)
+
+						let triangles = triangulate(pos, state.hole)
 
 						for (let i = 0, l = triangles.length; i < l; i++) {
 							if (ids[triangles[i]] != null) triangles[i] = ids[triangles[i]]
