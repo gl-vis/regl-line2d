@@ -560,7 +560,11 @@ function createLine (regl, options) {
 
 					// 'black' or [0,0,0,0] case
 					if (!Array.isArray(colors) || typeof colors[0] === 'number') {
-						colors = Array(count).fill(colors)
+						let color = colors;
+						colors = Array(count);
+						for (let i = 0; i < count; i++) {
+							colors[i] = color
+						}
 					}
 
 					if (colors.length < count) throw Error('Not enough colors')
