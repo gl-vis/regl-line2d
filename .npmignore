@@ -1,3 +1,6 @@
 index.html
 *.png
+*.jpg
 demo
+img
+/img

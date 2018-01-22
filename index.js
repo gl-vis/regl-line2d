@@ -77,6 +77,7 @@ function createLine (regl, options) {
 	})
 	dashTexture = regl.texture({
 		channels: 1,
+		data: new Uint8Array(maxPatternLength * maxLinesNumber),
 		width: maxPatternLength,
 		height: maxLinesNumber,
 		mag: 'linear',
