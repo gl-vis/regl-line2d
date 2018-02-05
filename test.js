@@ -50,7 +50,6 @@ let drawLine = createLine(regl)
 // })
 
 function draw(opts) {
-  regl._refresh()
   drawLine(opts)
 
   // regl._refresh()
@@ -102,6 +101,11 @@ panZoom(cnv, e => {
 
 
 /** Test cases */
+t.only('reverse direction', t => {
+  batch.push(extend({}, options, {
+    positions: [ 0, 0, 0, 1 ]
+  }))
+})
 
 t('multiple points', t => {
   let N = 1e4

@@ -13,6 +13,9 @@ const normalize = require('array-normalize')
 module.exports = createLine
 
 
+const MAX_SCALE = 1e10;
+
+
 function createLine (regl, options) {
 	if (typeof regl === 'function') {
 		if (!options) options = {}
@@ -330,17 +333,6 @@ function createLine (regl, options) {
 
 		//render multiple polylines via regl batch
 		lines.forEach((s, i) => {
-			if (options) {
-				if (!options[i]) s.draw = false
-				else s.draw = true
-			}
-
-			//ignore draw flag for one pass
-			if (!s.draw) {
-				s.draw = true;
-				return
-			}
-
 			drawLine(i)
 		})
 	}
@@ -394,7 +386,7 @@ function createLine (regl, options) {
 		let pointCount = 0
 
 		//process per-line settings
-		lines = options.map((options, i) => {
+		line2d.lines = lines = options.map((options, i) => {
 			let state = lines[i]
 
 			if (!options) return state
@@ -589,7 +581,7 @@ function createLine (regl, options) {
 
 					let nrange = normalize(range.slice(), 2, bounds)
 
-					state.scale = [1 / (nrange[2] - nrange[0]), 1 / (nrange[3] - nrange[1])]
+					state.scale = [Math.min(1 / (nrange[2] - nrange[0]),  MAX_SCALE), Math.min(1 / (nrange[3] - nrange[1]),  MAX_SCALE)]
 					state.translate = [-nrange[0], -nrange[1]]
 
 					state.scaleFract = fract32(state.scale)
