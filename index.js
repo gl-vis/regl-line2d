@@ -426,6 +426,7 @@ function createLine (regl, options) {
 				options = extend({}, defaults, options)
 			}
 
+
 			//calculate state values
 			updateDiff(state, options, [{
 				thickness: parseFloat,
@@ -442,6 +443,7 @@ function createLine (regl, options) {
 					let count = Math.floor(positions.length / 2)
 					let bounds = getBounds(positions, 2)
 
+					// FIXME: make it dynamic
 					if (!state.range && !options.range) {
 						options.range = bounds
 					}
@@ -579,10 +581,20 @@ function createLine (regl, options) {
 					let bounds = state.bounds
 					if (!range) range = bounds
 
-					let nrange = normalize(range.slice(), 2, bounds)
+					let boundsW = bounds[2] - bounds[0],
+						boundsH = bounds[3] - bounds[1]
 
-					state.scale = [Math.min(1 / (nrange[2] - nrange[0]),  MAX_SCALE), Math.min(1 / (nrange[3] - nrange[1]),  MAX_SCALE)]
-					state.translate = [-nrange[0], -nrange[1]]
+					let rangeW = range[2] - range[0],
+						rangeH = range[3] - range[1]
+
+					state.scale = [
+						boundsW / rangeW,
+						boundsH / rangeH
+					]
+					state.translate = [
+						-range[0] / rangeW + bounds[0] / rangeW || 0,
+						-range[1] / rangeH + bounds[1] / rangeH || 0
+					]
 
 					state.scaleFract = fract32(state.scale)
 					state.translateFract = fract32(state.translate)

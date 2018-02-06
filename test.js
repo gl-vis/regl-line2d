@@ -101,10 +101,13 @@ panZoom(cnv, e => {
 
 
 /** Test cases */
-t.only('reverse direction', t => {
+t('aligned line', t => {
   batch.push(extend({}, options, {
-    positions: [ 0, 0, 0, 1 ]
+    positions: [ 0, 0, 1, 0 ],
+    type: 'rect'
   }))
+
+  t.end()
 })
 
 t('multiple points', t => {
@@ -196,7 +199,7 @@ t('closed path', t => {
   t.end()
 })
 
-t('time case', t => {
+t.only('time case', t => {
   batch.push({
     type: 'rect',
     positions: [25741380000,1293840000000,25741380001,1293926400000,25741380002,1294012800000,25741380003,1294099200000,25741380004,1294185600000,1477434180000,1294272000000,1477434180001,1294358400000,1477434180002,1294444800000,1477434180003,1294531200000,1477434180004,1294617600000],

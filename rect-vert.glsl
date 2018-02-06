@@ -14,10 +14,10 @@ varying vec2 tangent;
 const float MAX_LINES = 256.;
 
 vec2 project(vec2 position, vec2 positionFract, vec2 scale, vec2 scaleFract, vec2 translate, vec2 translateFract) {
-  return (position + translate) * scale
-       + (positionFract + translateFract) * scale
-       + (position + translate) * scaleFract
-       + (positionFract + translateFract) * scaleFract;
+  return position * scale
+       + positionFract * scale
+       + position * scaleFract + translate
+       + positionFract * scaleFract + translateFract;
 }
 
 void main() {

@@ -137,17 +137,17 @@ void main() {
 		aBotCoord += normalize(startBotJoin * normalWidth) * abClipping;
 	}
 
-	vec2 aTopPosition = (aTopCoord + translate) * scale;
-	vec2 aBotPosition = (aBotCoord + translate) * scale;
+	vec2 aTopPosition = (aTopCoord) * scale + translate;
+	vec2 aBotPosition = (aBotCoord) * scale + translate;
 
-	vec2 bTopPosition = (bTopCoord + translate) * scale;
-	vec2 bBotPosition = (bBotCoord + translate) * scale;
+	vec2 bTopPosition = (bTopCoord) * scale + translate;
+	vec2 bBotPosition = (bBotCoord) * scale + translate;
 
 	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
 
-	startCoord = (aCoord + translate) * scaleRatio + viewport.xy;
-	endCoord = (bCoord + translate) * scaleRatio + viewport.xy;
+	startCoord = aCoord * scaleRatio + translate * viewport.zw + viewport.xy;
+	endCoord = bCoord * scaleRatio + translate * viewport.zw + viewport.xy;
 
 	gl_Position = vec4(position  * 2.0 - 1.0, depth, 1);
 
@@ -160,7 +160,7 @@ void main() {
 			vec2 startMiterWidth = vec2(startJoinDirection) * thickness * miterLimit * .5;
 			startCutoff = vec4(aCoord, aCoord);
 			startCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;
-			startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
+			startCutoff = startCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;
 			startCutoff += viewport.xyxy;
 			startCutoff += startMiterWidth.xyxy;
 		}
@@ -169,7 +169,7 @@ void main() {
 			vec2 endMiterWidth = vec2(endJoinDirection) * thickness * miterLimit * .5;
 			endCutoff = vec4(bCoord, bCoord);
 			endCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;
-			endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
+			endCutoff = endCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;
 			endCutoff += viewport.xyxy;
 			endCutoff += endMiterWidth.xyxy;
 		}
@@ -181,7 +181,7 @@ void main() {
 			vec2 startMiterWidth = vec2(startJoinDirection) * thickness * abs(dot(startJoinDirection, currNormal)) * .5;
 			startCutoff = vec4(aCoord, aCoord);
 			startCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;
-			startCutoff = (startCutoff + translate.xyxy) * scaleRatio.xyxy;
+			startCutoff = startCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;
 			startCutoff += viewport.xyxy;
 			startCutoff += startMiterWidth.xyxy;
 		}
@@ -190,7 +190,7 @@ void main() {
 			vec2 endMiterWidth = vec2(endJoinDirection) * thickness * abs(dot(endJoinDirection, currNormal)) * .5;
 			endCutoff = vec4(bCoord, bCoord);
 			endCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;
-			endCutoff = (endCutoff + translate.xyxy) * scaleRatio.xyxy;
+			endCutoff = endCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;
 			endCutoff += viewport.xyxy;
 			endCutoff += endMiterWidth.xyxy;
 		}
