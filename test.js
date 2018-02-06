@@ -14,13 +14,7 @@ const extend = require('object-assign')
 const arc = require('arc-to')
 const curve = require('adaptive-bezier-curve')
 const flatten = require('flatten-vertex-data')
-const createRegl = require('regl')
-
-const regl = createRegl({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
-
-
-// document.documentElement.style.background = 'url(https://images.unsplash.com/photo-1461958723673-f65d980244f1?dpr=1&auto=format&fit=crop&w=1080&h=720&q=80&cs=tinysrgb&crop=)';
-// document.documentElement.style.height = '100vh'
+const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
 
 
 let palette = palettes[ Math.floor(Math.random() * palettes.length) ]
@@ -38,65 +32,8 @@ let options = {
 }
 let batch = []
 
-// FIXME: enable settings-panel
-// createPanel(options, opts => draw(opts))
 
-let drawLine = createLine(regl)
-// let drawPoints = createScatter({
-//   regl, range,
-//   size: 10,
-//   borderSize: 0,
-//   color: 'rgba(255,0,0,.25)'
-// })
-
-function draw(opts) {
-  drawLine(opts)
-
-  // regl._refresh()
-  // drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
-}
-
-setTimeout(() => {
-  draw(batch)
-}, 100)
-
-//pan-zoom interactions
-let prev = null
-let frame = nanoraf(draw)
-let cnv = regl._gl.canvas
-
-panZoom(cnv, e => {
-  let w = cnv.offsetWidth
-  let h = cnv.offsetHeight
-
-  let rx = e.x / w
-  let ry = e.y / h
-
-  let xrange = range[2] - range[0],
-    yrange = range[3] - range[1]
-
-  if (e.dz) {
-    let dz = e.dz / w
-    range[0] -= rx * xrange * dz
-    range[2] += (1 - rx) * xrange * dz
-
-    range[1] -= (1 - ry) * yrange * dz
-    range[3] += ry * yrange * dz
-  }
-
-  if (pan) {
-    range[0] -= xrange * e.dx / w
-    range[2] -= xrange * e.dx / w
-    range[1] += yrange * e.dy / h
-    range[3] += yrange * e.dy / h
-  }
-
-  let state = Array(batch.length).fill({range: range})
-  frame(state, prev)
-  prev = state
-})
-
-
+setup()
 
 
 
@@ -208,8 +145,6 @@ t('time case', t => {
     color: 'red'
   })
 
-  draw()
-
   t.end()
 })
 
@@ -272,6 +207,66 @@ t.skip('painting', t => {
   t.end()
 })
 
+
+function setup () {
+  // FIXME: enable settings-panel
+  // createPanel(options, opts => draw(opts))
+
+  let drawLine = createLine(regl)
+  // let drawPoints = createScatter({
+  //   regl, range,
+  //   size: 10,
+  //   borderSize: 0,
+  //   color: 'rgba(255,0,0,.25)'
+  // })
+
+  function draw(opts) {
+    drawLine(opts)
+
+    // regl._refresh()
+    // drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
+  }
+
+  setTimeout(() => {
+    draw(batch)
+  }, 100)
+
+  //pan-zoom interactions
+  let prev = null
+  let frame = nanoraf(draw)
+  let cnv = regl._gl.canvas
+
+  panZoom(cnv, e => {
+    let w = cnv.offsetWidth
+    let h = cnv.offsetHeight
+
+    let rx = e.x / w
+    let ry = e.y / h
+
+    let xrange = range[2] - range[0],
+      yrange = range[3] - range[1]
+
+    if (e.dz) {
+      let dz = e.dz / w
+      range[0] -= rx * xrange * dz
+      range[2] += (1 - rx) * xrange * dz
+
+      range[1] -= (1 - ry) * yrange * dz
+      range[3] += ry * yrange * dz
+    }
+
+    if (pan) {
+      range[0] -= xrange * e.dx / w
+      range[2] -= xrange * e.dx / w
+      range[1] += yrange * e.dy / h
+      range[3] += yrange * e.dy / h
+    }
+
+    let state = Array(batch.length).fill({range: range})
+    frame(state, prev)
+    prev = state
+  })
+}
 
 function translate (arr, x, y) {
   for (let i = 0; i < arr.length; i+=2) {
