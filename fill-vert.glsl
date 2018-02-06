@@ -14,10 +14,10 @@ const float MAX_LINES = 256.;
 void main() {
 	float depth = (MAX_LINES - 4. - id) / (MAX_LINES);
 
-	vec2 position = position * scale
-       + positionFract * scale
-       + position * scaleFract + translate
-       + positionFract * scaleFract + translateFract;
+	vec2 position = position * scale + translate
+       + positionFract * scale + translateFract
+       + position * scaleFract
+       + positionFract * scaleFract;
 
 	gl_Position = vec4(position * 2.0 - 1.0, depth, 1);
 
