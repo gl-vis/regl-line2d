@@ -57,7 +57,7 @@ function createLine (regl, options) {
 	const dashMult = 2, maxPatternLength = 256, maxLinesNumber = 2048, precisionThreshold = 3e6, maxPoints = 1e4
 
 
-	//color per-point
+	// color per-point
 	colorBuffer = regl.buffer({
 		usage: 'dynamic',
 		type: 'uint8',
@@ -87,7 +87,7 @@ function createLine (regl, options) {
 		min: 'linear'
 	})
 
-	//init defaults
+	// init defaults
 	update(options)
 
 	let shaderOptions = {
@@ -141,9 +141,9 @@ function createLine (regl, options) {
 		viewport: regl.prop('viewport')
 	}
 
-	//create regl draw
+	// create regl draw
 	drawMiterLine = regl(extend({
-		//culling removes polygon creasing
+		// culling removes polygon creasing
 		cull: {
 			enable: true,
 			face: 'back'
@@ -204,7 +204,7 @@ function createLine (regl, options) {
 		}
 	}, shaderOptions))
 
-	//simplified rectangular line shader
+	// simplified rectangular line shader
 	drawRectLine = regl(extend({
 		vert: glslify('./rect-vert.glsl'),
 		frag: glslify('./rect-frag.glsl'),
@@ -256,7 +256,7 @@ function createLine (regl, options) {
 	}, shaderOptions))
 
 
-	//fill shader
+	// fill shader
 	drawFill = regl({
 		primitive: 'triangle',
 		elements: (ctx, prop) => prop.triangles,
@@ -300,7 +300,7 @@ function createLine (regl, options) {
 		viewport: shaderOptions.viewport
 	})
 
-	//expose API
+	// expose API
 	extend(line2d, {
 		update: update,
 		draw: draw,
@@ -312,12 +312,12 @@ function createLine (regl, options) {
 	})
 
 	function line2d (opts) {
-		//update
+		// update
 		if (opts) {
 			update(opts)
 		}
 
-		//destroy
+		// destroy
 		else if (opts === null) {
 			destroy()
 		}
@@ -328,16 +328,16 @@ function createLine (regl, options) {
 	function draw (options) {
 		if (typeof options === 'number') return drawLine(options)
 
-		//make options a batch
+		// make options a batch
 		if (options && !Array.isArray(options)) options = [options]
 
-		//render multiple polylines via regl batch
+		// render multiple polylines via regl batch
 		lines.forEach((s, i) => {
 			drawLine(i)
 		})
 	}
 
-	//draw single line by id
+	// draw single line by id
 	function drawLine (s) {
 		if (typeof s === 'number') s = lines[s]
 
@@ -356,12 +356,12 @@ function createLine (regl, options) {
 			s.scale[1] * s.viewport.height
 		]
 
-		//high scale is only available for rect mode with precision
+		// high scale is only available for rect mode with precision
 		if (s.scaleRatio[0] > precisionThreshold || s.scaleRatio[1] > precisionThreshold) {
 			drawRectLine(s)
 		}
 
-		//thin lines or too many points are rendered as simplified rect shader
+		// thin lines or too many points are rendered as simplified rect shader
 		else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= maxPoints))) {
 			drawRectLine(s)
 		}
@@ -379,21 +379,24 @@ function createLine (regl, options) {
 			if (typeof options[0] === 'number') options = [{positions: options}]
 		}
 
-		//make options a batch
+		// make options a batch
 		else if (!Array.isArray(options)) options = [options]
 
-		//global count of points
+		// global count of points
 		let pointCount = 0
 
-		//process per-line settings
+		// process per-line settings
 		line2d.lines = lines = options.map((options, i) => {
 			let state = lines[i]
 
-			if (!options) return state
+			if (options === undefined) return state
+
+			// null-argument resets positions
+			if (options === null) options = { positions: null }
 			else if (typeof options === 'function') options = {after: options}
 			else if (typeof options[0] === 'number') options = {positions: options}
 
-			//reduce by aliases
+			// reduce by aliases
 			options = pick(options, {
 				positions: 'positions points data coords',
 				thickness: 'thickness lineWidth lineWidths line-width linewidth width stroke-width strokewidth strokeWidth',
@@ -411,6 +414,9 @@ function createLine (regl, options) {
 				after: 'after callback done pass'
 			})
 
+			// reset positions
+			if (options.positions === null) options.positions = []
+
 			if (!state) {
 				lines[i] = state = {
 					id: i,
@@ -427,7 +433,7 @@ function createLine (regl, options) {
 			}
 
 
-			//calculate state values
+			// calculate state values
 			updateDiff(state, options, [{
 				thickness: parseFloat,
 				opacity: parseFloat,
@@ -478,7 +484,7 @@ function createLine (regl, options) {
 						let ptr = 0
 						let fillColor = 255
 
-						//repeat texture two times to provide smooth 0-step
+						// repeat texture two times to provide smooth 0-step
 						for (let k = 0; k < 2; k++) {
 							for(let i = 0; i < dashes.length; ++i) {
 								for(let j = 0, l = dashes[i] * dashMult * .5; j < l; ++j) {
@@ -502,7 +508,7 @@ function createLine (regl, options) {
 				}
 			},
 
-			//dependent properties & complement actions
+			// dependent properties & complement actions
 			{
 				close: (close, state, options) => {
 					if (close != null) return close
@@ -518,7 +524,7 @@ function createLine (regl, options) {
 					if (state.fill && p.length) {
 						let pos = []
 
-						//filter bad vertices and remap triangles to ensure shape
+						// filter bad vertices and remap triangles to ensure shape
 						let ids = {}
 						let lastId = 0
 
@@ -566,7 +572,7 @@ function createLine (regl, options) {
 
 					let colorData = new Uint8Array(count * 4 + 4)
 
-					//convert colors to float arrays
+					// convert colors to float arrays
 					for (let i = 0; i < count; i++) {
 						let c = rgba(colors[i], 'uint8')
 						colorData.set(c, i * 4)
@@ -640,8 +646,8 @@ function createLine (regl, options) {
 			return state
 		})
 
-		//put collected data into buffers
-		//FIXME: possible optimization is updating only segment subdata
+		// put collected data into buffers
+		// FIXME: possible optimization is updating only segment subdata
 		if (pointCount) {
 			let len = pointCount * 2 + lines.length * 6;
 			let positionData = new Float64Array(len)
@@ -656,12 +662,12 @@ function createLine (regl, options) {
 
 				if (!count) return
 
-				//provide normalized positions
+				// provide normalized positions
 				let npos = new Float64Array(positions.length)
 				npos.set(positions)
 				normalize(npos, 2, state.bounds)
 
-				//rotate first segment join
+				// rotate first segment join
 				if (state.close) {
 					if (positions[0] === positions[count*2 - 2] &&
 						positions[1] === positions[count*2 - 1]) {
@@ -685,9 +691,9 @@ function createLine (regl, options) {
 				positionData.set(npos, offset * 2 + 2)
 				colorData.set(color, offset * 4 + 4)
 
-				//add last segment
+				// add last segment
 				if (state.close) {
-					//ignore coinciding start/end
+					// ignore coinciding start/end
 					if (positions[0] === positions[count*2 - 2] &&
 						positions[1] === positions[count*2 - 1]) {
 						positionData[offset*2 + count*2 + 2] = npos[2]
@@ -703,7 +709,7 @@ function createLine (regl, options) {
 						offset += count + 3
 					}
 				}
-				//add stub
+				// add stub
 				else {
 					positionData[offset*2 + count*2 + 2] = npos[count*2 - 2]
 					positionData[offset*2 + count*2 + 3] = npos[count*2 - 1]
@@ -733,7 +739,7 @@ function createLine (regl, options) {
 }
 
 
-//return fractional part of float32 array
+// return fractional part of float32 array
 function fract32 (arr) {
 	let fract = new Float32Array(arr.length)
 	fract.set(arr)
