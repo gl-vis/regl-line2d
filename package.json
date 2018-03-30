@@ -1,6 +1,6 @@
 {
   "name": "regl-line2d",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "Draw polyline with regl",
   "main": "index.js",
   "scripts": {
