@@ -2,7 +2,7 @@
 
 Draw polyline with regl.
 
-![regl-line2d](https://github.com/dfcreative/regl-line2d/blob/master/preview.png?raw=true)
+![regl-line2d](https://github.com/dy/regl-line2d/blob/master/preview.png?raw=true)
 
 Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 
@@ -14,7 +14,7 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * Float64 precision.
 * [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline)-compatible API
 
-[Demo](https://dfcreative.github.io/regl-line2d).
+[Demo](https://dy.github.io/regl-line2d).
 
 ## Usage
 
@@ -73,8 +73,8 @@ Dispose `line2d` and associated resources.
 
 ## Related
 
-* [regl-scatter2d](https://github.com/dfcreative/regl-scatter2d)
-* [regl-error2d](https://github.com/dfcreative/regl-error2d)
+* [regl-scatter2d](https://github.com/dy/regl-scatter2d)
+* [regl-error2d](https://github.com/dy/regl-error2d)
 
 ## Similar
 

@@ -13,8 +13,6 @@ const normalize = require('array-normalize')
 module.exports = createLine
 
 
-const MAX_SCALE = 1e10;
-
 
 function createLine (regl, options) {
 	if (typeof regl === 'function') {
@@ -129,15 +127,16 @@ function createLine (regl, options) {
 			}
 		},
 		depth: {
+			// FIXME: that fills up stencil buffer
 			enable: (ctx, prop) => {
 				return !prop.overlay
 			}
 		},
+		stencil: {enable: false},
 		scissor: {
 			enable: true,
 			box: regl.prop('viewport')
 		},
-		stencil: false,
 		viewport: regl.prop('viewport')
 	}
 
@@ -393,7 +392,6 @@ function createLine (regl, options) {
 
 			// null-argument resets positions
 			if (options === null) options = { positions: null }
-			else if (typeof options === 'function') options = {after: options}
 			else if (typeof options[0] === 'number') options = {positions: options}
 
 			// reduce by aliases
@@ -521,6 +519,7 @@ function createLine (regl, options) {
 				},
 
 				positions: (p, state, options) => {
+					//map fill positions
 					if (state.fill && p.length) {
 						let pos = []
 
@@ -531,7 +530,7 @@ function createLine (regl, options) {
 						for (let i = 0, ptr = 0, l = state.count; i < l; i++) {
 							let x = state.positions[i*2]
 							let y = state.positions[i*2 + 1]
-							if (Number.isNaN(x) || Number.isNaN(y)) {
+							if (Number.isNaN(x) || Number.isNaN(y) || x == null || y == null) {
 								x = state.positions[lastId*2]
 								y = state.positions[lastId*2 + 1]
 								ids[i] = lastId
@@ -652,7 +651,7 @@ function createLine (regl, options) {
 			let len = pointCount * 2 + lines.length * 6;
 			let positionData = new Float64Array(len)
 			let offset = 0
-			let colorData = new Uint8Array(len * 2)
+			let colorData = new Uint8Array(len * 2 + 2)
 
 			lines.forEach((state, i) => {
 				if (!state) return
