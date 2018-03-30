@@ -126,12 +126,13 @@ function createLine (regl, options) {
 				dstAlpha: 'one'
 			}
 		},
-		depth: {
+		// depth: {
 			// FIXME: that fills up stencil buffer
-			enable: (ctx, prop) => {
-				return !prop.overlay
-			}
-		},
+		// 	enable: (ctx, prop) => {
+		// 		return !prop.overlay
+		// 	}
+		// },
+		depth: {enable: false},
 		stencil: {enable: false},
 		scissor: {
 			enable: true,
@@ -651,7 +652,10 @@ function createLine (regl, options) {
 			let len = pointCount * 2 + lines.length * 6;
 			let positionData = new Float64Array(len)
 			let offset = 0
-			let colorData = new Uint8Array(len * 2 + 2)
+
+			// FIXME: figure out why there is an error sometimes (remove len)
+			// let colorData = new Uint8Array(len * 2)
+			let colorData = new Uint8Array(len * 2 + len)
 
 			lines.forEach((state, i) => {
 				if (!state) return
