@@ -9,12 +9,15 @@ const updateDiff = require('update-diff')
 const flatten = require('flatten-vertex-data')
 const triangulate = require('earcut')
 const normalize = require('array-normalize')
-
-module.exports = createLine
-
+const {float32, fract32} = require('to-float32')
 
 
-function createLine (regl, options) {
+module.exports = Line2D
+
+
+function Line2D (regl, options) {
+	if (!(this instanceof Line2D)) return new Line2D(regl, options)
+
 	if (typeof regl === 'function') {
 		if (!options) options = {}
 		options.regl = regl
@@ -310,451 +313,433 @@ function createLine (regl, options) {
 		canvas: gl.canvas,
 		lines: lines
 	})
+}
 
-	function line2d (opts) {
-		// update
-		if (opts) {
-			update(opts)
-		}
 
-		// destroy
-		else if (opts === null) {
-			destroy()
-		}
-
-		draw()
+Line2D.prototype.render = function (opts) {
+	// update
+	if (opts) {
+		update(opts)
 	}
 
-	function draw (options) {
-		if (typeof options === 'number') return drawLine(options)
+	// destroy
+	else if (opts === null) {
+		destroy()
+	}
 
-		// make options a batch
-		if (options && !Array.isArray(options)) options = [options]
+	draw()
+}
 
-		// render multiple polylines via regl batch
-		lines.forEach((s, i) => {
-			drawLine(i)
+Line2D.prototype.draw = function (options) {
+	if (typeof options === 'number') return drawLine(options)
+
+	// make options a batch
+	if (options && !Array.isArray(options)) options = [options]
+
+	// render multiple polylines via regl batch
+	lines.forEach((s, i) => {
+		drawLine(i)
+	})
+}
+
+// draw single line by id
+Line2D.prototype.drawLine = function (s) {
+	if (typeof s === 'number') s = lines[s]
+
+	if (!(s && s.count && s.opacity && s.positions && s.positions.length > 2)) return
+
+	regl._refresh()
+
+	if (s.fill && s.triangles && s.triangles.length > 2) {
+		drawFill(s)
+	}
+
+	if (!s.thickness || !s.color) return
+
+	s.scaleRatio = [
+		s.scale[0] * s.viewport.width,
+		s.scale[1] * s.viewport.height
+	]
+
+	// high scale is only available for rect mode with precision
+	if (s.scaleRatio[0] > precisionThreshold || s.scaleRatio[1] > precisionThreshold) {
+		drawRectLine(s)
+	}
+
+	// thin lines or too many points are rendered as simplified rect shader
+	else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= maxPoints))) {
+		drawRectLine(s)
+	}
+	else {
+		drawMiterLine(s)
+	}
+
+	if (s.after) s.after(s)
+}
+
+Line2D.prototype.update = function (options) {
+	if (!options) return
+
+	if (options.length != null) {
+		if (typeof options[0] === 'number') options = [{positions: options}]
+	}
+
+	// make options a batch
+	else if (!Array.isArray(options)) options = [options]
+
+	// global count of points
+	let pointCount = 0
+
+	// process per-line settings
+	line2d.lines = lines = options.map((options, i) => {
+		let state = lines[i]
+
+		if (options === undefined) return state
+
+		// null-argument resets positions
+		if (options === null) options = { positions: null }
+		else if (typeof options[0] === 'number') options = {positions: options}
+
+		// reduce by aliases
+		options = pick(options, {
+			positions: 'positions points data coords',
+			thickness: 'thickness lineWidth lineWidths line-width linewidth width stroke-width strokewidth strokeWidth',
+			join: 'lineJoin linejoin join type mode',
+			miterLimit: 'miterlimit miterLimit',
+			dashes: 'dash dashes dasharray dash-array dashArray',
+			color: 'color stroke colors stroke-color strokeColor',
+			fill: 'fill fill-color fillColor',
+			opacity: 'alpha opacity',
+			overlay: 'overlay crease overlap intersect',
+			close: 'closed close closed-path closePath',
+			range: 'range dataBox',
+			viewport: 'viewport viewBox',
+			hole: 'holes hole hollow',
+			after: 'after callback done pass'
 		})
-	}
 
-	// draw single line by id
-	function drawLine (s) {
-		if (typeof s === 'number') s = lines[s]
+		// reset positions
+		if (options.positions === null) options.positions = []
 
-		if (!(s && s.count && s.opacity && s.positions && s.positions.length > 2)) return
-
-		regl._refresh()
-
-		if (s.fill && s.triangles && s.triangles.length > 2) {
-			drawFill(s)
-		}
-
-		if (!s.thickness || !s.color) return
-
-		s.scaleRatio = [
-			s.scale[0] * s.viewport.width,
-			s.scale[1] * s.viewport.height
-		]
-
-		// high scale is only available for rect mode with precision
-		if (s.scaleRatio[0] > precisionThreshold || s.scaleRatio[1] > precisionThreshold) {
-			drawRectLine(s)
-		}
-
-		// thin lines or too many points are rendered as simplified rect shader
-		else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= maxPoints))) {
-			drawRectLine(s)
-		}
-		else {
-			drawMiterLine(s)
-		}
-
-		if (s.after) s.after(s)
-	}
-
-	function update (options) {
-		if (!options) return
-
-		if (options.length != null) {
-			if (typeof options[0] === 'number') options = [{positions: options}]
-		}
-
-		// make options a batch
-		else if (!Array.isArray(options)) options = [options]
-
-		// global count of points
-		let pointCount = 0
-
-		// process per-line settings
-		line2d.lines = lines = options.map((options, i) => {
-			let state = lines[i]
-
-			if (options === undefined) return state
-
-			// null-argument resets positions
-			if (options === null) options = { positions: null }
-			else if (typeof options[0] === 'number') options = {positions: options}
-
-			// reduce by aliases
-			options = pick(options, {
-				positions: 'positions points data coords',
-				thickness: 'thickness lineWidth lineWidths line-width linewidth width stroke-width strokewidth strokeWidth',
-				join: 'lineJoin linejoin join type mode',
-				miterLimit: 'miterlimit miterLimit',
-				dashes: 'dash dashes dasharray dash-array dashArray',
-				color: 'color stroke colors stroke-color strokeColor',
-				fill: 'fill fill-color fillColor',
-				opacity: 'alpha opacity',
-				overlay: 'overlay crease overlap intersect',
-				close: 'closed close closed-path closePath',
-				range: 'range dataBox',
-				viewport: 'viewport viewBox',
-				hole: 'holes hole hollow',
-				after: 'after callback done pass'
-			})
-
-			// reset positions
-			if (options.positions === null) options.positions = []
-
-			if (!state) {
-				lines[i] = state = {
-					id: i,
-					scale: null,
-					scaleFract: null,
-					translate: null,
-					translateFract: null,
-					count: 0,
-					offset: 0,
-					dashLength: 0,
-					hole: true
-				}
-				options = extend({}, defaults, options)
+		if (!state) {
+			lines[i] = state = {
+				id: i,
+				scale: null,
+				scaleFract: null,
+				translate: null,
+				translateFract: null,
+				count: 0,
+				offset: 0,
+				dashLength: 0,
+				hole: true
 			}
+			options = extend({}, defaults, options)
+		}
 
 
-			// calculate state values
-			updateDiff(state, options, [{
-				thickness: parseFloat,
-				opacity: parseFloat,
-				miterLimit: parseFloat,
-				overlay: Boolean,
-				join: j => j,
-				after: fn => fn,
-				hole: h => h || [],
+		// calculate state values
+		updateDiff(state, options, [{
+			thickness: parseFloat,
+			opacity: parseFloat,
+			miterLimit: parseFloat,
+			overlay: Boolean,
+			join: j => j,
+			after: fn => fn,
+			hole: h => h || [],
 
-				positions: (positions, state, options) => {
-					positions = flatten(positions, 'float64')
+			positions: (positions, state, options) => {
+				positions = flatten(positions, 'float64')
 
-					let count = Math.floor(positions.length / 2)
-					let bounds = getBounds(positions, 2)
+				let count = Math.floor(positions.length / 2)
+				let bounds = getBounds(positions, 2)
 
-					// FIXME: make it dynamic
-					if (!state.range && !options.range) {
-						options.range = bounds
-					}
-
-					state.count = count
-					state.bounds = bounds
-
-					pointCount += count
-
-					return positions
-				},
-
-				fill: c => {
-					return !c ? null : rgba(c, 'uint8')
-				},
-
-				dashes: (dashes, state, options) => {
-					let dashLength = state.dashLength,
-						dashData
-
-					if (!dashes || dashes.length < 2) {
-						dashLength = 1.
-						dashData = new Uint8Array([255, 255, 255, 255, 255, 255, 255, 255])
-					}
-
-					else {
-						dashLength = 0.;
-						for(let i = 0; i < dashes.length; ++i) {
-							dashLength += dashes[i]
-						}
-						dashData = new Uint8Array(dashLength * dashMult)
-						let ptr = 0
-						let fillColor = 255
-
-						// repeat texture two times to provide smooth 0-step
-						for (let k = 0; k < 2; k++) {
-							for(let i = 0; i < dashes.length; ++i) {
-								for(let j = 0, l = dashes[i] * dashMult * .5; j < l; ++j) {
-									dashData[ptr++] = fillColor
-								}
-								fillColor ^= 255
-							}
-						}
-					}
-
-					dashTexture.subimage({
-						// channels: 1,
-						data: dashData,
-						width: dashData.length,
-						height: 1
-					}, 0, state.id)
-
-					state.dashLength = dashLength
-
-					return dashData
+				// FIXME: make it dynamic
+				if (!state.range && !options.range) {
+					options.range = bounds
 				}
+
+				state.count = count
+				state.bounds = bounds
+
+				pointCount += count
+
+				return positions
 			},
 
-			// dependent properties & complement actions
-			{
-				close: (close, state, options) => {
-					if (close != null) return close
-					if (state.positions.length >= 4 &&
-						state.positions[0] === state.positions[state.positions.length - 2] &&
-						state.positions[1] === state.positions[state.positions.length - 1]) {
-						return true
+			fill: c => {
+				return !c ? null : rgba(c, 'uint8')
+			},
+
+			dashes: (dashes, state, options) => {
+				let dashLength = state.dashLength,
+					dashData
+
+				if (!dashes || dashes.length < 2) {
+					dashLength = 1.
+					dashData = new Uint8Array([255, 255, 255, 255, 255, 255, 255, 255])
+				}
+
+				else {
+					dashLength = 0.;
+					for(let i = 0; i < dashes.length; ++i) {
+						dashLength += dashes[i]
 					}
-					return false
-				},
+					dashData = new Uint8Array(dashLength * dashMult)
+					let ptr = 0
+					let fillColor = 255
 
-				positions: (p, state, options) => {
-					//map fill positions
-					if (state.fill && p.length) {
-						let pos = []
-
-						// filter bad vertices and remap triangles to ensure shape
-						let ids = {}
-						let lastId = 0
-
-						for (let i = 0, ptr = 0, l = state.count; i < l; i++) {
-							let x = state.positions[i*2]
-							let y = state.positions[i*2 + 1]
-							if (Number.isNaN(x) || Number.isNaN(y) || x == null || y == null) {
-								x = state.positions[lastId*2]
-								y = state.positions[lastId*2 + 1]
-								ids[i] = lastId
+					// repeat texture two times to provide smooth 0-step
+					for (let k = 0; k < 2; k++) {
+						for(let i = 0; i < dashes.length; ++i) {
+							for(let j = 0, l = dashes[i] * dashMult * .5; j < l; ++j) {
+								dashData[ptr++] = fillColor
 							}
-							else {
-								lastId = i
-							}
-							pos[ptr++] = x
-							pos[ptr++] = y
-						}
-
-						let triangles = triangulate(pos, state.hole)
-
-						for (let i = 0, l = triangles.length; i < l; i++) {
-							if (ids[triangles[i]] != null) triangles[i] = ids[triangles[i]]
-						}
-
-						state.triangles = triangles
-					}
-					return state.positions
-				},
-
-				color: (colors, state, options) => {
-					let count = state.count
-
-					if (!colors) colors = 'transparent'
-
-					// 'black' or [0,0,0,0] case
-					if (!Array.isArray(colors) || typeof colors[0] === 'number') {
-						let color = colors;
-						colors = Array(count);
-						for (let i = 0; i < count; i++) {
-							colors[i] = color
+							fillColor ^= 255
 						}
 					}
+				}
 
-					if (colors.length < count) throw Error('Not enough colors')
+				dashTexture.subimage({
+					// channels: 1,
+					data: dashData,
+					width: dashData.length,
+					height: 1
+				}, 0, state.id)
 
-					let colorData = new Uint8Array(count * 4 + 4)
+				state.dashLength = dashLength
 
-					// convert colors to float arrays
+				return dashData
+			}
+		},
+
+		// dependent properties & complement actions
+		{
+			close: (close, state, options) => {
+				if (close != null) return close
+				if (state.positions.length >= 4 &&
+					state.positions[0] === state.positions[state.positions.length - 2] &&
+					state.positions[1] === state.positions[state.positions.length - 1]) {
+					return true
+				}
+				return false
+			},
+
+			positions: (p, state, options) => {
+				//map fill positions
+				if (state.fill && p.length) {
+					let pos = []
+
+					// filter bad vertices and remap triangles to ensure shape
+					let ids = {}
+					let lastId = 0
+
+					for (let i = 0, ptr = 0, l = state.count; i < l; i++) {
+						let x = state.positions[i*2]
+						let y = state.positions[i*2 + 1]
+						if (Number.isNaN(x) || Number.isNaN(y) || x == null || y == null) {
+							x = state.positions[lastId*2]
+							y = state.positions[lastId*2 + 1]
+							ids[i] = lastId
+						}
+						else {
+							lastId = i
+						}
+						pos[ptr++] = x
+						pos[ptr++] = y
+					}
+
+					let triangles = triangulate(pos, state.hole)
+
+					for (let i = 0, l = triangles.length; i < l; i++) {
+						if (ids[triangles[i]] != null) triangles[i] = ids[triangles[i]]
+					}
+
+					state.triangles = triangles
+				}
+				return state.positions
+			},
+
+			color: (colors, state, options) => {
+				let count = state.count
+
+				if (!colors) colors = 'transparent'
+
+				// 'black' or [0,0,0,0] case
+				if (!Array.isArray(colors) || typeof colors[0] === 'number') {
+					let color = colors;
+					colors = Array(count);
 					for (let i = 0; i < count; i++) {
-						let c = rgba(colors[i], 'uint8')
-						colorData.set(c, i * 4)
+						colors[i] = color
 					}
-
-					return colorData
-				},
-
-				range: (range, state, options) => {
-					if (!state.count) return null
-
-					let bounds = state.bounds
-					if (!range) range = bounds
-
-					let boundsW = bounds[2] - bounds[0],
-						boundsH = bounds[3] - bounds[1]
-
-					let rangeW = range[2] - range[0],
-						rangeH = range[3] - range[1]
-
-					state.scale = [
-						boundsW / rangeW,
-						boundsH / rangeH
-					]
-					state.translate = [
-						-range[0] / rangeW + bounds[0] / rangeW || 0,
-						-range[1] / rangeH + bounds[1] / rangeH || 0
-					]
-
-					state.scaleFract = fract32(state.scale)
-					state.translateFract = fract32(state.translate)
-
-					return range
-				},
-
-				viewport: vp => {
-					let viewport
-
-					if (Array.isArray(vp)) {
-						viewport = {
-							x: vp[0],
-							y: vp[1],
-							width: vp[2] - vp[0],
-							height: vp[3] - vp[1]
-						}
-					}
-					else if (vp) {
-						viewport = {
-							x: vp.x || vp.left || 0,
-							y: vp.y || vp.top || 0
-						}
-
-						if (vp.right) viewport.width = vp.right - viewport.x
-						else viewport.width = vp.w || vp.width || 0
-
-						if (vp.bottom) viewport.height = vp.bottom - viewport.y
-						else viewport.height = vp.h || vp.height || 0
-					}
-					else {
-						viewport = {
-							x: 0, y: 0,
-							width: gl.drawingBufferWidth,
-							height: gl.drawingBufferHeight
-						}
-					}
-
-					return viewport
 				}
-			}])
 
-			return state
-		})
+				if (colors.length < count) throw Error('Not enough colors')
 
-		// put collected data into buffers
-		// FIXME: possible optimization is updating only segment subdata
-		if (pointCount) {
-			let len = pointCount * 2 + lines.length * 6;
-			let positionData = new Float64Array(len)
-			let offset = 0
+				let colorData = new Uint8Array(count * 4 + 4)
 
-			// FIXME: figure out why there is an error sometimes (remove len)
-			// let colorData = new Uint8Array(len * 2)
-			let colorData = new Uint8Array(len * 2 + len)
+				// convert colors to float arrays
+				for (let i = 0; i < count; i++) {
+					let c = rgba(colors[i], 'uint8')
+					colorData.set(c, i * 4)
+				}
 
-			lines.forEach((state, i) => {
-				if (!state) return
+				return colorData
+			},
 
-				let {positions, count, color} = state
-				state.offset = offset
+			range: (range, state, options) => {
+				if (!state.count) return null
 
-				if (!count) return
+				let bounds = state.bounds
+				if (!range) range = bounds
 
-				// provide normalized positions
-				let npos = new Float64Array(positions.length)
-				npos.set(positions)
-				normalize(npos, 2, state.bounds)
+				let boundsW = bounds[2] - bounds[0],
+					boundsH = bounds[3] - bounds[1]
 
-				// rotate first segment join
-				if (state.close) {
-					if (positions[0] === positions[count*2 - 2] &&
-						positions[1] === positions[count*2 - 1]) {
-						positionData[offset*2 + 0] = npos[count*2 - 4]
-						positionData[offset*2 + 1] = npos[count*2 - 3]
+				let rangeW = range[2] - range[0],
+					rangeH = range[3] - range[1]
+
+				state.scale = [
+					boundsW / rangeW,
+					boundsH / rangeH
+				]
+				state.translate = [
+					-range[0] / rangeW + bounds[0] / rangeW || 0,
+					-range[1] / rangeH + bounds[1] / rangeH || 0
+				]
+
+				state.scaleFract = fract32(state.scale)
+				state.translateFract = fract32(state.translate)
+
+				return range
+			},
+
+			viewport: vp => {
+				let viewport
+
+				if (Array.isArray(vp)) {
+					viewport = {
+						x: vp[0],
+						y: vp[1],
+						width: vp[2] - vp[0],
+						height: vp[3] - vp[1]
 					}
-					else {
-						positionData[offset*2 + 0] = npos[count*2 - 2]
-						positionData[offset*2 + 1] = npos[count*2 - 1]
+				}
+				else if (vp) {
+					viewport = {
+						x: vp.x || vp.left || 0,
+						y: vp.y || vp.top || 0
 					}
+
+					if (vp.right) viewport.width = vp.right - viewport.x
+					else viewport.width = vp.w || vp.width || 0
+
+					if (vp.bottom) viewport.height = vp.bottom - viewport.y
+					else viewport.height = vp.h || vp.height || 0
 				}
 				else {
-					positionData[offset*2 + 0] = npos[0]
-					positionData[offset*2 + 1] = npos[1]
-				}
-				colorData[offset*4 + 0] = color[0]
-				colorData[offset*4 + 1] = color[1]
-				colorData[offset*4 + 2] = color[2]
-				colorData[offset*4 + 3] = color[3]
-
-				positionData.set(npos, offset * 2 + 2)
-				colorData.set(color, offset * 4 + 4)
-
-				// add last segment
-				if (state.close) {
-					// ignore coinciding start/end
-					if (positions[0] === positions[count*2 - 2] &&
-						positions[1] === positions[count*2 - 1]) {
-						positionData[offset*2 + count*2 + 2] = npos[2]
-						positionData[offset*2 + count*2 + 3] = npos[3]
-						offset += count + 2
-						state.count -= 1
-					}
-					else {
-						positionData[offset*2 + count*2 + 2] = npos[0]
-						positionData[offset*2 + count*2 + 3] = npos[1]
-						positionData[offset*2 + count*2 + 4] = npos[2]
-						positionData[offset*2 + count*2 + 5] = npos[3]
-						offset += count + 3
+					viewport = {
+						x: 0, y: 0,
+						width: gl.drawingBufferWidth,
+						height: gl.drawingBufferHeight
 					}
 				}
-				// add stub
+
+				return viewport
+			}
+		}])
+
+		return state
+	})
+
+	// put collected data into buffers
+	// FIXME: possible optimization is updating only segment subdata
+	if (pointCount) {
+		let len = pointCount * 2 + lines.length * 6;
+		let positionData = new Float64Array(len)
+		let offset = 0
+
+		// FIXME: figure out why there is an error sometimes (remove len)
+		// let colorData = new Uint8Array(len * 2)
+		let colorData = new Uint8Array(len * 2 + len)
+
+		lines.forEach((state, i) => {
+			if (!state) return
+
+			let {positions, count, color} = state
+			state.offset = offset
+
+			if (!count) return
+
+			// provide normalized positions
+			let npos = new Float64Array(positions.length)
+			npos.set(positions)
+			normalize(npos, 2, state.bounds)
+
+			// rotate first segment join
+			if (state.close) {
+				if (positions[0] === positions[count*2 - 2] &&
+					positions[1] === positions[count*2 - 1]) {
+					positionData[offset*2 + 0] = npos[count*2 - 4]
+					positionData[offset*2 + 1] = npos[count*2 - 3]
+				}
 				else {
-					positionData[offset*2 + count*2 + 2] = npos[count*2 - 2]
-					positionData[offset*2 + count*2 + 3] = npos[count*2 - 1]
-					positionData[offset*2 + count*2 + 4] = npos[count*2 - 2]
-					positionData[offset*2 + count*2 + 5] = npos[count*2 - 1]
+					positionData[offset*2 + 0] = npos[count*2 - 2]
+					positionData[offset*2 + 1] = npos[count*2 - 1]
+				}
+			}
+			else {
+				positionData[offset*2 + 0] = npos[0]
+				positionData[offset*2 + 1] = npos[1]
+			}
+			colorData[offset*4 + 0] = color[0]
+			colorData[offset*4 + 1] = color[1]
+			colorData[offset*4 + 2] = color[2]
+			colorData[offset*4 + 3] = color[3]
+
+			positionData.set(npos, offset * 2 + 2)
+			colorData.set(color, offset * 4 + 4)
+
+			// add last segment
+			if (state.close) {
+				// ignore coinciding start/end
+				if (positions[0] === positions[count*2 - 2] &&
+					positions[1] === positions[count*2 - 1]) {
+					positionData[offset*2 + count*2 + 2] = npos[2]
+					positionData[offset*2 + count*2 + 3] = npos[3]
+					offset += count + 2
+					state.count -= 1
+				}
+				else {
+					positionData[offset*2 + count*2 + 2] = npos[0]
+					positionData[offset*2 + count*2 + 3] = npos[1]
+					positionData[offset*2 + count*2 + 4] = npos[2]
+					positionData[offset*2 + count*2 + 5] = npos[3]
 					offset += count + 3
 				}
-			})
+			}
+			// add stub
+			else {
+				positionData[offset*2 + count*2 + 2] = npos[count*2 - 2]
+				positionData[offset*2 + count*2 + 3] = npos[count*2 - 1]
+				positionData[offset*2 + count*2 + 4] = npos[count*2 - 2]
+				positionData[offset*2 + count*2 + 5] = npos[count*2 - 1]
+				offset += count + 3
+			}
+		})
 
-			colorBuffer(colorData)
-			positionBuffer(float32(positionData))
-			positionFractBuffer(fract32(positionData))
-		}
-
-		return line2d
-	}
-
-	function destroy () {
-		lines.length = 0
-		colorBuffer.destroy()
-		offsetBuffer.destroy()
-		positionBuffer.destroy()
-		dashTexture.destroy()
+		colorBuffer(colorData)
+		positionBuffer(float32(positionData))
+		positionFractBuffer(fract32(positionData))
 	}
 
 	return line2d
 }
 
-
-// return fractional part of float32 array
-function fract32 (arr) {
-	let fract = new Float32Array(arr.length)
-	fract.set(arr)
-	for (let i = 0, l = fract.length; i < l; i++) {
-		fract[i] = arr[i] - fract[i]
-	}
-	return fract
+Line2D.prototype.destroy = function () {
+	lines.length = 0
+	colorBuffer.destroy()
+	offsetBuffer.destroy()
+	positionBuffer.destroy()
+	dashTexture.destroy()
 }
-function float32 (arr) {
-	if (arr instanceof Float32Array) return arr
 
-	let float = new Float32Array(arr)
-	float.set(arr)
-	return float
-}

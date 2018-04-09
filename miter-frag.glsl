@@ -75,6 +75,6 @@ void main() {
 	float t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;
 	float dash = texture2D(dashPattern, vec2(t * dashLength * 2. / dashShape.x, (id + .5) / dashShape.y)).r;
 
-	gl_FragColor = fragColor * dash;
+	gl_FragColor = fragColor;
 	gl_FragColor.a *= alpha * opacity * dash;
 }

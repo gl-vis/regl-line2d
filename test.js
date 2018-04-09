@@ -14,9 +14,13 @@ const extend = require('object-assign')
 const arc = require('arc-to')
 const curve = require('adaptive-bezier-curve')
 const flatten = require('flatten-vertex-data')
-const regl = require('regl')({extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']})
+const regl = require('regl')({
+  attributes: { preserveDrawingBuffer: true },
+  extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']
+})
 
 
+// setup render
 let palette = palettes[ Math.floor(Math.random() * palettes.length) ]
 let span = 10
 let range = [-span * .5 * innerWidth/innerHeight, -span * .5, span * .5 * innerWidth/innerHeight, span * .5]
@@ -47,7 +51,7 @@ t('aligned line', t => {
   t.end()
 })
 
-t('multiple points', t => {
+t.only('multiple points', t => {
   let N = 1e4
   let positions = Array(2 * N)
   for(var i=0; i<2*N; i+=2) {
@@ -56,11 +60,12 @@ t('multiple points', t => {
     positions[i+1] = random() * 2
   }
 
-  scale(positions, .15, .15)
-  translate(positions, -5, -3)
+  // scale(positions, .15, .15)
+  // translate(positions, -5, -3)
 
   batch.push(extend({}, options, {
     color: 'red',
+    join: 'rect',
     positions, thickness: 3, range, dash: [3, 3]
   }))
 
@@ -221,6 +226,7 @@ function setup () {
   // })
 
   function draw(opts) {
+    regl.clear({ color: true })
     drawLine(opts)
 
     // regl._refresh()
