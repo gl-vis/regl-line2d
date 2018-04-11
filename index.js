@@ -143,37 +143,37 @@ Line2D.createShaders = function (regl) {
 			aColor: {
 				buffer: regl.prop('colorBuffer'),
 				stride: 4,
-				offset: (ctx, prop) => prop.offset * 4,
+				offset: 0,
 				divisor: 1
 			},
 			bColor: {
 				buffer: regl.prop('colorBuffer'),
 				stride: 4,
-				offset: (ctx, prop) => prop.offset * 4 + 4,
+				offset: 4,
 				divisor: 1
 			},
 			prevCoord: {
 				buffer: regl.prop('positionBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => prop.offset * 8,
+				offset: 0,
 				divisor: 1
 			},
 			aCoord: {
 				buffer: regl.prop('positionBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => 8 + prop.offset * 8,
+				offset: 8,
 				divisor: 1
 			},
 			bCoord: {
 				buffer: regl.prop('positionBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => 16 + prop.offset * 8,
+				offset: 16,
 				divisor: 1
 			},
 			nextCoord: {
 				buffer: regl.prop('positionBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => 24 + prop.offset * 8,
+				offset: 24,
 				divisor: 1
 			}
 		}
@@ -200,31 +200,31 @@ Line2D.createShaders = function (regl) {
 			aCoord: {
 				buffer: regl.prop('positionBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => 8 + prop.offset * 8,
+				offset: 8,
 				divisor: 1
 			},
 			bCoord: {
 				buffer: regl.prop('positionBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => 16 + prop.offset * 8,
+				offset: 16,
 				divisor: 1
 			},
 			aCoordFract: {
 				buffer: regl.prop('positionFractBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => 8 + prop.offset * 8,
+				offset: 8,
 				divisor: 1
 			},
 			bCoordFract: {
 				buffer: regl.prop('positionFractBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => 16 + prop.offset * 8,
+				offset: 16,
 				divisor: 1
 			},
 			color: {
 				buffer: regl.prop('colorBuffer'),
 				stride: 4,
-				offset: (ctx, prop) => prop.offset * 4,
+				offset: 0,
 				divisor: 1
 			}
 		}
@@ -255,12 +255,12 @@ Line2D.createShaders = function (regl) {
 			position: {
 				buffer: regl.prop('positionBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => 8 + prop.offset * 8
+				offset: 8
 			},
 			positionFract: {
 				buffer: regl.prop('positionFractBuffer'),
 				stride: 8,
-				offset: (ctx, prop) => 8 + prop.offset * 8
+				offset: 8
 			}
 		},
 
@@ -319,7 +319,7 @@ Line2D.prototype.draw = function (...args) {
 			this.shaders.fill(s)
 		}
 
-		if (!s.thickness || !s.color) return
+		if (!s.thickness) return
 
 		s.scaleRatio = [
 			s.scale[0] * s.viewport.width,
@@ -396,7 +396,6 @@ Line2D.prototype.update = function (options) {
 				translate: null,
 				translateFract: null,
 				count: 0,
-				offset: 0,
 				dashLength: 0,
 				hole: [],
 

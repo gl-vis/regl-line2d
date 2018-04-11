@@ -42,7 +42,7 @@ setup()
 
 
 /** Test cases */
-t('aligned line', t => {
+t.only('aligned line', t => {
   batch.push(extend({}, options, {
     positions: [ 0, 0, 1, 0 ],
     type: 'rect'
@@ -51,7 +51,7 @@ t('aligned line', t => {
   t.end()
 })
 
-t.only('multiple points', t => {
+t('multiple points', t => {
   let N = 1e4
   let positions = Array(2 * N)
   for(var i=0; i<2*N; i+=2) {
