@@ -25,12 +25,12 @@ let regl = require('regl')({extensions: 'angle_instanced_arrays'})
 let line2d = require('regl-line2d')(regl)
 
 // draw red triangle
-line2d({thickness: 4, points: [0,0, 1,1, 1,0], close: true, color: 'red'})
+line2d.render({ thickness: 4, points: [0,0, 1,1, 1,0], close: true, color: 'red' })
 ```
 
-### `line2d(options|list?)`
+### `line2d.render(options|list?)`
 
-Draw line or multiple lines and update options.
+Draw line or multiple lines and update options, once per frame at most.
 
 Option | Default | Description
 ---|---|---
@@ -50,7 +50,7 @@ Option | Default | Description
 To render multiple lines pass an array with options for every line as `list`:
 
 ```js
-line2d([
+line2d.render([
   {thickness: 2, points: [0,0, 1,1], color: 'blue'},
   {thickness: 2, points: [0,1, 1,0], color: 'blue'}
 ])

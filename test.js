@@ -217,7 +217,7 @@ function setup () {
   // FIXME: enable settings-panel
   // createPanel(options, opts => draw(opts))
 
-  let drawLine = createLine(regl)
+  let line2d = createLine(regl)
   // let drawPoints = createScatter({
   //   regl, range,
   //   size: 10,
@@ -227,7 +227,7 @@ function setup () {
 
   function draw(opts) {
     regl.clear({ color: true })
-    drawLine(opts)
+    line2d.render(opts)
 
     // regl._refresh()
     // drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
