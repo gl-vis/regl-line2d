@@ -51,7 +51,7 @@ t('aligned line', t => {
   t.end()
 })
 
-t.only('multiple points', t => {
+t('multiple points', t => {
   let N = 1e4
   let positions = Array(2 * N)
   for(var i=0; i<2*N; i+=2) {
@@ -60,8 +60,8 @@ t.only('multiple points', t => {
     positions[i+1] = random() * 2
   }
 
-  // scale(positions, .15, .15)
-  // translate(positions, -5, -3)
+  scale(positions, .15, .15)
+  translate(positions, -5, -3)
 
   batch.push(extend({}, options, {
     color: 'red',
@@ -72,7 +72,7 @@ t.only('multiple points', t => {
   t.end()
 })
 
-t('closed circuit', t => {
+t.only('closed circuit', t => {
   let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
 
   // scale(positions, .25, .25)
@@ -80,7 +80,7 @@ t('closed circuit', t => {
 
   batch.push(extend({}, options, {
     color: 'green',
-    type: 'rect',
+    type: 'miter',
     positions: positions, overlay: false, thickness: 30,
     dash: [8, 2]
   }))

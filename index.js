@@ -81,7 +81,7 @@ Line2D.createShaders = function (regl) {
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),
 			scaleRatio: regl.prop('scaleRatio'),
-			dashLength: regl.prop('dashLength'),
+			dashSize: regl.prop('dashLength'),
 			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
 		},
 
