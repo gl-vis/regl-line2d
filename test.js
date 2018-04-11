@@ -42,7 +42,7 @@ setup()
 
 
 /** Test cases */
-t.only('aligned line', t => {
+t('aligned line', t => {
   batch.push(extend({}, options, {
     positions: [ 0, 0, 1, 0 ],
     type: 'rect'
@@ -51,7 +51,7 @@ t.only('aligned line', t => {
   t.end()
 })
 
-t('multiple points', t => {
+t.only('multiple points', t => {
   let N = 1e4
   let positions = Array(2 * N)
   for(var i=0; i<2*N; i+=2) {
@@ -75,12 +75,14 @@ t('multiple points', t => {
 t('closed circuit', t => {
   let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
 
-  scale(positions, .25, .25)
-  translate(positions, -1.5, -3)
+  // scale(positions, .25, .25)
+  // translate(positions, -1.5, -3)
 
   batch.push(extend({}, options, {
     color: 'green',
-    positions: positions, overlay: false, thickness: 30, dash: [8, 2]
+    type: 'rect',
+    positions: positions, overlay: false, thickness: 30,
+    dash: [8, 2]
   }))
 
   t.end()
@@ -227,7 +229,8 @@ function setup () {
 
   function draw(opts) {
     regl.clear({ color: true })
-    line2d.render(opts)
+    line2d.update(opts)
+    line2d.draw()
 
     // regl._refresh()
     // drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))

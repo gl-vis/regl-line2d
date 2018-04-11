@@ -77,13 +77,11 @@ Line2D.createShaders = function (regl) {
 			translate: regl.prop('translate'),
 			thickness: regl.prop('thickness'),
 			dashPattern: regl.prop('dashTexture'),
-			dashLength: regl.prop('dashLength'),
-			//FIXME: remove shape from shader
-			dashShape: [Line2D.maxPatternLength, 1],
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),
 			scaleRatio: regl.prop('scaleRatio'),
+			dashLength: regl.prop('dashLength'),
 			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
 		},
 
@@ -396,13 +394,13 @@ Line2D.prototype.update = function (options) {
 				translate: null,
 				translateFract: null,
 				count: 0,
-				dashLength: 0,
 				hole: [],
 
+				dashLength: 1,
 				dashTexture: regl.texture({
 					channels: 1,
-					data: new Uint8Array(Line2D.maxPatternLength),
-					width: Line2D.maxPatternLength,
+					data: new Uint8Array([255]),
+					width: 1,
 					height: 1,
 					mag: 'linear',
 					min: 'linear'
@@ -433,17 +431,21 @@ Line2D.prototype.update = function (options) {
 			o = extend({}, Line2D.defaults, o)
 		}
 
-		if (o.thickness !== null) state.thickness = parseFloat(o.thickness)
-		if (o.opacity !== null) state.opacity = parseFloat(o.opacity)
-		if (o.miterLimit !== null) state.miterLimit = parseFloat(o.miterlimit)
-		if (o.overlay !== null) state.overlay = !!o.overlay
-		if (o.join !== null) state.join = o.join
-		if (o.hole !== null) state.hole = o.hole
-		if (o.fill !== null) state.fill = !o.fill ? null : rgba(o.fill, 'uint8')
-		if (o.viewport !== null) state.viewport = parseRect(o.viewport || [
-			gl.drawingBufferWidth,
-			gl.drawingBufferHeight
-		])
+		if (o.thickness != null) state.thickness = parseFloat(o.thickness)
+		if (o.opacity != null) state.opacity = parseFloat(o.opacity)
+		if (o.miterLimit != null) state.miterLimit = parseFloat(o.miterlimit)
+		if (o.overlay != null) state.overlay = !!o.overlay
+		if (o.join != null) state.join = o.join
+		if (o.hole != null) state.hole = o.hole
+		if (o.fill != null) state.fill = !o.fill ? null : rgba(o.fill, 'uint8')
+		if (o.viewport != null) state.viewport = parseRect(o.viewport)
+
+		if (!state.viewport) {
+			state.viewport = parseRect([
+				gl.drawingBufferWidth,
+				gl.drawingBufferHeight
+			])
+		}
 
 		// reset positions
 		if (o.positions === null) o.positions = []
@@ -575,14 +577,16 @@ Line2D.prototype.update = function (options) {
 					}
 				}
 			}
-			state.dashTexture.subimage({
-				// channels: 1,
-				data: dashData,
-				width: dashData.length,
-				height: 1
-			}, 0, 0)
 
 			state.dashLength = dashLength
+			state.dashTexture({
+				channels: 1,
+				data: dashData,
+				width: dashData.length,
+				height: 1,
+				mag: 'linear',
+				min: 'linear'
+			}, 0, 0)
 		}
 
 		if (o.close != null) {
@@ -650,6 +654,9 @@ Line2D.prototype.update = function (options) {
 			state.range = o.range
 		}
 	})
+
+	// remove null items
+	this.passes = this.passes.filter(Boolean)
 
 	return this
 }
