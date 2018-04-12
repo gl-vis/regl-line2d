@@ -51,16 +51,18 @@ function Line2D (regl, options) {
 }
 
 
-// cache of created draw calls per-regl instance
-Line2D.shaders = new WeakMap()
-
-
 Line2D.dashMult = 2
 Line2D.maxPatternLength = 256
 Line2D.precisionThreshold = 3e6
 Line2D.maxPoints = 1e4
 
 
+
+// cache of created draw calls per-regl instance
+Line2D.shaders = new WeakMap()
+
+
+// create static shaders once
 Line2D.createShaders = function (regl) {
 	let offsetBuffer = regl.buffer({
 		usage: 'static',
@@ -105,13 +107,12 @@ Line2D.createShaders = function (regl) {
 				dstAlpha: 'one'
 			}
 		},
-		// depth: {
+		depth: {
 			// FIXME: that fills up stencil buffer
-		// 	enable: (ctx, prop) => {
-		// 		return !prop.overlay
-		// 	}
-		// },
-		depth: {enable: false},
+			enable: (ctx, prop) => {
+				return !prop.overlay
+			}
+		},
 		stencil: {enable: false},
 		scissor: {
 			enable: true,
@@ -438,7 +439,6 @@ Line2D.prototype.update = function (options) {
 
 			o = extend({}, Line2D.defaults, o)
 		}
-
 		if (o.thickness != null) state.thickness = parseFloat(o.thickness)
 		if (o.opacity != null) state.opacity = parseFloat(o.opacity)
 		if (o.miterLimit != null) state.miterLimit = parseFloat(o.miterLimit)
@@ -466,45 +466,38 @@ Line2D.prototype.update = function (options) {
 
 			if (!state.range) state.range = bounds
 
-			// adjust close if last point coincides with first
-			// FIXME
-			// if (!state.close && positions.length >= 4 &&
-			// 	positions[0] === positions[positions.length - 2] &&
-			// 	positions[1] === positions[positions.length - 1]) {
-			// 	state.close = true
-			// }
-
-
 			// create fill positions
-			let pos = []
+			// FIXME: fill positions can be set only along with positions
+			if (state.fill) {
+				let pos = []
 
-			// filter bad vertices and remap triangles to ensure shape
-			let ids = {}
-			let lastId = 0
+				// filter bad vertices and remap triangles to ensure shape
+				let ids = {}
+				let lastId = 0
 
-			for (let i = 0, ptr = 0, l = state.count; i < l; i++) {
-				let x = positions[i*2]
-				let y = positions[i*2 + 1]
-				if (Number.isNaN(x) || Number.isNaN(y) || x == null || y == null) {
-					x = positions[lastId*2]
-					y = positions[lastId*2 + 1]
-					ids[i] = lastId
+				for (let i = 0, ptr = 0, l = state.count; i < l; i++) {
+					let x = positions[i*2]
+					let y = positions[i*2 + 1]
+					if (Number.isNaN(x) || Number.isNaN(y) || x == null || y == null) {
+						x = positions[lastId*2]
+						y = positions[lastId*2 + 1]
+						ids[i] = lastId
+					}
+					else {
+						lastId = i
+					}
+					pos[ptr++] = x
+					pos[ptr++] = y
 				}
-				else {
-					lastId = i
+
+				let triangles = triangulate(pos, state.hole || [])
+
+				for (let i = 0, l = triangles.length; i < l; i++) {
+					if (ids[triangles[i]] != null) triangles[i] = ids[triangles[i]]
 				}
-				pos[ptr++] = x
-				pos[ptr++] = y
+
+				state.triangles = triangles
 			}
-
-			let triangles = triangulate(pos, state.hole || [])
-
-			for (let i = 0, l = triangles.length; i < l; i++) {
-				if (ids[triangles[i]] != null) triangles[i] = ids[triangles[i]]
-			}
-
-			state.triangles = triangles
-
 
 			// update position buffers
 			let npos = new Float64Array(positions)
@@ -513,57 +506,51 @@ Line2D.prototype.update = function (options) {
 			let positionData = new Float64Array(count * 2 + 6)
 
 			// rotate first segment join
-			// if (state.close) {
-			// 	if (positions[0] === positions[count*2 - 2] &&
-			// 		positions[1] === positions[count*2 - 1]) {
-			// 		positionData[0] = npos[count*2 - 4]
-			// 		positionData[1] = npos[count*2 - 3]
-			// 	}
-			// 	else {
-			// 		positionData[0] = npos[count*2 - 2]
-			// 		positionData[1] = npos[count*2 - 1]
-			// 	}
-			// }
-			// else {
+			if (state.close) {
+				if (positions[0] === positions[count*2 - 2] &&
+					positions[1] === positions[count*2 - 1]) {
+					positionData[0] = npos[count*2 - 4]
+					positionData[1] = npos[count*2 - 3]
+				}
+				else {
+					positionData[0] = npos[count*2 - 2]
+					positionData[1] = npos[count*2 - 1]
+				}
+			}
+			else {
 				positionData[0] = npos[0]
 				positionData[1] = npos[1]
-			// }
+			}
 
 			positionData.set(npos, 2)
 
 			// add last segment
-			// if (state.close) {
-			// 	// ignore coinciding start/end
-			// 	if (positions[0] === positions[count*2 - 2] &&
-			// 		positions[1] === positions[count*2 - 1]) {
-			// 		positionData[count*2 + 2] = npos[2]
-			// 		positionData[count*2 + 3] = npos[3]
-			// 		state.count -= 1
-			// 		// offset += count + 2
-			// 	}
-			// 	else {
-			// 		positionData[count*2 + 2] = npos[0]
-			// 		positionData[count*2 + 3] = npos[1]
-			// 		positionData[count*2 + 4] = npos[2]
-			// 		positionData[count*2 + 5] = npos[3]
-			// 		// offset += count + 3
-			// 	}
-			// }
-			// // add stub
-			// else {
+			if (state.close) {
+				// ignore coinciding start/end
+				if (positions[0] === positions[count*2 - 2] &&
+					positions[1] === positions[count*2 - 1]) {
+					positionData[count*2 + 2] = npos[2]
+					positionData[count*2 + 3] = npos[3]
+					state.count -= 1
+				}
+				else {
+					positionData[count*2 + 2] = npos[0]
+					positionData[count*2 + 3] = npos[1]
+					positionData[count*2 + 4] = npos[2]
+					positionData[count*2 + 5] = npos[3]
+				}
+			}
+			// add stub
+			else {
 				positionData[count*2 + 2] = npos[count*2 - 2]
 				positionData[count*2 + 3] = npos[count*2 - 1]
 				positionData[count*2 + 4] = npos[count*2 - 2]
 				positionData[count*2 + 5] = npos[count*2 - 1]
-				// offset += count + 3
-			// }
+			}
 
 			state.positionBuffer(float32(positionData))
 			state.positionFractBuffer(fract32(positionData))
 		}
-
-
-
 
 		if (o.dashes) {
 			let dashLength = 0., dashData
@@ -615,7 +602,7 @@ Line2D.prototype.update = function (options) {
 			// convert colors to typed arrays
 			if (!Array.isArray(colors) || typeof colors[0] === 'number') {
 				let c = rgba(colors, 'uint8')
-				for (let i = 0; i < count; i++) {
+				for (let i = 0; i < count + 1; i++) {
 					colorData.set(c, i * 4)
 				}
 			} else {
@@ -623,6 +610,7 @@ Line2D.prototype.update = function (options) {
 					let c = rgba(colors[i], 'uint8')
 					colorData.set(c, i * 4)
 				}
+				colorData.set(rgba(colors[0], 'uint8'), count * 4)
 			}
 
 			state.colorBuffer({
@@ -667,10 +655,10 @@ Line2D.prototype.destroy = function () {
 	this.passes.forEach(pass => {
 		pass.colorBuffer.destroy()
 		pass.positionBuffer.destroy()
+		pass.dashTexture.destroy()
 	})
 
 	this.passes.length = 0
-	this.dashTexture.destroy()
 
 	return this
 }

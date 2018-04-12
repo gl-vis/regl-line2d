@@ -76,14 +76,14 @@ t('closed circuit', t => {
   // [0, 0.4, 0, 0.4, 0, 1, 1, 0, 1, 0, 1, 0]
   let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1]//, 0,0]
 
-  // scale(positions, .25, .25)
-  // translate(positions, -1.5, -3)
+  scale(positions, .25, .25)
+  translate(positions, -1.5, -3)
 
   batch.push(extend({}, options, {
     color: 'green',
     close: false,
     join: 'miter',
-    positions: positions, overlay: true, thickness: 30,
+    positions: positions, overlay: false, thickness: 30,
     dash: [8, 2]
   }))
 
@@ -172,7 +172,7 @@ t('fill', t => {
     strokeWidth: 6,
     stroke: '#D07735',
     close: false,
-    positions: translate(scale([0,40, 40,40, 40,80, 80,80, 80,120, 120,120, 120,160],.015,.015), 0, -1.5),
+    positions: translate(scale([0,40, 40,40, 40,80, 80,80, 80,120, 120,120, 120,160],.015,.015), 2, -1.5),
     range
   })
 
@@ -182,6 +182,9 @@ t('fill', t => {
 t('colorscale', t => {
   let positions = translate(scale(flatten(curve([4, 4], [7, 10], [12, 2], [20, 4], 5)), .25, .25), -3, -1)
   let colors = Array.from({length: positions.length / 2}, x => palette[Math.floor(Math.random() * palette.length)])
+
+  translate(positions, 0, 5)
+  scale(positions, .5, .5)
 
   batch.push({
     positions: positions,
@@ -199,8 +202,8 @@ t('round join', t => {
   let positions = [-1,-.9, -1,-1, -1,1, -.9,-.9, -.8,.8, -.7,-.6, -.5,.4, -.2,-.2, .4,0, .8,0]
   let colors = ['black', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'gray', 'blue', 'black']
 
-  scale(positions, 5, 3)
-  // translate(positions, 0.5, -5.5)
+  scale(positions, 1, 1)
+  translate(positions, -4, 2.5)
 
   batch.push(extend({}, options, {color: colors, opacity: 1, join: 'round', overlay: true, positions: positions, miterlimit: 1, thickness: 30, dash: null}))
 
@@ -230,10 +233,9 @@ function setup () {
   // })
 
   function draw(opts) {
-    regl.clear({ color: true })
+    regl.clear({ color: true, depth: true })
     line2d.update(opts)
     line2d.draw()
-
     // regl._refresh()
     // drawPoints(extend({}, opts[opts.length - 1], { color: 'rgba(255,0,0,.5)'}))
   }
