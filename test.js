@@ -14,6 +14,8 @@ const extend = require('object-assign')
 const arc = require('arc-to')
 const curve = require('adaptive-bezier-curve')
 const flatten = require('flatten-vertex-data')
+const arrFrom = require('array-from')
+const arrFill = require('array-fill')
 const regl = require('regl')({
   attributes: { preserveDrawingBuffer: true },
   extensions: ['ANGLE_instanced_arrays', 'OES_element_index_uint']
@@ -181,7 +183,7 @@ t('fill', t => {
 
 t('colorscale', t => {
   let positions = translate(scale(flatten(curve([4, 4], [7, 10], [12, 2], [20, 4], 5)), .25, .25), -3, -1)
-  let colors = Array.from({length: positions.length / 2}, x => palette[Math.floor(Math.random() * palette.length)])
+  let colors = arrFrom({ length: positions.length / 2 }).map(x => palette[Math.floor(Math.random() * palette.length)])
 
   translate(positions, 0, 5)
   scale(positions, .5, .5)
@@ -275,7 +277,7 @@ function setup () {
       range[3] += yrange * e.dy / h
     }
 
-    let state = Array(batch.length).fill({range: range})
+    let state = arrFill(Array(batch.length), {range: range})
     frame(state, prev)
     prev = state
   })

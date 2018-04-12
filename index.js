@@ -121,72 +121,6 @@ Line2D.createShaders = function (regl) {
 		viewport: regl.prop('viewport')
 	}
 
-	// create regl draw
-	let drawMiterLine = regl(extend({
-		// culling removes polygon creasing
-		cull: {
-			enable: true,
-			face: 'back'
-		},
-
-		vert: glslify('./miter-vert.glsl'),
-		frag: glslify('./miter-frag.glsl'),
-
-		attributes: {
-			// is line end
-			lineEnd: {
-				buffer: offsetBuffer,
-				divisor: 0,
-				stride: 8,
-				offset: 0
-			},
-			// is line top
-			lineTop: {
-				buffer: offsetBuffer,
-				divisor: 0,
-				stride: 8,
-				offset: 4
-			},
-			// left color
-			aColor: {
-				buffer: regl.prop('colorBuffer'),
-				stride: 4,
-				offset: 0,
-				divisor: 1
-			},
-			// right color
-			bColor: {
-				buffer: regl.prop('colorBuffer'),
-				stride: 4,
-				offset: 4,
-				divisor: 1
-			},
-			prevCoord: {
-				buffer: regl.prop('positionBuffer'),
-				stride: 8,
-				offset: 0,
-				divisor: 1
-			},
-			aCoord: {
-				buffer: regl.prop('positionBuffer'),
-				stride: 8,
-				offset: 8,
-				divisor: 1
-			},
-			bCoord: {
-				buffer: regl.prop('positionBuffer'),
-				stride: 8,
-				offset: 16,
-				divisor: 1
-			},
-			nextCoord: {
-				buffer: regl.prop('positionBuffer'),
-				stride: 8,
-				offset: 24,
-				divisor: 1
-			}
-		}
-	}, shaderOptions))
 
 	// simplified rectangular line shader
 	let drawRectLine = regl(extend({
@@ -242,6 +176,80 @@ Line2D.createShaders = function (regl) {
 			}
 		}
 	}, shaderOptions))
+
+	// create regl draw
+	let drawMiterLine
+
+	try {
+		drawMiterLine = regl(extend({
+			// culling removes polygon creasing
+			cull: {
+				enable: true,
+				face: 'back'
+			},
+
+			vert: glslify('./miter-vert.glsl'),
+			frag: glslify('./miter-frag.glsl'),
+
+			attributes: {
+				// is line end
+				lineEnd: {
+					buffer: offsetBuffer,
+					divisor: 0,
+					stride: 8,
+					offset: 0
+				},
+				// is line top
+				lineTop: {
+					buffer: offsetBuffer,
+					divisor: 0,
+					stride: 8,
+					offset: 4
+				},
+				// left color
+				aColor: {
+					buffer: regl.prop('colorBuffer'),
+					stride: 4,
+					offset: 0,
+					divisor: 1
+				},
+				// right color
+				bColor: {
+					buffer: regl.prop('colorBuffer'),
+					stride: 4,
+					offset: 4,
+					divisor: 1
+				},
+				prevCoord: {
+					buffer: regl.prop('positionBuffer'),
+					stride: 8,
+					offset: 0,
+					divisor: 1
+				},
+				aCoord: {
+					buffer: regl.prop('positionBuffer'),
+					stride: 8,
+					offset: 8,
+					divisor: 1
+				},
+				bCoord: {
+					buffer: regl.prop('positionBuffer'),
+					stride: 8,
+					offset: 16,
+					divisor: 1
+				},
+				nextCoord: {
+					buffer: regl.prop('positionBuffer'),
+					stride: 8,
+					offset: 24,
+					divisor: 1
+				}
+			}
+		}, shaderOptions))
+	} catch (e) {
+		// IE/bad Webkit fallback
+		drawMiterLine = drawRectLine
+	}
 
 	// fill shader
 	let drawFill = regl({
@@ -478,7 +486,7 @@ Line2D.prototype.update = function (options) {
 				for (let i = 0, ptr = 0, l = state.count; i < l; i++) {
 					let x = positions[i*2]
 					let y = positions[i*2 + 1]
-					if (Number.isNaN(x) || Number.isNaN(y) || x == null || y == null) {
+					if (isNaN(x) || isNaN(y) || x == null || y == null) {
 						x = positions[lastId*2]
 						y = positions[lastId*2 + 1]
 						ids[i] = lastId
