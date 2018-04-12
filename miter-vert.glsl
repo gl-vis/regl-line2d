@@ -7,7 +7,7 @@ attribute float lineEnd, lineTop;
 uniform vec2 scale, translate, scaleRatio;
 uniform float thickness, pixelRatio, id;
 uniform vec4 viewport;
-uniform float miterLimit, dashLength, miterMode;
+uniform float miterLimit, miterMode;
 
 varying vec4 fragColor;
 varying vec4 startCutoff, endCutoff;
@@ -17,7 +17,6 @@ varying float enableStartMiter, enableEndMiter;
 
 const float MAX_LINES = 256.;
 const float REVERSE_THRESHOLD = -.875;
-const float MIN_DIST = 1.;
 
 //TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead
 //TODO: precalculate dot products, normalize things beforehead etc.

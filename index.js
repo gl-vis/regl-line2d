@@ -62,6 +62,12 @@ Line2D.maxPoints = 1e4
 
 
 Line2D.createShaders = function (regl) {
+	let offsetBuffer = regl.buffer({
+		usage: 'static',
+		type: 'float',
+		data: [0,1, 0,0, 1,1, 1,0]
+	})
+
 	let shaderOptions = {
 		primitive: 'triangle strip',
 		instances: regl.prop('count'),
@@ -126,24 +132,28 @@ Line2D.createShaders = function (regl) {
 		frag: glslify('./miter-frag.glsl'),
 
 		attributes: {
+			// is line end
 			lineEnd: {
-				buffer: regl.prop('offsetBuffer'),
+				buffer: offsetBuffer,
 				divisor: 0,
 				stride: 8,
 				offset: 0
 			},
+			// is line top
 			lineTop: {
-				buffer: regl.prop('offsetBuffer'),
+				buffer: offsetBuffer,
 				divisor: 0,
 				stride: 8,
 				offset: 4
 			},
+			// left color
 			aColor: {
 				buffer: regl.prop('colorBuffer'),
 				stride: 4,
 				offset: 0,
 				divisor: 1
 			},
+			// right color
 			bColor: {
 				buffer: regl.prop('colorBuffer'),
 				stride: 4,
@@ -183,24 +193,28 @@ Line2D.createShaders = function (regl) {
 		frag: glslify('./rect-frag.glsl'),
 
 		attributes: {
+			// if point is at the end of segment
 			lineEnd: {
-				buffer: regl.prop('offsetBuffer'),
+				buffer: offsetBuffer,
 				divisor: 0,
 				stride: 8,
 				offset: 0
 			},
+			// if point is at the top of segment
 			lineTop: {
-				buffer: regl.prop('offsetBuffer'),
+				buffer: offsetBuffer,
 				divisor: 0,
 				stride: 8,
 				offset: 4
 			},
+			// beginning of line coordinate
 			aCoord: {
 				buffer: regl.prop('positionBuffer'),
 				stride: 8,
 				offset: 8,
 				divisor: 1
 			},
+			// end of line coordinate
 			bCoord: {
 				buffer: regl.prop('positionBuffer'),
 				stride: 8,
@@ -278,9 +292,8 @@ Line2D.createShaders = function (regl) {
 
 // used to for new lines instances
 Line2D.defaults = {
-	positions: [],
 	dashes: null,
-	join: 'rect',
+	join: 'miter',
 	miterLimit: 1,
 	thickness: 10,
 	cap: 'square',
@@ -289,7 +302,7 @@ Line2D.defaults = {
 	overlay: false,
 	viewport: null,
 	range: null,
-	close: null,
+	close: false,
 	fill: null
 }
 
@@ -311,7 +324,7 @@ Line2D.prototype.draw = function (...args) {
 
 		if (typeof s === 'number') s = this.passes[s]
 
-		if (!(s && s.count && s.opacity && s.positions && s.positions.length > 2)) return
+		if (!(s && s.count > 1 && s.opacity)) return
 
 		if (s.fill && s.triangles && s.triangles.length > 2) {
 			this.shaders.fill(s)
@@ -330,7 +343,7 @@ Line2D.prototype.draw = function (...args) {
 		}
 
 		// thin this.passes or too many points are rendered as simplified rect shader
-		else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.positions.length >= Line2D.maxPoints))) {
+		else if (s.join === 'rect' || (!s.join && (s.thickness <= 2 || s.count >= Line2D.maxPoints))) {
 			this.shaders.rect(s)
 		}
 		else {
@@ -411,11 +424,6 @@ Line2D.prototype.update = function (options) {
 					type: 'uint8',
 					data: null
 				}),
-				offsetBuffer: regl.buffer({
-					usage: 'static',
-					type: 'float',
-					data: [0,1, 0,0, 1,1, 1,0]
-				}),
 				positionBuffer: regl.buffer({
 					usage: 'dynamic',
 					type: 'float',
@@ -433,7 +441,7 @@ Line2D.prototype.update = function (options) {
 
 		if (o.thickness != null) state.thickness = parseFloat(o.thickness)
 		if (o.opacity != null) state.opacity = parseFloat(o.opacity)
-		if (o.miterLimit != null) state.miterLimit = parseFloat(o.miterlimit)
+		if (o.miterLimit != null) state.miterLimit = parseFloat(o.miterLimit)
 		if (o.overlay != null) state.overlay = !!o.overlay
 		if (o.join != null) state.join = o.join
 		if (o.hole != null) state.hole = o.hole
@@ -447,77 +455,28 @@ Line2D.prototype.update = function (options) {
 			])
 		}
 
+		if (o.close != null) state.close = o.close
+
 		// reset positions
 		if (o.positions === null) o.positions = []
 		if (o.positions && o.positions.length) {
-			let positions = state.positions = flatten(o.positions, 'float64')
-			let count = state.count = Math.floor(state.positions.length / 2)
-			let bounds = state.bounds = getBounds(state.positions, 2)
+			let positions = flatten(o.positions, 'float64')
+			let count = state.count = Math.floor(positions.length / 2)
+			let bounds = state.bounds = getBounds(positions, 2)
 
 			if (!state.range) state.range = bounds
 
+			// adjust close if last point coincides with first
+			// FIXME
+			// if (!state.close && positions.length >= 4 &&
+			// 	positions[0] === positions[positions.length - 2] &&
+			// 	positions[1] === positions[positions.length - 1]) {
+			// 	state.close = true
+			// }
 
-			// provide normalized positions
-			let npos = new Float64Array(positions.length)
-			npos.set(positions)
-			normalize(npos, 2, bounds)
 
-			let positionData = new Float64Array(count * 2 + 6)
-
-			// rotate first segment join
-			if (state.close) {
-				if (positions[0] === positions[count*2 - 2] &&
-					positions[1] === positions[count*2 - 1]) {
-					positionData[0] = npos[count*2 - 4]
-					positionData[1] = npos[count*2 - 3]
-				}
-				else {
-					positionData[0] = npos[count*2 - 2]
-					positionData[1] = npos[count*2 - 1]
-				}
-			}
-			else {
-				positionData[0] = npos[0]
-				positionData[1] = npos[1]
-			}
-
-			positionData.set(npos, 2)
-
-			// add last segment
-			if (state.close) {
-				// ignore coinciding start/end
-				if (positions[0] === positions[count*2 - 2] &&
-					positions[1] === positions[count*2 - 1]) {
-					positionData[count*2 + 2] = npos[2]
-					positionData[count*2 + 3] = npos[3]
-					// offset += count + 2
-					state.count -= 1
-				}
-				else {
-					positionData[count*2 + 2] = npos[0]
-					positionData[count*2 + 3] = npos[1]
-					positionData[count*2 + 4] = npos[2]
-					positionData[count*2 + 5] = npos[3]
-					// offset += count + 3
-				}
-			}
-			// add stub
-			else {
-				positionData[count*2 + 2] = npos[count*2 - 2]
-				positionData[count*2 + 3] = npos[count*2 - 1]
-				positionData[count*2 + 4] = npos[count*2 - 2]
-				positionData[count*2 + 5] = npos[count*2 - 1]
-				// offset += count + 3
-			}
-
-			state.positionBuffer(float32(positionData))
-			state.positionFractBuffer(fract32(positionData))
-		}
-
-		//map fill positions
-		if (state.fill && state.positions && state.positions.length) {
+			// create fill positions
 			let pos = []
-			let positions = state.positions
 
 			// filter bad vertices and remap triangles to ensure shape
 			let ids = {}
@@ -545,10 +504,66 @@ Line2D.prototype.update = function (options) {
 			}
 
 			state.triangles = triangles
+
+
+			// update position buffers
+			let npos = new Float64Array(positions)
+			normalize(npos, 2, bounds)
+
+			let positionData = new Float64Array(count * 2 + 6)
+
+			// rotate first segment join
+			// if (state.close) {
+			// 	if (positions[0] === positions[count*2 - 2] &&
+			// 		positions[1] === positions[count*2 - 1]) {
+			// 		positionData[0] = npos[count*2 - 4]
+			// 		positionData[1] = npos[count*2 - 3]
+			// 	}
+			// 	else {
+			// 		positionData[0] = npos[count*2 - 2]
+			// 		positionData[1] = npos[count*2 - 1]
+			// 	}
+			// }
+			// else {
+				positionData[0] = npos[0]
+				positionData[1] = npos[1]
+			// }
+
+			positionData.set(npos, 2)
+
+			// add last segment
+			// if (state.close) {
+			// 	// ignore coinciding start/end
+			// 	if (positions[0] === positions[count*2 - 2] &&
+			// 		positions[1] === positions[count*2 - 1]) {
+			// 		positionData[count*2 + 2] = npos[2]
+			// 		positionData[count*2 + 3] = npos[3]
+			// 		state.count -= 1
+			// 		// offset += count + 2
+			// 	}
+			// 	else {
+			// 		positionData[count*2 + 2] = npos[0]
+			// 		positionData[count*2 + 3] = npos[1]
+			// 		positionData[count*2 + 4] = npos[2]
+			// 		positionData[count*2 + 5] = npos[3]
+			// 		// offset += count + 3
+			// 	}
+			// }
+			// // add stub
+			// else {
+				positionData[count*2 + 2] = npos[count*2 - 2]
+				positionData[count*2 + 3] = npos[count*2 - 1]
+				positionData[count*2 + 4] = npos[count*2 - 2]
+				positionData[count*2 + 5] = npos[count*2 - 1]
+				// offset += count + 3
+			// }
+
+			state.positionBuffer(float32(positionData))
+			state.positionFractBuffer(fract32(positionData))
 		}
-		else {
-			state.triangles = null
-		}
+
+
+
 
 		if (o.dashes) {
 			let dashLength = 0., dashData
@@ -589,38 +604,25 @@ Line2D.prototype.update = function (options) {
 			}, 0, 0)
 		}
 
-		if (o.close != null) {
-			if (state.positions.length >= 4 &&
-				state.positions[0] === state.positions[state.positions.length - 2] &&
-				state.positions[1] === state.positions[state.positions.length - 1]) {
-				state.close = true
-			}
-			state.close = false
-		}
-
 		if (o.color) {
 			let count = state.count
 			let colors = o.color
 
 			if (!colors) colors = 'transparent'
 
-			// 'black' or [0,0,0,0] case
-			if (!Array.isArray(colors) || typeof colors[0] === 'number') {
-				let color = colors;
-				colors = Array(count);
-				for (let i = 0; i < count; i++) {
-					colors[i] = color
-				}
-			}
-
-			if (colors.length < count) throw Error('Not enough colors')
-
 			let colorData = new Uint8Array(count * 4 + 4)
 
 			// convert colors to typed arrays
-			for (let i = 0; i < count; i++) {
-				let c = rgba(colors[i], 'uint8')
-				colorData.set(c, i * 4)
+			if (!Array.isArray(colors) || typeof colors[0] === 'number') {
+				let c = rgba(colors, 'uint8')
+				for (let i = 0; i < count; i++) {
+					colorData.set(c, i * 4)
+				}
+			} else {
+				for (let i = 0; i < count; i++) {
+					let c = rgba(colors[i], 'uint8')
+					colorData.set(c, i * 4)
+				}
 			}
 
 			state.colorBuffer({
@@ -664,7 +666,6 @@ Line2D.prototype.update = function (options) {
 Line2D.prototype.destroy = function () {
 	this.passes.forEach(pass => {
 		pass.colorBuffer.destroy()
-		pass.offsetBuffer.destroy()
 		pass.positionBuffer.destroy()
 	})
 

@@ -72,16 +72,18 @@ t('multiple points', t => {
   t.end()
 })
 
-t.only('closed circuit', t => {
-  let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1, 0,0]
+t('closed circuit', t => {
+  // [0, 0.4, 0, 0.4, 0, 1, 1, 0, 1, 0, 1, 0]
+  let positions = [0,0, 0,3, 3,-2, -3,-3, -6,0, -6,-2, .5,-2, 0.5,1]//, 0,0]
 
   // scale(positions, .25, .25)
   // translate(positions, -1.5, -3)
 
   batch.push(extend({}, options, {
     color: 'green',
-    type: 'miter',
-    positions: positions, overlay: false, thickness: 30,
+    close: false,
+    join: 'miter',
+    positions: positions, overlay: true, thickness: 30,
     dash: [8, 2]
   }))
 

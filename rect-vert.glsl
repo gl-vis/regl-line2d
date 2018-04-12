@@ -22,9 +22,6 @@ vec2 project(vec2 position, vec2 positionFract, vec2 scale, vec2 scaleFract, vec
 }
 
 void main() {
-	// vec2 scaleRatio = scale * viewport.zw;
-	vec2 normalWidth = thickness / scaleRatio;
-
 	float lineStart = 1. - lineEnd;
 	float lineOffset = lineTop * 2. - 1.;
 	float depth = (MAX_LINES - 1. - id) / (MAX_LINES);
