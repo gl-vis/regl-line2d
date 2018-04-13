@@ -655,6 +655,18 @@ Line2D.prototype.update = function (options) {
 		}
 	})
 
+	// remove unmentioned passes
+	if (options.length < this.passes.length) {
+		for (let i = options.length; i < this.passes.length; i++) {
+			let pass = this.passes[i]
+			if (!pass) continue
+			pass.colorBuffer.destroy()
+			pass.positionBuffer.destroy()
+			pass.dashTexture.destroy()
+		}
+		this.passes.length = options.length
+	}
+
 	// remove null items
 	this.passes = this.passes.filter(Boolean)
 

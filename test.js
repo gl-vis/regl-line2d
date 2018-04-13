@@ -159,6 +159,8 @@ t('time case', t => {
   t.end()
 })
 
+t('update(1,2) after update(1,2,3) removes 3rd pass')
+
 t.skip('disconnected', t => {
   batch.push({
     type: 'round',
