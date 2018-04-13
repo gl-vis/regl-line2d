@@ -335,6 +335,8 @@ Line2D.prototype.draw = function (...args) {
 
 		if (!(s && s.count > 1 && s.opacity)) return
 
+		this.regl._refresh()
+
 		if (s.fill && s.triangles && s.triangles.length > 2) {
 			this.shaders.fill(s)
 		}
