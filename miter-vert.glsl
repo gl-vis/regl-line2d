@@ -4,7 +4,7 @@ attribute vec2 aCoord, bCoord, nextCoord, prevCoord;
 attribute vec4 aColor, bColor;
 attribute float lineEnd, lineTop;
 
-uniform vec2 scale, translate, scaleRatio;
+uniform vec2 scale, translate;
 uniform float thickness, pixelRatio, id;
 uniform vec4 viewport;
 uniform float miterLimit, miterMode;
@@ -17,6 +17,7 @@ varying float enableStartMiter, enableEndMiter;
 
 const float MAX_LINES = 256.;
 const float REVERSE_THRESHOLD = -.875;
+const float MIN_DIFF = 1e-6;
 
 //TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead
 //TODO: precalculate dot products, normalize things beforehead etc.
@@ -33,7 +34,12 @@ bool isNaN( float val ){
 
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
-	vec2 normalWidth = thickness / scaleRatio;
+
+	// adjust scale for horizontal bars
+	vec2 scale = max(scale, MIN_DIFF);
+	vec2 scaleRatio = scale * viewport.zw;
+
+	vec2 normalWidth = thickness / (scale * viewport.zw);
 
 	float lineStart = 1. - lineEnd;
 	float lineBot = 1. - lineTop;
@@ -46,13 +52,10 @@ void main() {
 	if (aCoord == prevCoord) prevCoord = aCoord + normalize(bCoord - aCoord);
 	if (bCoord == nextCoord) nextCoord = bCoord - normalize(bCoord - aCoord);
 
+
 	vec2 prevDiff = aCoord - prevCoord;
 	vec2 currDiff = bCoord - aCoord;
 	vec2 nextDiff = nextCoord - bCoord;
-
-	vec2 prevDirection = normalize(prevDiff);
-	vec2 currDirection = normalize(currDiff);
-	vec2 nextDirection = normalize(nextDiff);
 
 	vec2 prevTangent = normalize(prevDiff * scaleRatio);
 	vec2 currTangent = normalize(currDiff * scaleRatio);
@@ -66,10 +69,12 @@ void main() {
 	vec2 endJoinDirection = normalize(currTangent - nextTangent);
 
 	//collapsed/unidirectional segment cases
-	if (prevDirection == currDirection) {
+	vec2 prevTanDiff = abs(prevTangent - currTangent);
+	vec2 nextTanDiff = abs(nextTangent - currTangent);
+	if (max(prevTanDiff.x, prevTanDiff.y) < MIN_DIFF) {
 		startJoinDirection = currNormal;
 	}
-	if (nextDirection == currDirection) {
+	if (max(nextTanDiff.x, nextTanDiff.y) < MIN_DIFF) {
 		endJoinDirection = currNormal;
 	}
 	if (aCoord == bCoord) {

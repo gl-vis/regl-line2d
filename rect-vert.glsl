@@ -4,7 +4,7 @@ attribute vec2 aCoord, bCoord, aCoordFract, bCoordFract;
 attribute vec4 color;
 attribute float lineEnd, lineTop;
 
-uniform vec2 scale, scaleFract, translate, translateFract, scaleRatio;
+uniform vec2 scale, scaleFract, translate, translateFract;
 uniform float thickness, pixelRatio, id;
 uniform vec4 viewport;
 
@@ -27,7 +27,7 @@ void main() {
 	float depth = (MAX_LINES - 1. - id) / (MAX_LINES);
 
 	vec2 diff = (bCoord + bCoordFract - aCoord - aCoordFract);
-	tangent = normalize(diff * scaleRatio);
+	tangent = normalize(diff * scale * viewport.zw);
 	vec2 normal = vec2(-tangent.y, tangent.x);
 
 	vec2 position = project(aCoord, aCoordFract, scale, scaleFract, translate, translateFract) * lineStart

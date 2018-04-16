@@ -39,6 +39,7 @@ let options = {
 let batch = []
 
 
+let line2d = createLine(regl)
 setup()
 
 
@@ -46,8 +47,8 @@ setup()
 /** Test cases */
 t('aligned line', t => {
   batch.push(extend({}, options, {
-    positions: [ 0, 0, 1, 0 ],
-    type: 'rect'
+    positions: [ 0,0, 0.5,0, 1,0 ],
+    type: 'round'
   }))
 
   t.end()
@@ -200,6 +201,22 @@ t('colorscale', t => {
   t.end()
 })
 
+t.skip('changing color', t => {
+  let thickness = 100
+  let positions = [0,0, 1,1]
+  let colors = 'green'
+
+  line2d.update({colors, positions, join: 'rect', thickness: 30})
+  line2d.draw()
+
+  setTimeout(() => {
+    regl.clear({color: true, depth: true})
+    line2d.update({colors: 'black'})
+    line2d.draw()
+  })
+
+  t.end()
+})
 
 t('round join', t => {
   let thickness = 100
@@ -223,12 +240,30 @@ t.skip('painting', t => {
   t.end()
 })
 
+t.skip('fix horizontal segments', t => {
+  let positions = {
+    x: [ 0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5,5.1,5.2,5.3,5.4,5.5,5.6,5.7,5.8,5.9,6,6.1,6.2,6.3,6.4,6.5,6.6,6.7,6.8,6.9,7,7.1,7.2,7.3,7.4,7.5,7.6,7.7,7.8,7.9,8,8.1,8.2,8.3,8.4,8.5,8.6,8.7,8.8,8.9,9,9.1,9.2,9.3,9.4,9.5,9.6,9.7,9.8,9.9,10],
+    y: [ 20.392,20.388,20.386,20.374,20.384,20.384,20.384,20.38,20.384,20.384,20.384,20.372,20.388,20.384,20.386,20.376,20.38,20.384,20.38,20.386,20.382,20.378,20.372,20.378,20.386,20.384,20.386,20.394,20.388,20.38,20.384,20.384,20.374,20.36,20.378,20.384,20.378,20.378,20.384,20.38,20.384,20.386,20.378,20.384,20.386,20.384,20.384,20.384,20.386,20.384,20.38,20.374,20.384,20.384,20.384,20.384,20.384,20.384,20.378,20.384,20.384,20.38,20.372,20.384,20.374,20.38,20.384,20.378,20.394,20.384,20.384,20.384,20.376,20.38,20.378,20.378,20.384,20.372,20.384,20.378,20.384,20.384,20.378,20.378,20.384,20.38,20.376,20.38,20.38,20.384,20.384,20.378,20.38,20.384,20.38,20.394,20.384,20.384,20.378,20.372]
+  }
+
+  line2d.update({color: 'gray', positions, join: 'round', thickness: 10})
+  line2d.draw()
+
+  batch.push(extend({}, options, {
+    positions,
+    type: 'round',
+    thickness: 10,
+    color: 'gray'
+  }))
+
+  t.end()
+})
+
 
 function setup () {
   // FIXME: enable settings-panel
   // createPanel(options, opts => draw(opts))
 
-  let line2d = createLine(regl)
   // let drawPoints = createScatter({
   //   regl, range,
   //   size: 10,

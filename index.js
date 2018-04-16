@@ -88,7 +88,6 @@ Line2D.createShaders = function (regl) {
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),
-			scaleRatio: regl.prop('scaleRatio'),
 			dashSize: regl.prop('dashLength'),
 			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
 		},
@@ -343,13 +342,8 @@ Line2D.prototype.draw = function (...args) {
 
 		if (!s.thickness) return
 
-		s.scaleRatio = [
-			s.scale[0] * s.viewport.width,
-			s.scale[1] * s.viewport.height
-		]
-
 		// high scale is only available for rect mode with precision
-		if (s.scaleRatio[0] > Line2D.precisionThreshold || s.scaleRatio[1] > Line2D.precisionThreshold) {
+		if (s.scale[0] * s.viewport.width > Line2D.precisionThreshold || s.scale[1] * s.viewport.height > Line2D.precisionThreshold) {
 			this.shaders.rect(s)
 		}
 
@@ -469,12 +463,29 @@ Line2D.prototype.update = function (options) {
 
 		// reset positions
 		if (o.positions === null) o.positions = []
-		if (o.positions && o.positions.length) {
-			let positions = flatten(o.positions, 'float64')
-			let count = state.count = Math.floor(positions.length / 2)
-			let bounds = state.bounds = getBounds(positions, 2)
+		if (o.positions) {
+			let positions, count
 
-			if (!state.range) state.range = bounds
+			// if positions are an object with x/y
+			if (o.positions.x && o.positions.y) {
+				let xPos = o.positions.x
+				let yPos = o.positions.y
+				count = state.count = Math.max(
+					xPos.length,
+					yPos.length
+				)
+				positions = new Float64Array(count * 2)
+				for (let i = 0; i < count; i++) {
+					positions[i * 2] = xPos[i]
+					positions[i * 2 + 1] = yPos[i]
+				}
+			}
+			else {
+				positions = flatten(o.positions, 'float64')
+				count = state.count = Math.floor(positions.length / 2)
+			}
+
+			let bounds = state.bounds = getBounds(positions, 2)
 
 			// create fill positions
 			// FIXME: fill positions can be set only along with positions
@@ -562,6 +573,34 @@ Line2D.prototype.update = function (options) {
 			state.positionFractBuffer(fract32(positionData))
 		}
 
+		if (o.range) {
+			state.range = o.range
+		} else if (!state.range) {
+			state.range = state.bounds
+		}
+
+		if (o.range || (o.positions && state.count)) {
+			let bounds = state.bounds
+
+			let boundsW = bounds[2] - bounds[0],
+				boundsH = bounds[3] - bounds[1]
+
+			let rangeW = state.range[2] - state.range[0],
+				rangeH = state.range[3] - state.range[1]
+
+			state.scale = [
+				boundsW / rangeW,
+				boundsH / rangeH
+			]
+			state.translate = [
+				-state.range[0] / rangeW + bounds[0] / rangeW || 0,
+				-state.range[1] / rangeH + bounds[1] / rangeH || 0
+			]
+
+			state.scaleFract = fract32(state.scale)
+			state.translateFract = fract32(state.translate)
+		}
+
 		if (o.dashes) {
 			let dashLength = 0., dashData
 
@@ -612,6 +651,7 @@ Line2D.prototype.update = function (options) {
 			// convert colors to typed arrays
 			if (!Array.isArray(colors) || typeof colors[0] === 'number') {
 				let c = rgba(colors, 'uint8')
+
 				for (let i = 0; i < count + 1; i++) {
 					colorData.set(c, i * 4)
 				}
@@ -628,30 +668,6 @@ Line2D.prototype.update = function (options) {
 				type: 'uint8',
 				data: colorData
 			})
-		}
-
-		if (o.range && state.count) {
-			let bounds = state.bounds
-
-			let boundsW = bounds[2] - bounds[0],
-				boundsH = bounds[3] - bounds[1]
-
-			let rangeW = o.range[2] - o.range[0],
-				rangeH = o.range[3] - o.range[1]
-
-			state.scale = [
-				boundsW / rangeW,
-				boundsH / rangeH
-			]
-			state.translate = [
-				-o.range[0] / rangeW + bounds[0] / rangeW || 0,
-				-o.range[1] / rangeH + bounds[1] / rangeH || 0
-			]
-
-			state.scaleFract = fract32(state.scale)
-			state.translateFract = fract32(state.translate)
-
-			state.range = o.range
 		}
 	})
 
