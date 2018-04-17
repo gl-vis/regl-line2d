@@ -55,7 +55,7 @@ Line2D.dashMult = 2
 Line2D.maxPatternLength = 256
 Line2D.precisionThreshold = 3e6
 Line2D.maxPoints = 1e4
-Line2D.maxLines = 65536
+Line2D.maxLines = 2048
 
 
 // cache of created draw calls per-regl instance
@@ -90,7 +90,7 @@ Line2D.createShaders = function (regl) {
 			id: regl.prop('id'),
 			dashSize: regl.prop('dashLength'),
 			viewport: (c, p) => [p.viewport.x, p.viewport.y, c.viewportWidth, c.viewportHeight],
-			maxLines: Line2D.maxLines
+			depth: regl.prop('depth')
 		},
 
 		blend: {
@@ -108,9 +108,8 @@ Line2D.createShaders = function (regl) {
 			}
 		},
 		depth: {
-			// FIXME: that fills up stencil buffer
-			enable: (ctx, prop) => {
-				return !prop.overlay
+			enable: (c, p) => {
+				return !p.overlay
 			}
 		},
 		stencil: {enable: false},
@@ -413,6 +412,7 @@ Line2D.prototype.update = function (options) {
 				translateFract: null,
 				count: 0,
 				hole: [],
+				depth: 0,
 
 				dashLength: 1,
 				dashTexture: regl.texture({
@@ -446,7 +446,12 @@ Line2D.prototype.update = function (options) {
 		if (o.thickness != null) state.thickness = parseFloat(o.thickness)
 		if (o.opacity != null) state.opacity = parseFloat(o.opacity)
 		if (o.miterLimit != null) state.miterLimit = parseFloat(o.miterLimit)
-		if (o.overlay != null) state.overlay = !!o.overlay
+		if (o.overlay != null) {
+			state.overlay = !!o.overlay
+			if (!o.overlay && i < Line2D.maxLines) {
+				state.depth = 2 * (Line2D.maxLines - i) / Line2D.maxLines - 1.;
+			}
+		}
 		if (o.join != null) state.join = o.join
 		if (o.hole != null) state.hole = o.hole
 		if (o.fill != null) state.fill = !o.fill ? null : rgba(o.fill, 'uint8')
