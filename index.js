@@ -449,7 +449,7 @@ Line2D.prototype.update = function (options) {
 		if (o.overlay != null) {
 			state.overlay = !!o.overlay
 			if (i < Line2D.maxLines) {
-				state.depth = 2 * (Line2D.maxLines - 1 - i) / Line2D.maxLines - 1.;
+				state.depth = 2 * (Line2D.maxLines - 1 - i % Line2D.maxLines) / Line2D.maxLines - 1.;
 			}
 		}
 		if (o.join != null) state.join = o.join
