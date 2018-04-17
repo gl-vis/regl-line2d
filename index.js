@@ -359,7 +359,6 @@ Line2D.prototype.draw = function (...args) {
 	return this
 }
 
-
 Line2D.prototype.update = function (options) {
 	if (!options) return
 

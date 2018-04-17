@@ -11,7 +11,7 @@ uniform vec4 viewport;
 varying vec4 fragColor;
 varying vec2 tangent;
 
-const float MAX_LINES = 256.;
+const float MAX_LINES = 1024.;
 
 vec2 project(vec2 position, vec2 positionFract, vec2 scale, vec2 scaleFract, vec2 translate, vec2 translateFract) {
 	// the order is important

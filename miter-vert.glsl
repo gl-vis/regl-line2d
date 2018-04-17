@@ -15,12 +15,13 @@ varying vec2 tangent;
 varying vec2 startCoord, endCoord;
 varying float enableStartMiter, enableEndMiter;
 
-const float MAX_LINES = 256.;
+const float MAX_LINES = 1024.;
 const float REVERSE_THRESHOLD = -.875;
 const float MIN_DIFF = 1e-6;
 
-//TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead
-//TODO: precalculate dot products, normalize things beforehead etc.
+// TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead
+// TODO: precalculate dot products, normalize things beforehead etc.
+// TODO: refactor to rectangular algorithm
 
 float distToLine(vec2 p, vec2 a, vec2 b) {
 	vec2 diff = b - a;
@@ -39,7 +40,7 @@ void main() {
 	vec2 scale = max(scale, MIN_DIFF);
 	vec2 scaleRatio = scale * viewport.zw;
 
-	vec2 normalWidth = thickness / (scale * viewport.zw);
+	vec2 normalWidth = thickness / scaleRatio;
 
 	float lineStart = 1. - lineEnd;
 	float lineBot = 1. - lineTop;
@@ -68,7 +69,8 @@ void main() {
 	vec2 startJoinDirection = normalize(prevTangent - currTangent);
 	vec2 endJoinDirection = normalize(currTangent - nextTangent);
 
-	//collapsed/unidirectional segment cases
+	// collapsed/unidirectional segment cases
+	// FIXME: there should be more elegant solution
 	vec2 prevTanDiff = abs(prevTangent - currTangent);
 	vec2 nextTanDiff = abs(nextTangent - currTangent);
 	if (max(prevTanDiff.x, prevTanDiff.y) < MIN_DIFF) {
