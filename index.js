@@ -448,8 +448,8 @@ Line2D.prototype.update = function (options) {
 		if (o.miterLimit != null) state.miterLimit = parseFloat(o.miterLimit)
 		if (o.overlay != null) {
 			state.overlay = !!o.overlay
-			if (!o.overlay && i < Line2D.maxLines) {
-				state.depth = 2 * (Line2D.maxLines - i) / Line2D.maxLines - 1.;
+			if (i < Line2D.maxLines) {
+				state.depth = 2 * (Line2D.maxLines - 1 - i) / Line2D.maxLines - 1.;
 			}
 		}
 		if (o.join != null) state.join = o.join
