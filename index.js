@@ -579,7 +579,7 @@ Line2D.prototype.update = function (options) {
 			state.range = state.bounds
 		}
 
-		if (o.range || (o.positions && state.count)) {
+		if ((o.range || o.positions) && state.count) {
 			let bounds = state.bounds
 
 			let boundsW = bounds[2] - bounds[0],
