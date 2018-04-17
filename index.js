@@ -55,7 +55,7 @@ Line2D.dashMult = 2
 Line2D.maxPatternLength = 256
 Line2D.precisionThreshold = 3e6
 Line2D.maxPoints = 1e4
-
+Line2D.maxLines = 65536
 
 
 // cache of created draw calls per-regl instance
@@ -89,7 +89,8 @@ Line2D.createShaders = function (regl) {
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),
 			dashSize: regl.prop('dashLength'),
-			viewport: (ctx, prop) => [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]
+			viewport: (c, p) => [p.viewport.x, p.viewport.y, c.viewportWidth, c.viewportHeight],
+			maxLines: Line2D.maxLines
 		},
 
 		blend: {

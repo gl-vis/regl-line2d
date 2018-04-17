@@ -5,7 +5,7 @@ attribute vec4 aColor, bColor;
 attribute float lineEnd, lineTop;
 
 uniform vec2 scale, translate;
-uniform float thickness, pixelRatio, id;
+uniform float thickness, pixelRatio, id, maxLines;
 uniform vec4 viewport;
 uniform float miterLimit, miterMode;
 
@@ -15,7 +15,6 @@ varying vec2 tangent;
 varying vec2 startCoord, endCoord;
 varying float enableStartMiter, enableEndMiter;
 
-const float MAX_LINES = 1024.;
 const float REVERSE_THRESHOLD = -.875;
 const float MIN_DIFF = 1e-6;
 
@@ -44,7 +43,7 @@ void main() {
 
 	float lineStart = 1. - lineEnd;
 	float lineBot = 1. - lineTop;
-	float depth = (MAX_LINES - 1. - id) / MAX_LINES;
+	float depth = (maxLines - 1. - id) / maxLines;
 
 	fragColor = (lineStart * aColor + lineEnd * bColor) / 255.;
 
