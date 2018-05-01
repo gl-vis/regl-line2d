@@ -427,17 +427,17 @@ Line2D.prototype.update = function (options) {
 				colorBuffer: regl.buffer({
 					usage: 'dynamic',
 					type: 'uint8',
-					data: null
+					data: new Uint8Array()
 				}),
 				positionBuffer: regl.buffer({
 					usage: 'dynamic',
 					type: 'float',
-					data: null
+					data: new Uint8Array()
 				}),
 				positionFractBuffer: regl.buffer({
 					usage: 'dynamic',
 					type: 'float',
-					data: null
+					data: new Uint8Array()
 				})
 			}
 
