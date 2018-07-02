@@ -14,7 +14,7 @@ Remake on [gl-line2d](https://github.com/gl-vis/gl-line2d):
 * Float64 precision.
 * [`<polyline>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline)-compatible API
 
-[Demo](https://dy.github.io/regl-line2d).
+[Demo](https://a-vis.github.io/regl-line2d).
 
 ## Usage
 
