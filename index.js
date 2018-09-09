@@ -330,8 +330,17 @@ Line2D.prototype.draw = function (...args) {
 		// render array pass as a list of passes
 		if (s && Array.isArray(s)) return this.draw(...s)
 
-		if (typeof s === 'number') s = this.passes[s]
-
+		if (typeof s === 'number') {
+			var pas=0
+			while ( pas < this.passes.length ) {
+				if ( "id" in this.passes[pas] && this.passes[pas].id === s ) {
+					s = this.passes[pas]
+					break
+				}
+				pas++
+			}
+			if ( pas === this.passes.length ) { return }
+		}
 		if (!(s && s.count > 1 && s.opacity)) return
 
 		this.regl._refresh()
