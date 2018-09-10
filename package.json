@@ -40,7 +40,7 @@
     "earcut": "^2.1.1",
     "es6-weak-map": "^2.0.2",
     "flatten-vertex-data": "^1.0.0",
-    "glslify": "^6.1.0",
+    "glslify": "^6.3.1",
     "object-assign": "^4.1.1",
     "parse-rect": "^1.2.0",
     "pick-by-alias": "^1.1.0",

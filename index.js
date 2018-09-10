@@ -689,7 +689,11 @@ Line2D.prototype.update = function (options) {
 	}
 
 	// remove null items
-	this.passes = this.passes.filter(Boolean)
+	let passes = []
+	for (let i = 0; i < this.passes.length; i++) {
+		if (this.passes[i] !== null) passes.push(this.passes[i])
+	}
+	this.passes = passes
 
 	return this
 }
