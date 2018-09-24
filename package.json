@@ -57,6 +57,7 @@
     "enable-mobile": "^1.0.7",
     "fps-indicator": "^1.1.0",
     "gauss-random": "^1.0.1",
+    "gl-util": "^3.0.9",
     "mobilify": "^1.0.1",
     "nanoraf": "^3.0.1",
     "next-pow-2": "^1.0.0",

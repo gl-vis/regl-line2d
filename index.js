@@ -38,6 +38,7 @@ function Line2D (regl, options) {
 	// persistent variables
 	this.gl = regl._gl
 	this.regl = regl
+	this.canvas = this.gl.canvas
 
 	// list of options for lines
 	this.passes = []
@@ -322,7 +323,6 @@ Line2D.prototype.render = function (...args) {
 
 	this.draw()
 }
-
 
 Line2D.prototype.draw = function (...args) {
 	// render multiple polylines via regl batch
