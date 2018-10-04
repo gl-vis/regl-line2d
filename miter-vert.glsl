@@ -35,8 +35,6 @@ bool isNaN( float val ){
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
 
-	// adjust scale for horizontal bars
-	vec2 scale = max(scale, MIN_DIFF);
 	vec2 scaleRatio = scale * viewport.zw;
 
 	vec2 normalWidth = thickness / scaleRatio;
