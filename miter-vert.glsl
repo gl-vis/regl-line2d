@@ -35,8 +35,11 @@ bool isNaN( float val ){
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
 
-	vec2 scaleRatio = scale * viewport.zw;
+  vec2 adjustedScale = scale;
+  if (abs(scale.x) < MIN_DIFF) adjustedScale.x = MIN_DIFF; // * sign(scale.x);
+  if (abs(scale.y) < MIN_DIFF) adjustedScale.y = MIN_DIFF; // * sign(scale.y);
 
+  vec2 scaleRatio = adjustedScale * viewport.zw;
 	vec2 normalWidth = thickness / scaleRatio;
 
 	float lineStart = 1. - lineEnd;
@@ -139,11 +142,11 @@ void main() {
 		aBotCoord += normalize(startBotJoin * normalWidth) * abClipping;
 	}
 
-	vec2 aTopPosition = (aTopCoord) * scale + translate;
-	vec2 aBotPosition = (aBotCoord) * scale + translate;
+	vec2 aTopPosition = (aTopCoord) * adjustedScale + translate;
+	vec2 aBotPosition = (aBotCoord) * adjustedScale + translate;
 
-	vec2 bTopPosition = (bTopCoord) * scale + translate;
-	vec2 bBotPosition = (bBotCoord) * scale + translate;
+	vec2 bTopPosition = (bTopCoord) * adjustedScale + translate;
+	vec2 bBotPosition = (bBotCoord) * adjustedScale + translate;
 
 	//position is normalized 0..1 coord on the screen
 	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
