@@ -427,6 +427,7 @@ Line2D.prototype.update = function (options) {
 					min: 'linear'
 				}),
 
+				colorCount: 0,
 				colorBuffer: regl.buffer({
 					usage: 'dynamic',
 					type: 'uint8',
@@ -649,12 +650,10 @@ Line2D.prototype.update = function (options) {
 			}, 0, 0)
 		}
 
-		if (!state.color && !o.color) o.color = Line2D.defaults.color
+		if (!state.colorCount && state.count && !o.color) o.color = Line2D.defaults.color
 		if (o.color) {
 			let count = state.count
 			let colors = o.color
-
-			if (!colors) colors = 'transparent'
 
 			let colorData = new Uint8Array(count * 4 + 4)
 
@@ -678,6 +677,8 @@ Line2D.prototype.update = function (options) {
 				type: 'uint8',
 				data: colorData
 			})
+
+			state.colorCount = count
 		}
 	})
 
