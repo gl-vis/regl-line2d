@@ -69,14 +69,22 @@ t.only('sin dash pattern', t => {
     data.push(i, Math.sin(i * 10 / steps))
   }
 
-  line.update({
+  line.update([{
     type: 'join',
     overlay: true,
     data: data,
-    thickness: 20,
-    dash: [20,20],
-    range: [0,-1,steps,1]
-  })
+    thickness: 4,
+    dash: [8,8],
+    range: [0,-2,steps * 2,2]
+  }, {
+    type: 'join',
+    overlay: true,
+    data: circle(0, 0, 24),
+    thickness: 80,
+    dash: [8,8],
+    close: true,
+    range: [-200,-80,60,80]
+  }])
   line.draw()
 
   t.end()
@@ -296,3 +304,12 @@ t.skip('fix horizontal segments', t => {
   t.end()
 })
 
+
+
+
+
+function circle(x, y, radius) {
+  var c = arc(x, y, radius, 0, Math.PI*2, false)
+  c.pop()
+  return c
+}
