@@ -4,7 +4,7 @@
 const rgba = require('color-normalize')
 const getBounds = require('array-bounds')
 const extend = require('object-assign')
-const glslify = require('glslify')
+const glsl = require('glslify')
 const pick = require('pick-by-alias')
 const flatten = require('flatten-vertex-data')
 const triangulate = require('earcut')
@@ -38,6 +38,7 @@ function Line2D (regl, options) {
 	// persistent variables
 	this.gl = regl._gl
 	this.regl = regl
+	this.canvas = this.gl.canvas
 
 	// list of options for lines
 	this.passes = []
@@ -88,6 +89,7 @@ Line2D.createShaders = function (regl) {
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),
+			sections: regl.prop('dashSections'),
 			dashSize: regl.prop('dashLength'),
 			viewport: (c, p) => [p.viewport.x, p.viewport.y, c.viewportWidth, c.viewportHeight],
 			depth: regl.prop('depth')
@@ -123,8 +125,8 @@ Line2D.createShaders = function (regl) {
 
 	// simplified rectangular line shader
 	let drawRectLine = regl(extend({
-		vert: glslify('./rect-vert.glsl'),
-		frag: glslify('./rect-frag.glsl'),
+		vert: glsl('./shader/rect-vert.glsl'),
+		frag: glsl('./shader/rect-frag.glsl'),
 
 		attributes: {
 			// if point is at the end of segment
@@ -187,8 +189,8 @@ Line2D.createShaders = function (regl) {
 				face: 'back'
 			},
 
-			vert: glslify('./miter-vert.glsl'),
-			frag: glslify('./miter-frag.glsl'),
+			vert: glsl('./shader/miter-vert.glsl'),
+			frag: glsl('./shader/miter-frag.glsl'),
 
 			attributes: {
 				// is line end
@@ -256,8 +258,8 @@ Line2D.createShaders = function (regl) {
 		elements: (ctx, prop) => prop.triangles,
 		offset: 0,
 
-		vert: glslify('./fill-vert.glsl'),
-		frag: glslify('./fill-frag.glsl'),
+		vert: glsl('./shader/fill-vert.glsl'),
+		frag: glsl('./shader/fill-frag.glsl'),
 
 		uniforms: {
 			scale: regl.prop('scale'),
@@ -311,7 +313,8 @@ Line2D.defaults = {
 	viewport: null,
 	range: null,
 	close: false,
-	fill: null
+	fill: null,
+	dashSections: 8
 }
 
 
@@ -322,7 +325,6 @@ Line2D.prototype.render = function (...args) {
 
 	this.draw()
 }
-
 
 Line2D.prototype.draw = function (...args) {
 	// render multiple polylines via regl batch
@@ -391,7 +393,7 @@ Line2D.prototype.update = function (options) {
 			thickness: 'thickness lineWidth lineWidths line-width linewidth width stroke-width strokewidth strokeWidth',
 			join: 'lineJoin linejoin join type mode',
 			miterLimit: 'miterlimit miterLimit',
-			dashes: 'dash dashes dasharray dash-array dashArray',
+			dashes: 'dash dashes dasharray dash-array dashArray dashPattern pattern',
 			color: 'color colour stroke colors colours stroke-color strokeColor',
 			fill: 'fill fill-color fillColor',
 			opacity: 'alpha opacity',
@@ -399,7 +401,8 @@ Line2D.prototype.update = function (options) {
 			close: 'closed close closed-path closePath',
 			range: 'range dataBox',
 			viewport: 'viewport viewBox',
-			hole: 'holes hole hollow'
+			hole: 'holes hole hollow',
+			dashSections: 'sections dashSections patternSections'
 		})
 
 		// init state
@@ -424,6 +427,7 @@ Line2D.prototype.update = function (options) {
 					min: 'linear'
 				}),
 
+				colorCount: 0,
 				colorBuffer: regl.buffer({
 					usage: 'dynamic',
 					type: 'uint8',
@@ -444,6 +448,7 @@ Line2D.prototype.update = function (options) {
 			o = extend({}, Line2D.defaults, o)
 		}
 		if (o.thickness != null) state.thickness = parseFloat(o.thickness)
+		if (o.dashSections != null) state.dashSections = parseInt(o.dashSections)
 		if (o.opacity != null) state.opacity = parseFloat(o.opacity)
 		if (o.miterLimit != null) state.miterLimit = parseFloat(o.miterLimit)
 		if (o.overlay != null) {
@@ -645,11 +650,10 @@ Line2D.prototype.update = function (options) {
 			}, 0, 0)
 		}
 
+		if (!state.colorCount && state.count && !o.color) o.color = Line2D.defaults.color
 		if (o.color) {
 			let count = state.count
 			let colors = o.color
-
-			if (!colors) colors = 'transparent'
 
 			let colorData = new Uint8Array(count * 4 + 4)
 
@@ -673,6 +677,8 @@ Line2D.prototype.update = function (options) {
 				type: 'uint8',
 				data: colorData
 			})
+
+			state.colorCount = count
 		}
 	})
 
