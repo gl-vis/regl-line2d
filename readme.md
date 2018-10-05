@@ -42,6 +42,7 @@ Option | Default | Description
 `dashes`, `dash`, `dasharray` | `null` | Array with dash lengths in px, altering color/space pairs, ie. `[2,10, 5,10, ...]`. `null` corresponds to solid line.
 `join`, `type` | `bevel` | Join style: `'rect'`, `'round'`, `'bevel'`. Applied to caps too.
 `miterLimit` | `1` | Max ratio of the join length to the thickness.
+`dashSections` | `8` | Number of sections for dash pattern, full 360⁰ circle divided by this number.
 `close`, `closed`, `closePath` | `false` | Connect last point with the first point with a segment.
 `overlay` | `false` | Enable overlay of line segments.
 `range`, `dataBox` | `null` | Visible data range.

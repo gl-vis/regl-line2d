@@ -12,7 +12,7 @@ const curve = require('adaptive-bezier-curve')
 const flatten = require('flatten-vertex-data')
 const arrFrom = require('array-from')
 const arrFill = require('array-fill')
-const ctx = require('gl-util/context')({width: 100, height: 100})
+const ctx = require('gl-util/context')()
 const regl = require('regl')({
   gl: ctx,
   attributes: { preserveDrawingBuffer: true },
@@ -21,7 +21,7 @@ const regl = require('regl')({
 const imageEqual = require('../../image-equal')
 
 
-t.only('#35: updating null pass', t => {
+t.skip('#35: updating null pass', t => {
   let line2d = createLine(regl)
 
   line2d.update([
@@ -58,6 +58,28 @@ t.only('#35: updating null pass', t => {
     return imageEqual('./test/35a.png', line2d)
   })
   .then(t.end, t.fail)
+})
+
+t.only('sin dash pattern', t => {
+  let line = createLine(regl)
+
+  var i, steps = 100
+  var data = []
+  for (i = 0; i < steps; i++) {
+    data.push(i, Math.sin(i * 10 / steps))
+  }
+
+  line.update({
+    type: 'join',
+    overlay: true,
+    data: data,
+    thickness: 20,
+    dash: [20,20],
+    range: [0,-1,steps,1]
+  })
+  line.draw()
+
+  t.end()
 })
 
 t('aligned line', t => {
