@@ -35,9 +35,9 @@ bool isNaN( float val ){
 void main() {
 	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
 
-  vec2 adjustedScale = scale;
-  if (abs(scale.x) < MIN_DIFF) adjustedScale.x = MIN_DIFF; // * sign(scale.x);
-  if (abs(scale.y) < MIN_DIFF) adjustedScale.y = MIN_DIFF; // * sign(scale.y);
+  vec2 adjustedScale;
+  adjustedScale.x = (abs(scale.x) < MIN_DIFF) ? MIN_DIFF : scale.x;
+  adjustedScale.y = (abs(scale.y) < MIN_DIFF) ? MIN_DIFF : scale.y;
 
   vec2 scaleRatio = adjustedScale * viewport.zw;
 	vec2 normalWidth = thickness / scaleRatio;
