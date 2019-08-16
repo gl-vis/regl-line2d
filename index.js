@@ -9,7 +9,7 @@ const pick = require('pick-by-alias')
 const flatten = require('flatten-vertex-data')
 const triangulate = require('earcut')
 const normalize = require('array-normalize')
-const { float32, fract32 } = require('to-float32')
+const f32 = require('to-float32')
 const WeakMap = require('es6-weak-map')
 const parseRect = require('parse-rect')
 
@@ -574,8 +574,8 @@ Line2D.prototype.update = function (options) {
 				positionData[count*2 + 5] = npos[count*2 - 1]
 			}
 
-			state.positionBuffer(float32(positionData))
-			state.positionFractBuffer(fract32(positionData))
+			state.positionBuffer(f32.float32(positionData))
+			state.positionFractBuffer(f32.fract32(positionData))
 		}
 
 		if (o.range) {
