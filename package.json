@@ -52,6 +52,7 @@
     "arc-to": "^1.0.1",
     "array-fill": "^1.2.0",
     "array-from": "^2.1.1",
+    "budo": "^11.6.3",
     "canvas-fit": "^1.5.0",
     "chttps": "^1.0.6",
     "color-rgba": "^2.1.1",
