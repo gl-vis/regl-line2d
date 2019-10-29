@@ -35,7 +35,7 @@
   "homepage": "https://github.com/dy/regl-line2d#readme",
   "dependencies": {
     "array-bounds": "^1.0.1",
-    "array-normalize": "^1.1.3",
+    "array-normalize": "^1.1.4",
     "bubleify": "^1.2.0",
     "color-normalize": "^1.5.0",
     "earcut": "^2.1.5",
