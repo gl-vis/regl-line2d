@@ -79,6 +79,7 @@ Dispose `line2d` and associated resources.
 ## Similar
 
 * [regl-line-builder](https://github.com/jpweeks/regl-line-builder)
+* [instanced-lines-demos](https://github.com/wwwtyro/instanced-lines-demos)
 
 ## License
 
