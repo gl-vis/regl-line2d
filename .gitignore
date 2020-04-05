@@ -1,6 +1,7 @@
 design
 instances
 *node_modules
+package-lock.json
 *.psd
 docs
 gh-pages
