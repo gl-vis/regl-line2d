@@ -516,13 +516,23 @@ Line2D.prototype.update = function (options) {
 					pos[ptr++] = y
 				}
 
-				let triangles = triangulate(pos, state.hole || [])
-
-				for (let i = 0, l = triangles.length; i < l; i++) {
-					if (ids[triangles[i]] != null) triangles[i] = ids[triangles[i]]
+				if(!(state.count-1 in ids))
+					ids[state.count] = state.count-1   // make sure there is at least polygon
+					
+				let splits = Object.keys(ids).map(e => e|0).sort(function(a, b){return a - b})
+				
+				let split_triangles = []
+				let base = 0
+				
+				for (let i = 0; i < splits.length; i++)
+				{
+					let triangles = triangulate(pos.slice(base*2, splits[i]*2), state.hole || [])
+					for (let e = 0; e < triangles.length; e++)
+						split_triangles.push(triangles[e] + base)
+					base = splits[i] + 1 // skip split point
 				}
 
-				state.triangles = triangles
+				state.triangles = split_triangles
 			}
 
 			// update position buffers
