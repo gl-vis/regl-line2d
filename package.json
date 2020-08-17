@@ -36,7 +36,6 @@
   "dependencies": {
     "array-bounds": "^1.0.1",
     "array-normalize": "^1.1.4",
-    "bubleify": "^2.0.0",
     "color-normalize": "^1.5.0",
     "earcut": "^2.1.5",
     "es6-weak-map": "^2.0.3",
@@ -52,6 +51,7 @@
     "arc-to": "^1.0.1",
     "array-fill": "^1.2.0",
     "array-from": "^2.1.1",
+    "bubleify": "^2.0.0",
     "canvas-fit": "^1.5.0",
     "chttps": "^1.0.6",
     "color-rgba": "^2.1.1",
