@@ -399,7 +399,8 @@ Line2D.prototype.update = function (options) {
 			close: 'closed close closed-path closePath',
 			range: 'range dataBox',
 			viewport: 'viewport viewBox',
-			hole: 'holes hole hollow'
+			hole: 'holes hole hollow',
+			splitNull: 'splitNull'
 		})
 
 		// init state
@@ -456,6 +457,7 @@ Line2D.prototype.update = function (options) {
 		if (o.hole != null) state.hole = o.hole
 		if (o.fill != null) state.fill = !o.fill ? null : rgba(o.fill, 'uint8')
 		if (o.viewport != null) state.viewport = parseRect(o.viewport)
+		if (o.splitNull != null) state.splitNull = o.splitNull
 
 		if (!state.viewport) {
 			state.viewport = parseRect([
@@ -516,46 +518,60 @@ Line2D.prototype.update = function (options) {
 					pos[ptr++] = y
 				}
 
-				// use "ids" to track the boundary of segment
-				// the keys in "ids" is the end boundary of a segment, or split point
-				if(!(state.count-1 in ids))
-					ids[state.count] = state.count-1   // make sure there is at least one segment
-					
-				let splits = Object.keys(ids).map(Number).sort(function(a, b){return a - b})
-					
-				
-				let split_triangles = []
-				let base = 0
-				
-				// do not split holes
-				let hole_base = state.hole != null ? state.hole[0] : null
-				if(hole_base != null){
-					let last_id = splits.findIndex((e)=>e>=hole_base)
-					splits = splits.slice(0,last_id)
-					splits.push(hole_base)
-				}
-				
-				for (let i = 0; i < splits.length; i++)
-				{
-					// create temporary pos array with only one segment and all the holes
-					let seg_pos = [].concat(
-						pos.slice(base*2, splits[i]*2), 
-						hole_base?pos.slice(hole_base*2):[]
-					)
-					let hole = (state.hole || []).map((e)=>e-hole_base+(splits[i]-base))
-					let triangles = triangulate(seg_pos, hole)
-					// map triangle index back to the original pos buffer
-					triangles = triangles.map(
-						(e)=> e + base + ((e + base < splits[i]) ? 0 : hole_base - splits[i])
-					)
-					split_triangles.push(...triangles)
-					base = splits[i] + 1 // skip split point
-				}
-				for (let i = 0, l = split_triangles.length; i < l; i++) {
-					if (ids[split_triangles[i]] != null) split_triangles[i] = ids[split_triangles[i]]
-				}
+				if(state.splitNull){  // split the input into multiple polygon at Null/NaN
 
-				state.triangles = split_triangles
+					// use "ids" to track the boundary of segment
+					// the keys in "ids" is the end boundary of a segment, or split point
+					if(!(state.count-1 in ids))
+						ids[state.count] = state.count-1   // make sure there is at least one segment
+						
+					let splits = Object.keys(ids).map(Number).sort(function(a, b){return a - b})
+
+					
+					let split_triangles = []
+					let base = 0
+					
+					// do not split holes
+					let hole_base = state.hole != null ? state.hole[0] : null
+					if(hole_base != null){
+						let last_id = splits.findIndex((e)=>e>=hole_base)
+						splits = splits.slice(0,last_id)
+						splits.push(hole_base)
+					}
+					
+					for (let i = 0; i < splits.length; i++)
+					{
+						// create temporary pos array with only one segment and all the holes
+						let seg_pos = [].concat(
+							pos.slice(base*2, splits[i]*2), 
+							hole_base?pos.slice(hole_base*2):[]
+						)
+						let hole = (state.hole || []).map((e)=>e-hole_base+(splits[i]-base))
+						let triangles = triangulate(seg_pos, hole)
+						// map triangle index back to the original pos buffer
+						triangles = triangles.map(
+							(e)=> e + base + ((e + base < splits[i]) ? 0 : hole_base - splits[i])
+						)
+						split_triangles.push(...triangles)
+						base = splits[i] + 1 // skip split point
+					}
+					for (let i = 0, l = split_triangles.length; i < l; i++) {
+						if (ids[split_triangles[i]] != null) split_triangles[i] = ids[split_triangles[i]]
+					}
+
+					state.triangles = split_triangles
+
+				}
+				else {
+					// treat the wholw input as a single polygon
+					let triangles = triangulate(pos, state.hole || [])
+
+					for (let i = 0, l = triangles.length; i < l; i++) {
+						if (ids[triangles[i]] != null) triangles[i] = ids[triangles[i]]
+					}
+
+					state.triangles = triangles
+				}
 			}
 
 			// update position buffers
