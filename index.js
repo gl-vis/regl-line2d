@@ -546,7 +546,7 @@ Line2D.prototype.update = function (options) {
 					let triangles = triangulate(seg_pos, hole)
 					// map triangle index back to the original pos buffer
 					triangles = triangles.map(
-						(e)=>(e < (splits[i] - base)) ? e + base : e - (splits[i] - base) + hole_base
+						(e)=> e + base + (e + base < splits[i]) ? 0 : hole_base - splits[i]
 					)
 					split_triangles.push(...triangles)
 					base = splits[i] + 1 // skip split point
@@ -742,4 +742,3 @@ Line2D.prototype.destroy = function () {
 
 	return this
 }
-
