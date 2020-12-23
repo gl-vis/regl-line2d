@@ -12,6 +12,7 @@ const normalize = require('array-normalize')
 const { float32, fract32 } = require('to-float32')
 const WeakMap = require('es6-weak-map')
 const parseRect = require('parse-rect')
+const findIndex = require('array.prototype.findindex');
 
 
 module.exports = Line2D
@@ -457,7 +458,6 @@ Line2D.prototype.update = function (options) {
 		if (o.hole != null) state.hole = o.hole
 		if (o.fill != null) state.fill = !o.fill ? null : rgba(o.fill, 'uint8')
 		if (o.viewport != null) state.viewport = parseRect(o.viewport)
-		if (o.splitNull != null) state.splitNull = o.splitNull
 
 		if (!state.viewport) {
 			state.viewport = parseRect([
@@ -518,7 +518,7 @@ Line2D.prototype.update = function (options) {
 					pos[ptr++] = y
 				}
 
-				if(state.splitNull){  // split the input into multiple polygon at Null/NaN
+				if(o.splitNull){  // split the input into multiple polygon at Null/NaN
 
 					// use "ids" to track the boundary of segment
 					// the keys in "ids" is the end boundary of a segment, or split point
@@ -534,7 +534,7 @@ Line2D.prototype.update = function (options) {
 					// do not split holes
 					let hole_base = state.hole != null ? state.hole[0] : null
 					if(hole_base != null){
-						let last_id = splits.findIndex((e)=>e>=hole_base)
+						let last_id = findIndex(splits, (e)=>e>=hole_base)
 						splits = splits.slice(0,last_id)
 						splits.push(hole_base)
 					}
