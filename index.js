@@ -518,19 +518,19 @@ Line2D.prototype.update = function (options) {
 					pos[ptr++] = y
 				}
 
-				if(o.splitNull){  // split the input into multiple polygon at Null/NaN
-
+				// split the input into multiple polygon at Null/NaN
+				if(o.splitNull){
 					// use "ids" to track the boundary of segment
 					// the keys in "ids" is the end boundary of a segment, or split point
-					if(!(state.count-1 in ids))
-						ids[state.count] = state.count-1   // make sure there is at least one segment
-						
-					let splits = Object.keys(ids).map(Number).sort(function(a, b){return a - b})
 
-					
+					// make sure there is at least one segment
+					if(!(state.count-1 in ids)) ids[state.count] = state.count-1
+
+					let splits = Object.keys(ids).map(Number).sort((a, b) => a - b)
+
 					let split_triangles = []
 					let base = 0
-					
+
 					// do not split holes
 					let hole_base = state.hole != null ? state.hole[0] : null
 					if(hole_base != null){
@@ -538,29 +538,29 @@ Line2D.prototype.update = function (options) {
 						splits = splits.slice(0,last_id)
 						splits.push(hole_base)
 					}
-					
+
 					for (let i = 0; i < splits.length; i++)
 					{
 						// create temporary pos array with only one segment and all the holes
-						let seg_pos = [].concat(
-							pos.slice(base*2, splits[i]*2), 
-							hole_base?pos.slice(hole_base*2):[]
+						let seg_pos = pos.slice(base*2, splits[i]*2).concat(
+							hole_base ? pos.slice(hole_base*2) : []
 						)
-						let hole = (state.hole || []).map((e)=>e-hole_base+(splits[i]-base))
+						let hole = (state.hole || []).map((e) => e-hole_base+(splits[i]-base) )
 						let triangles = triangulate(seg_pos, hole)
 						// map triangle index back to the original pos buffer
 						triangles = triangles.map(
 							(e)=> e + base + ((e + base < splits[i]) ? 0 : hole_base - splits[i])
 						)
 						split_triangles.push(...triangles)
-						base = splits[i] + 1 // skip split point
+
+						// skip split point
+						base = splits[i] + 1
 					}
 					for (let i = 0, l = split_triangles.length; i < l; i++) {
 						if (ids[split_triangles[i]] != null) split_triangles[i] = ids[split_triangles[i]]
 					}
 
 					state.triangles = split_triangles
-
 				}
 				else {
 					// treat the wholw input as a single polygon
