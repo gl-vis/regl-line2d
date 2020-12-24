@@ -45,7 +45,7 @@
     "parse-rect": "^1.2.0",
     "pick-by-alias": "^1.2.0",
     "to-float32": "^1.0.1",
-    "array.prototype.findindex": "^2.1.0"
+    "array-find-index": "^1.0.2"
   },
   "devDependencies": {
     "adaptive-bezier-curve": "^1.0.3",
