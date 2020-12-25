@@ -187,7 +187,7 @@ t('fill', t => {
 t('fill segment', t => {
   batch.push({
     fill: '#F9F38C',
-    stroke: null,
+    thickness: 0,
     close: false,
     splitNull: true,
     positions: translate(scale([0,40, 40,40, 40,80, NaN, NaN, 40,100, 80,100, 80,140, NaN, NaN, 80,150, 120,140, 120,160],.015,.015), 2.5, -1.5),
@@ -199,7 +199,7 @@ t('fill segment', t => {
 t('fill segment with hole', t => {
   batch.push({
     fill: '#F9F38C',
-    stroke: null,
+    thickness: 0,
     close: false,
     splitNull: true,
     positions: translate(scale([0,40, 40,40, 40,80, NaN, NaN, 40,100, 80,100, 80,140, 20,50, 30,50, 30,55, NaN, NaN, 80,150, 120,140, 120,160],.015,.015), 3.5, -1.5),
