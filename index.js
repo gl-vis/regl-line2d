@@ -623,8 +623,10 @@ Line2D.prototype.update = function (options) {
 				positionData[count*2 + 5] = npos[count*2 - 1]
 			}
 
-			state.positionBuffer(float32(positionData))
-			state.positionFractBuffer(fract32(positionData))
+			var float_data = float32(positionData)
+			state.positionBuffer(float_data)
+			var frac_data = fract32(positionData, float_data)
+			state.positionFractBuffer(frac_data)
 		}
 
 		if (o.range) {
