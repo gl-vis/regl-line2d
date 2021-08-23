@@ -7177,12 +7177,12 @@ Line2D.createShaders = function (regl) {
 			translateFract: regl.prop('translateFract'),
 			translate: regl.prop('translate'),
 			thickness: regl.prop('thickness'),
-			dashPattern: regl.prop('dashTexture'),
+			dashTexture: regl.prop('dashTexture'),
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),
 			scaleRatio: regl.prop('scaleRatio'),
-			dashSize: regl.prop('dashLength'),
+			dashLength: regl.prop('dashLength'),
 			viewport: function (ctx, prop) { return [prop.viewport.x, prop.viewport.y, ctx.viewportWidth, ctx.viewportHeight]; }
 		},
 
@@ -7218,7 +7218,7 @@ Line2D.createShaders = function (regl) {
 	// simplified rectangular line shader
 	var drawRectLine = regl(extend({
 		vert: glslify(["precision highp float;\n#define GLSLIFY 1\n\nattribute vec2 aCoord, bCoord, aCoordFract, bCoordFract;\nattribute vec4 color;\nattribute float lineEnd, lineTop;\n\nuniform vec2 scale, scaleFract, translate, translateFract, scaleRatio;\nuniform float thickness, pixelRatio, id;\nuniform vec4 viewport;\n\nvarying vec4 fragColor;\nvarying vec2 tangent;\n\nconst float MAX_LINES = 256.;\n\nvec2 project(vec2 position, vec2 positionFract, vec2 scale, vec2 scaleFract, vec2 translate, vec2 translateFract) {\n\t// the order is important\n\treturn position * scale + translate\n       + positionFract * scale + translateFract\n       + position * scaleFract\n       + positionFract * scaleFract;\n}\n\nvoid main() {\n\tfloat lineStart = 1. - lineEnd;\n\tfloat lineOffset = lineTop * 2. - 1.;\n\tfloat depth = (MAX_LINES - 1. - id) / (MAX_LINES);\n\n\tvec2 diff = (bCoord + bCoordFract - aCoord - aCoordFract);\n\ttangent = normalize(diff * scaleRatio);\n\tvec2 normal = vec2(-tangent.y, tangent.x);\n\n\tvec2 position = project(aCoord, aCoordFract, scale, scaleFract, translate, translateFract) * lineStart\n\t\t+ project(bCoord, bCoordFract, scale, scaleFract, translate, translateFract) * lineEnd\n\n\t\t+ thickness * normal * .5 * lineOffset / viewport.zw;\n\n\tgl_Position = vec4(position * 2.0 - 1.0, depth, 1);\n\n\tfragColor = color / 255.;\n}\n"]),
-		frag: glslify(["precision highp float;\n#define GLSLIFY 1\n\nuniform sampler2D dashPattern;\n\nuniform float dashSize, pixelRatio, thickness, opacity, id;\n\nvarying vec4 fragColor;\nvarying vec2 tangent;\n\nvoid main() {\n\tfloat alpha = 1.;\n\n\tfloat t = fract(dot(tangent, gl_FragCoord.xy) / dashSize) * .5 + .25;\n\tfloat dash = texture2D(dashPattern, vec2(t, .5)).r;\n\n\tgl_FragColor = fragColor;\n\tgl_FragColor.a *= alpha * opacity * dash;\n}\n"]),
+		frag: glslify(["precision highp float;\n#define GLSLIFY 1\n\nuniform sampler2D dashTexture;\n\nuniform float dashLength, pixelRatio, thickness, opacity, id;\n\nvarying vec4 fragColor;\nvarying vec2 tangent;\n\nvoid main() {\n\tfloat alpha = 1.;\n\n\tfloat t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;\n\tfloat dash = texture2D(dashTexture, vec2(t, .5)).r;\n\n\tgl_FragColor = fragColor;\n\tgl_FragColor.a *= alpha * opacity * dash;\n}\n"]),
 
 		attributes: {
 			// if point is at the end of segment
@@ -7282,7 +7282,7 @@ Line2D.createShaders = function (regl) {
 			},
 
 			vert: glslify(["precision highp float;\n#define GLSLIFY 1\n\nattribute vec2 aCoord, bCoord, nextCoord, prevCoord;\nattribute vec4 aColor, bColor;\nattribute float lineEnd, lineTop;\n\nuniform vec2 scale, translate, scaleRatio;\nuniform float thickness, pixelRatio, id;\nuniform vec4 viewport;\nuniform float miterLimit, miterMode;\n\nvarying vec4 fragColor;\nvarying vec4 startCutoff, endCutoff;\nvarying vec2 tangent;\nvarying vec2 startCoord, endCoord;\nvarying float enableStartMiter, enableEndMiter;\n\nconst float MAX_LINES = 256.;\nconst float REVERSE_THRESHOLD = -.875;\n\n//TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead\n//TODO: precalculate dot products, normalize things beforehead etc.\n\nfloat distToLine(vec2 p, vec2 a, vec2 b) {\n\tvec2 diff = b - a;\n\tvec2 perp = normalize(vec2(-diff.y, diff.x));\n\treturn dot(p - a, perp);\n}\n\nbool isNaN( float val ){\n  return ( val < 0.0 || 0.0 < val || val == 0.0 ) ? false : true;\n}\n\nvoid main() {\n\tvec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;\n\tvec2 normalWidth = thickness / scaleRatio;\n\n\tfloat lineStart = 1. - lineEnd;\n\tfloat lineBot = 1. - lineTop;\n\tfloat depth = (MAX_LINES - 1. - id) / MAX_LINES;\n\n\tfragColor = (lineStart * aColor + lineEnd * bColor) / 255.;\n\n\tif (isNaN(aCoord.x) || isNaN(aCoord.y) || isNaN(bCoord.x) || isNaN(bCoord.y)) return;\n\n\tif (aCoord == prevCoord) prevCoord = aCoord + normalize(bCoord - aCoord);\n\tif (bCoord == nextCoord) nextCoord = bCoord - normalize(bCoord - aCoord);\n\n\tvec2 prevDiff = aCoord - prevCoord;\n\tvec2 currDiff = bCoord - aCoord;\n\tvec2 nextDiff = nextCoord - bCoord;\n\n\tvec2 prevDirection = normalize(prevDiff);\n\tvec2 currDirection = normalize(currDiff);\n\tvec2 nextDirection = normalize(nextDiff);\n\n\tvec2 prevTangent = normalize(prevDiff * scaleRatio);\n\tvec2 currTangent = normalize(currDiff * scaleRatio);\n\tvec2 nextTangent = normalize(nextDiff * scaleRatio);\n\n\tvec2 prevNormal = vec2(-prevTangent.y, prevTangent.x);\n\tvec2 currNormal = vec2(-currTangent.y, currTangent.x);\n\tvec2 nextNormal = vec2(-nextTangent.y, nextTangent.x);\n\n\tvec2 startJoinDirection = normalize(prevTangent - currTangent);\n\tvec2 endJoinDirection = normalize(currTangent - nextTangent);\n\n\t//collapsed/unidirectional segment cases\n\tif (prevDirection == currDirection) {\n\t\tstartJoinDirection = currNormal;\n\t}\n\tif (nextDirection == currDirection) {\n\t\tendJoinDirection = currNormal;\n\t}\n\tif (aCoord == bCoord) {\n\t\tendJoinDirection = startJoinDirection;\n\t\tcurrNormal = prevNormal;\n\t\tcurrTangent = prevTangent;\n\t}\n\n\ttangent = currTangent;\n\n\t//calculate join shifts relative to normals\n\tfloat startJoinShift = dot(currNormal, startJoinDirection);\n\tfloat endJoinShift = dot(currNormal, endJoinDirection);\n\n\tfloat startMiterRatio = abs(1. / startJoinShift);\n\tfloat endMiterRatio = abs(1. / endJoinShift);\n\n\tvec2 startJoin = startJoinDirection * startMiterRatio;\n\tvec2 endJoin = endJoinDirection * endMiterRatio;\n\n\tvec2 startTopJoin, startBotJoin, endTopJoin, endBotJoin;\n\tstartTopJoin = sign(startJoinShift) * startJoin * .5;\n\tstartBotJoin = -startTopJoin;\n\n\tendTopJoin = sign(endJoinShift) * endJoin * .5;\n\tendBotJoin = -endTopJoin;\n\n\tvec2 aTopCoord = aCoord + normalWidth * startTopJoin;\n\tvec2 bTopCoord = bCoord + normalWidth * endTopJoin;\n\tvec2 aBotCoord = aCoord + normalWidth * startBotJoin;\n\tvec2 bBotCoord = bCoord + normalWidth * endBotJoin;\n\n\t//miter anti-clipping\n\tfloat baClipping = distToLine(bCoord, aCoord, aBotCoord) / dot(normalize(normalWidth * endBotJoin), normalize(normalWidth.yx * vec2(-startBotJoin.y, startBotJoin.x)));\n\tfloat abClipping = distToLine(aCoord, bCoord, bTopCoord) / dot(normalize(normalWidth * startBotJoin), normalize(normalWidth.yx * vec2(-endBotJoin.y, endBotJoin.x)));\n\n\t//prevent close to reverse direction switch\n\tbool prevReverse = dot(currTangent, prevTangent) <= REVERSE_THRESHOLD && abs(dot(currTangent, prevNormal)) * min(length(prevDiff), length(currDiff)) <  length(normalWidth * currNormal);\n\tbool nextReverse = dot(currTangent, nextTangent) <= REVERSE_THRESHOLD && abs(dot(currTangent, nextNormal)) * min(length(nextDiff), length(currDiff)) <  length(normalWidth * currNormal);\n\n\tif (prevReverse) {\n\t\t//make join rectangular\n\t\tvec2 miterShift = normalWidth * startJoinDirection * miterLimit * .5;\n\t\tfloat normalAdjust = 1. - min(miterLimit / startMiterRatio, 1.);\n\t\taBotCoord = aCoord + miterShift - normalAdjust * normalWidth * currNormal * .5;\n\t\taTopCoord = aCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;\n\t}\n\telse if (!nextReverse && baClipping > 0. && baClipping < length(normalWidth * endBotJoin)) {\n\t\t//handle miter clipping\n\t\tbTopCoord -= normalWidth * endTopJoin;\n\t\tbTopCoord += normalize(endTopJoin * normalWidth) * baClipping;\n\t}\n\n\tif (nextReverse) {\n\t\t//make join rectangular\n\t\tvec2 miterShift = normalWidth * endJoinDirection * miterLimit * .5;\n\t\tfloat normalAdjust = 1. - min(miterLimit / endMiterRatio, 1.);\n\t\tbBotCoord = bCoord + miterShift - normalAdjust * normalWidth * currNormal * .5;\n\t\tbTopCoord = bCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;\n\t}\n\telse if (!prevReverse && abClipping > 0. && abClipping < length(normalWidth * startBotJoin)) {\n\t\t//handle miter clipping\n\t\taBotCoord -= normalWidth * startBotJoin;\n\t\taBotCoord += normalize(startBotJoin * normalWidth) * abClipping;\n\t}\n\n\tvec2 aTopPosition = (aTopCoord) * scale + translate;\n\tvec2 aBotPosition = (aBotCoord) * scale + translate;\n\n\tvec2 bTopPosition = (bTopCoord) * scale + translate;\n\tvec2 bBotPosition = (bBotCoord) * scale + translate;\n\n\t//position is normalized 0..1 coord on the screen\n\tvec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;\n\n\tstartCoord = aCoord * scaleRatio + translate * viewport.zw + viewport.xy;\n\tendCoord = bCoord * scaleRatio + translate * viewport.zw + viewport.xy;\n\n\tgl_Position = vec4(position  * 2.0 - 1.0, depth, 1);\n\n\tenableStartMiter = step(dot(currTangent, prevTangent), .5);\n\tenableEndMiter = step(dot(currTangent, nextTangent), .5);\n\n\t//bevel miter cutoffs\n\tif (miterMode == 1.) {\n\t\tif (enableStartMiter == 1.) {\n\t\t\tvec2 startMiterWidth = vec2(startJoinDirection) * thickness * miterLimit * .5;\n\t\t\tstartCutoff = vec4(aCoord, aCoord);\n\t\t\tstartCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;\n\t\t\tstartCutoff = startCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;\n\t\t\tstartCutoff += viewport.xyxy;\n\t\t\tstartCutoff += startMiterWidth.xyxy;\n\t\t}\n\n\t\tif (enableEndMiter == 1.) {\n\t\t\tvec2 endMiterWidth = vec2(endJoinDirection) * thickness * miterLimit * .5;\n\t\t\tendCutoff = vec4(bCoord, bCoord);\n\t\t\tendCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;\n\t\t\tendCutoff = endCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;\n\t\t\tendCutoff += viewport.xyxy;\n\t\t\tendCutoff += endMiterWidth.xyxy;\n\t\t}\n\t}\n\n\t//round miter cutoffs\n\telse if (miterMode == 2.) {\n\t\tif (enableStartMiter == 1.) {\n\t\t\tvec2 startMiterWidth = vec2(startJoinDirection) * thickness * abs(dot(startJoinDirection, currNormal)) * .5;\n\t\t\tstartCutoff = vec4(aCoord, aCoord);\n\t\t\tstartCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;\n\t\t\tstartCutoff = startCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;\n\t\t\tstartCutoff += viewport.xyxy;\n\t\t\tstartCutoff += startMiterWidth.xyxy;\n\t\t}\n\n\t\tif (enableEndMiter == 1.) {\n\t\t\tvec2 endMiterWidth = vec2(endJoinDirection) * thickness * abs(dot(endJoinDirection, currNormal)) * .5;\n\t\t\tendCutoff = vec4(bCoord, bCoord);\n\t\t\tendCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;\n\t\t\tendCutoff = endCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;\n\t\t\tendCutoff += viewport.xyxy;\n\t\t\tendCutoff += endMiterWidth.xyxy;\n\t\t}\n\t}\n}\n"]),
-			frag: glslify(["precision highp float;\n#define GLSLIFY 1\n\nuniform sampler2D dashPattern;\nuniform float dashSize, pixelRatio, thickness, opacity, id, miterMode;\n\nvarying vec4 fragColor;\nvarying vec2 tangent;\nvarying vec4 startCutoff, endCutoff;\nvarying vec2 startCoord, endCoord;\nvarying float enableStartMiter, enableEndMiter;\n\nfloat distToLine(vec2 p, vec2 a, vec2 b) {\n\tvec2 diff = b - a;\n\tvec2 perp = normalize(vec2(-diff.y, diff.x));\n\treturn dot(p - a, perp);\n}\n\nvoid main() {\n\tfloat alpha = 1., distToStart, distToEnd;\n\tfloat cutoff = thickness * .5;\n\n\t//bevel miter\n\tif (miterMode == 1.) {\n\t\tif (enableStartMiter == 1.) {\n\t\t\tdistToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);\n\t\t\tif (distToStart < -1.) {\n\t\t\t\tdiscard;\n\t\t\t\treturn;\n\t\t\t}\n\t\t\talpha *= min(max(distToStart + 1., 0.), 1.);\n\t\t}\n\n\t\tif (enableEndMiter == 1.) {\n\t\t\tdistToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);\n\t\t\tif (distToEnd < -1.) {\n\t\t\t\tdiscard;\n\t\t\t\treturn;\n\t\t\t}\n\t\t\talpha *= min(max(distToEnd + 1., 0.), 1.);\n\t\t}\n\t}\n\n\t// round miter\n\telse if (miterMode == 2.) {\n\t\tif (enableStartMiter == 1.) {\n\t\t\tdistToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);\n\t\t\tif (distToStart < 0.) {\n\t\t\t\tfloat radius = length(gl_FragCoord.xy - startCoord);\n\n\t\t\t\tif(radius > cutoff + .5) {\n\t\t\t\t\tdiscard;\n\t\t\t\t\treturn;\n\t\t\t\t}\n\n\t\t\t\talpha -= smoothstep(cutoff - .5, cutoff + .5, radius);\n\t\t\t}\n\t\t}\n\n\t\tif (enableEndMiter == 1.) {\n\t\t\tdistToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);\n\t\t\tif (distToEnd < 0.) {\n\t\t\t\tfloat radius = length(gl_FragCoord.xy - endCoord);\n\n\t\t\t\tif(radius > cutoff + .5) {\n\t\t\t\t\tdiscard;\n\t\t\t\t\treturn;\n\t\t\t\t}\n\n\t\t\t\talpha -= smoothstep(cutoff - .5, cutoff + .5, radius);\n\t\t\t}\n\t\t}\n\t}\n\n\tfloat t = fract(dot(tangent, gl_FragCoord.xy) / dashSize) * .5 + .25;\n\tfloat dash = texture2D(dashPattern, vec2(t, .5)).r;\n\n\tgl_FragColor = fragColor;\n\tgl_FragColor.a *= alpha * opacity * dash;\n}\n"]),
+			frag: glslify(["precision highp float;\n#define GLSLIFY 1\n\nuniform sampler2D dashTexture;\nuniform float dashLength, pixelRatio, thickness, opacity, id, miterMode;\n\nvarying vec4 fragColor;\nvarying vec2 tangent;\nvarying vec4 startCutoff, endCutoff;\nvarying vec2 startCoord, endCoord;\nvarying float enableStartMiter, enableEndMiter;\n\nfloat distToLine(vec2 p, vec2 a, vec2 b) {\n\tvec2 diff = b - a;\n\tvec2 perp = normalize(vec2(-diff.y, diff.x));\n\treturn dot(p - a, perp);\n}\n\nvoid main() {\n\tfloat alpha = 1., distToStart, distToEnd;\n\tfloat cutoff = thickness * .5;\n\n\t//bevel miter\n\tif (miterMode == 1.) {\n\t\tif (enableStartMiter == 1.) {\n\t\t\tdistToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);\n\t\t\tif (distToStart < -1.) {\n\t\t\t\tdiscard;\n\t\t\t\treturn;\n\t\t\t}\n\t\t\talpha *= min(max(distToStart + 1., 0.), 1.);\n\t\t}\n\n\t\tif (enableEndMiter == 1.) {\n\t\t\tdistToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);\n\t\t\tif (distToEnd < -1.) {\n\t\t\t\tdiscard;\n\t\t\t\treturn;\n\t\t\t}\n\t\t\talpha *= min(max(distToEnd + 1., 0.), 1.);\n\t\t}\n\t}\n\n\t// round miter\n\telse if (miterMode == 2.) {\n\t\tif (enableStartMiter == 1.) {\n\t\t\tdistToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);\n\t\t\tif (distToStart < 0.) {\n\t\t\t\tfloat radius = length(gl_FragCoord.xy - startCoord);\n\n\t\t\t\tif(radius > cutoff + .5) {\n\t\t\t\t\tdiscard;\n\t\t\t\t\treturn;\n\t\t\t\t}\n\n\t\t\t\talpha -= smoothstep(cutoff - .5, cutoff + .5, radius);\n\t\t\t}\n\t\t}\n\n\t\tif (enableEndMiter == 1.) {\n\t\t\tdistToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);\n\t\t\tif (distToEnd < 0.) {\n\t\t\t\tfloat radius = length(gl_FragCoord.xy - endCoord);\n\n\t\t\t\tif(radius > cutoff + .5) {\n\t\t\t\t\tdiscard;\n\t\t\t\t\treturn;\n\t\t\t\t}\n\n\t\t\t\talpha -= smoothstep(cutoff - .5, cutoff + .5, radius);\n\t\t\t}\n\t\t}\n\t}\n\n\tfloat t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;\n\tfloat dash = texture2D(dashTexture, vec2(t, .5)).r;\n\n\tgl_FragColor = fragColor;\n\tgl_FragColor.a *= alpha * opacity * dash;\n}\n"]),
 
 			attributes: {
 				// is line end
@@ -7779,7 +7779,8 @@ Line2D.prototype.destroy = function () {
 	this.passes.length = 0
 
 	return this
-}
+}
+
 },{"array-bounds":39,"array-normalize":43,"color-normalize":50,"earcut":66,"es6-weak-map":124,"flatten-vertex-data":128,"glslify":136,"object-assign":150,"parse-rect":154,"pick-by-alias":158,"to-float32":181}],36:[function(require,module,exports){
 function clone(point) { //TODO: use gl-vec2 for this
     return [point[0], point[1]]
@@ -7830,7 +7831,7 @@ module.exports = function createBezierBuilder(opt) {
     }
 
     function recursive(x1, y1, x2, y2, x3, y3, x4, y4, points, distanceTolerance, level) {
-        if(level > RECURSION_LIMIT) 
+        if(level > RECURSION_LIMIT)
             { return }
 
         var pi = Math.PI
@@ -7974,8 +7975,8 @@ module.exports = function createBezierBuilder(opt) {
 
         // Continue subdivision
         //----------------------
-        recursive(x1, y1, x12, y12, x123, y123, x1234, y1234, points, distanceTolerance, level + 1) 
-        recursive(x1234, y1234, x234, y234, x34, y34, x4, y4, points, distanceTolerance, level + 1) 
+        recursive(x1, y1, x12, y12, x123, y123, x1234, y1234, points, distanceTolerance, level + 1)
+        recursive(x1234, y1234, x234, y234, x34, y34, x4, y4, points, distanceTolerance, level + 1)
     }
 }
 
@@ -8002,12 +8003,12 @@ module.exports = function arc(x, y, radius, start, end, clockwise, steps, path) 
         { dist = 2*Math.PI - dist }
 
     //approximate the # of steps using the cube root of the radius
-    if (typeof steps !== 'number') 
+    if (typeof steps !== 'number')
         { steps = Math.max(6, Math.floor(6 * Math.pow(radius, 1/3) * (dist / (Math.PI)))) }
 
     //ensure we have at least 3 steps..
     steps = Math.max(steps, 3)
-    
+
     var f = dist / (steps),
         t = start
 
@@ -11853,7 +11854,7 @@ function forEach(list, iterator, context) {
     if (arguments.length < 3) {
         context = this
     }
-    
+
     if (toString.call(list) === '[object Array]')
         { forEachArray(list, iterator, context) }
     else if (typeof list === 'string')
@@ -13428,7 +13429,8 @@ function toList(arg) {
 },{}],159:[function(require,module,exports){
 'use strict'
 
-module.exports = require('./quad')
+module.exports = require('./quad')
+
 },{"./quad":160}],160:[function(require,module,exports){
 /**
  * @module  point-cluster/quad
@@ -13776,7 +13778,8 @@ function normalize (pts, bounds) {
 	}
 
 	return result
-}
+}
+
 },{"array-bounds":39,"binary-search-bounds":46,"clamp":47,"defined":63,"dtype":65,"flatten-vertex-data":128,"is-obj":143,"math-log2":145,"parse-rect":154,"pick-by-alias":158}],161:[function(require,module,exports){
 (function (global){
 var now = require('performance-now')
@@ -13879,7 +13882,8 @@ module.exports = function (regl, options) {
 	})
 
 	return render
-}
+}
+
 },{"./scatter":165,"object-assign":150}],163:[function(require,module,exports){
 /** @module  color-rgba */
 
@@ -14853,7 +14857,8 @@ Scatter.prototype.destroy = function () {
 	this.paletteTexture.destroy()
 
 	return this
-}
+}
+
 },{"array-bounds":39,"array-rearrange":44,"color-id":48,"color-normalize":163,"flatten-vertex-data":128,"glslify":136,"is-iexplorer":142,"object-assign":150,"parse-rect":154,"pick-by-alias":158,"point-cluster":159,"to-float32":181,"update-diff":164}],166:[function(require,module,exports){
 (function(da,ea){"object"===typeof exports&&"undefined"!==typeof module?module.exports=ea():"function"===typeof define&&define.amd?define(ea):da.createREGL=ea()})(this,function(){function da(a,b){this.id=vb++;this.type=a;this.data=b}function ea(a){if(0===a.length){ return[]; }var b=a.charAt(0),c=a.charAt(a.length-1);if(1<a.length&&b===c&&('"'===b||"'"===b)){ return['"'+a.substr(1,a.length-2).replace(/\\/g,"\\\\").replace(/"/g,'\\"')+'"']; }if(b=/\[(false|true|null|\d+|'[^']*'|"[^"]*")\]/.exec(a)){ return ea(a.substr(0,
 b.index)).concat(ea(b[1])).concat(ea(a.substr(b.index+b[0].length))); }b=a.split(".");if(1===b.length){ return['"'+a.replace(/\\/g,"\\\\").replace(/"/g,'\\"')+'"']; }a=[];for(c=0;c<b.length;++c){ a=a.concat(ea(b[c])); }return a}function Wa(a){return"["+ea(a).join("][")+"]"}function wb(){var a={"":0},b=[""];return{id:function(c){var d=a[c];if(d){ return d; }d=a[c]=b.length;b.push(c);return d},str:function(a){return b[a]}}}function xb(a,b,c){function d(){var b=window.innerWidth,d=window.innerHeight;a!==document.body&&
@@ -15093,21 +15098,21 @@ module.exports = function (write, end) {
     var resume = tr.resume;
     var pause = tr.pause;
     var paused = false;
-    
+
     tr.pause = function () {
         paused = true;
         return pause.apply(this, arguments);
     };
-    
+
     tr.resume = function () {
         paused = false;
         return resume.apply(this, arguments);
     };
-    
+
     nextTick(function () {
         if (!paused) { tr.resume(); }
     });
-    
+
     return tr;
 };
 
@@ -15209,11 +15214,11 @@ exports = module.exports = (function () {
     var lazyLoad = function () {
         return getHarness().apply(this, arguments);
     };
-    
+
     lazyLoad.only = function () {
         return getHarness().only.apply(this, arguments);
     };
-    
+
     lazyLoad.createStream = function (opts) {
         if (!opts) { opts = {}; }
         if (!harness) {
@@ -15223,7 +15228,7 @@ exports = module.exports = (function () {
         }
         return harness.createStream(opts);
     };
-    
+
     lazyLoad.onFinish = function () {
         return getHarness().onFinish.apply(this, arguments);
     };
@@ -15245,16 +15250,16 @@ function createExitHarness (conf) {
     var harness = createHarness({
         autoclose: defined(conf.autoclose, false)
     });
-    
+
     var stream = harness.createStream({ objectMode: conf.objectMode });
     var es = stream.pipe(conf.stream || createDefaultStream());
     if (canEmitExit) {
         es.on('error', function (err) { harness._exitCode = 1 });
     }
-    
+
     var ended = false;
     stream.on('end', function () { ended = true });
-    
+
     if (conf.exit === false) { return harness; }
     if (!canEmitExit || !canExit) { return harness; }
 
@@ -15277,7 +15282,7 @@ function createExitHarness (conf) {
         harness.close();
         process.exit(code || harness._exitCode);
     });
-    
+
     return harness;
 }
 
@@ -15294,11 +15299,11 @@ function createHarness (conf_) {
     if (conf_.autoclose !== false) {
         results.once('done', function () { results.close() });
     }
-    
+
     var test = function (name, conf, cb) {
         var t = new Test(name, conf, cb);
         test._tests.push(t);
-        
+
         (function inspectCode (st) {
             st.on('test', function sub (st_) {
                 inspectCode(st_);
@@ -15307,14 +15312,14 @@ function createHarness (conf_) {
                 if (!r.ok && typeof r !== 'string') { test._exitCode = 1 }
             });
         })(t);
-        
+
         results.push(t);
         return t;
     };
     test._results = results;
-    
+
     test._tests = [];
-    
+
     test.createStream = function (opts) {
         return results.createStream(opts);
     };
@@ -15322,7 +15327,7 @@ function createHarness (conf_) {
     test.onFinish = function (cb) {
         results.on('done', cb);
     };
-    
+
     var only = false;
     test.only = function () {
         if (only) { throw new Error('there can only be one only test'); }
@@ -15332,9 +15337,9 @@ function createHarness (conf_) {
         return t;
     };
     test._exitCode = 0;
-    
+
     test.close = function () { results.close() };
-    
+
     return test;
 }
 
@@ -15348,7 +15353,7 @@ module.exports = function () {
     var line = '';
     var stream = through(write, flush);
     return stream;
-    
+
     function write (buf) {
         for (var i = 0; i < buf.length; i++) {
             var c = typeof buf === 'string'
@@ -15359,7 +15364,7 @@ module.exports = function () {
             else { line += c; }
         }
     }
-    
+
     function flush () {
         if (fs.writeSync && /^win/.test(process.platform)) {
             try { fs.writeSync(1, line + '\n'); }
@@ -15441,7 +15446,7 @@ Results.prototype.createStream = function (opts) {
         output.queue('TAP version 13\n');
         self._stream.pipe(output);
     }
-    
+
     nextTick(function next() {
         var t;
         while (t = getNextTest(self)) {
@@ -15450,7 +15455,7 @@ Results.prototype.createStream = function (opts) {
         }
         self.emit('done');
     });
-    
+
     return output;
 };
 
@@ -15471,7 +15476,7 @@ Results.prototype._watch = function (t) {
     t.once('prerun', function () {
         write('# ' + t.name + '\n');
     });
-    
+
     t.on('result', function (res) {
         if (typeof res === 'string') {
             write('# ' + res + '\n');
@@ -15483,7 +15488,7 @@ Results.prototype._watch = function (t) {
         if (res.ok) { self.pass ++ }
         else { self.fail ++ }
     });
-    
+
     t.on('test', function (st) { self._watch(st) });
 };
 
@@ -15492,7 +15497,7 @@ Results.prototype.close = function () {
     if (self.closed) { self._stream.emit('error', new Error('ALREADY CLOSED')); }
     self.closed = true;
     var write = function (s) { self._stream.queue(s) };
-    
+
     write('\n1..' + self.count + '\n');
     write('# tests ' + self.count + '\n');
     write('# pass  ' + self.pass + '\n');
@@ -15506,22 +15511,22 @@ function encodeResult (res, count) {
     var output = '';
     output += (res.ok ? 'ok ' : 'not ok ') + count;
     output += res.name ? ' ' + res.name.toString().replace(/\s+/g, ' ') : '';
-    
+
     if (res.skip) { output += ' # SKIP'; }
     else if (res.todo) { output += ' # TODO'; }
-    
+
     output += '\n';
     if (res.ok) { return output; }
-    
+
     var outer = '  ';
     var inner = outer + '  ';
     output += outer + '---\n';
     output += inner + 'operator: ' + res.operator + '\n';
-    
+
     if (has(res, 'expected') || has(res, 'actual')) {
         var ex = inspect(res.expected, {depth: res.objectPrintDepth});
         var ac = inspect(res.actual, {depth: res.objectPrintDepth});
-        
+
         if (Math.max(ex.length, ac.length) > 65 || invalidYaml(ex) || invalidYaml(ac)) {
             output += inner + 'expected: |-\n' + inner + '  ' + ex + '\n';
             output += inner + 'actual: |-\n' + inner + '  ' + ac + '\n';
@@ -15544,7 +15549,7 @@ function encodeResult (res, count) {
             output += inner + '  ' + lines[i] + '\n';
         }
     }
-    
+
     output += outer + '...\n';
     return output;
 }
@@ -15553,7 +15558,7 @@ function getNextTest (results) {
     if (!results._only) {
         return results.tests.shift();
     }
-    
+
     do {
         var t = results.tests.shift();
         if (!t) { continue; }
@@ -15669,13 +15674,13 @@ Test.prototype.test = function (name, opts, cb) {
     t.on('prerun', function () {
         self.assertCount++;
     })
-    
+
     if (!self._pendingAsserts()) {
         nextTick(function () {
             self._end();
         });
     }
-    
+
     nextTick(function() {
         if (!self._plan && self.pendingCount == self._progeny.length) {
             self._end();
@@ -15707,12 +15712,12 @@ Test.prototype.timeoutAfter = function(ms) {
     });
 }
 
-Test.prototype.end = function (err) { 
+Test.prototype.end = function (err) {
     var self = this;
     if (arguments.length >= 1 && !!err) {
         this.ifError(err);
     }
-    
+
     if (this.calledEnd) {
         this.fail('.end() called twice');
     }
@@ -15728,7 +15733,7 @@ Test.prototype._end = function (err) {
         t.run();
         return;
     }
-    
+
     if (!this.ended) { this.emit('end'); }
     var pendingAsserts = this._pendingAsserts();
     if (!this._planError && this._plan !== undefined && pendingAsserts) {
@@ -15767,7 +15772,7 @@ Test.prototype._pendingAsserts = function () {
 Test.prototype._assert = function assert (ok, opts) {
     var self = this;
     var extra = opts.extra || {};
-    
+
     var res = {
         id : self.assertCount ++,
         ok : Boolean(ok),
@@ -15783,27 +15788,27 @@ Test.prototype._assert = function assert (ok, opts) {
         res.expected = defined(extra.expected, opts.expected);
     }
     this._ok = Boolean(this._ok && ok);
-    
+
     if (!ok) {
         res.error = defined(extra.error, opts.error, new Error(res.name));
     }
-    
+
     if (!ok) {
         var e = new Error('exception');
         var err = (e.stack || '').split('\n');
         var dir = path.dirname(__dirname) + path.sep;
-        
+
         for (var i = 0; i < err.length; i++) {
             var m = /^[^\s]*\s*\bat\s+(.+)/.exec(err[i]);
             if (!m) {
                 continue;
             }
-            
+
             var s = m[1].split(/\s+/);
             var filem = /((?:\/|[A-Z]:\\)[^:\s]+:(\d+)(?::(\d+))?)/.exec(s[1]);
             if (!filem) {
                 filem = /((?:\/|[A-Z]:\\)[^:\s]+:(\d+)(?::(\d+))?)/.exec(s[2]);
-                
+
                 if (!filem) {
                     filem = /((?:\/|[A-Z]:\\)[^:\s]+:(\d+)(?::(\d+))?)/.exec(s[3]);
 
@@ -15812,23 +15817,23 @@ Test.prototype._assert = function assert (ok, opts) {
                     }
                 }
             }
-            
+
             if (filem[1].slice(0, dir.length) === dir) {
                 continue;
             }
-            
+
             res.functionName = s[0];
             res.file = filem[1];
             res.line = Number(filem[2]);
             if (filem[3]) { res.column = filem[3]; }
-            
+
             res.at = m[1];
             break;
         }
     }
 
     self.emit('result', res);
-    
+
     var pendingAsserts = self._pendingAsserts();
     if (!pendingAsserts) {
         if (extra.exiting) {
@@ -15839,7 +15844,7 @@ Test.prototype._assert = function assert (ok, opts) {
             });
         }
     }
-    
+
     if (!self._planError && pendingAsserts < 0) {
         self._planError = true;
         self.fail('plan != count', {
@@ -16616,7 +16621,7 @@ function toPX(str, element) {
   element = element || document.body
   str = (str || 'px').trim().toLowerCase()
   if(element === window || element === document) {
-    element = document.body 
+    element = document.body
   }
   switch(str) {
     case '%':  //Ambiguous, not sure if we should use width or height
@@ -17159,7 +17164,8 @@ function circle(x, y, radius) {
   var c = arc(x, y, radius, 0, Math.PI*2, false)
   c.pop()
   return c
-}
+}
+
 },{"./":35,"adaptive-bezier-curve":37,"arc-to":38,"array-fill":40,"array-from":41,"array-normalize":43,"color-rgba":54,"flatten-vertex-data":128,"fps-indicator":131,"gauss-random":134,"nanoraf":148,"nice-color-palettes":149,"object-assign":150,"pan-zoom":153,"regl":166,"regl-scatter2d":162,"tape":174}]},{},[185]);
 </script>
 </html>
