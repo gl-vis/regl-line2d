@@ -85,11 +85,11 @@ Line2D.createShaders = function (regl) {
 			translateFract: regl.prop('translateFract'),
 			translate: regl.prop('translate'),
 			thickness: regl.prop('thickness'),
-			dashPattern: regl.prop('dashTexture'),
+			dashTexture: regl.prop('dashTexture'),
 			opacity: regl.prop('opacity'),
 			pixelRatio: regl.context('pixelRatio'),
 			id: regl.prop('id'),
-			dashSize: regl.prop('dashLength'),
+			dashLength: regl.prop('dashLength'),
 			viewport: (c, p) => [p.viewport.x, p.viewport.y, c.viewportWidth, c.viewportHeight],
 			depth: regl.prop('depth')
 		},
