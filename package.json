@@ -9,13 +9,8 @@
     "test-browser": "budo test -- -t glslify",
     "prepublishOnly": "npm run build",
     "build": "rollup -c rollup.config.js"    
-  },
-  "browserify": {
-    "transform": [
-      "glslify",
-      "bubleify"
-    ]
-  },
+  },  
+  "browserslist": "> 0.25%, not dead",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dy/regl-line2d.git"
@@ -38,8 +33,7 @@
   "dependencies": {
     "array-bounds": "^1.0.1",
     "array-find-index": "^1.0.2",
-    "array-normalize": "^1.1.4",
-    "browserify": "^17.0.0",
+    "array-normalize": "^1.1.4",    
     "color-normalize": "^1.5.0",
     "earcut": "^2.1.5",
     "es6-weak-map": "^2.0.3",

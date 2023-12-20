@@ -21,16 +21,17 @@ export default {
         'object-assign',
         'color-normalize',
         'array-bounds',
-        'color-id',
-        '@plotly/point-cluster',
-        'object-assign',
-        'glslify',
-        'pick-by-alias',
-        'update-diff',
+        'array-mormalize',
+        'array-find-index',
+        'color-normalize',
+        'earcut',
+        'es6-weak-map',
         'flatten-vertex-data',
-        'is-iexplorer',
-        'to-float32',
-        'parse-rect'
+        'glslify',        
+        'object-assign',
+        'parse-rect',
+        'pick-by-alias',
+        'to-float32'
       ]
     }),
     babel({
