@@ -21,7 +21,7 @@ export default {
         'object-assign',
         'color-normalize',
         'array-bounds',
-        'array-mormalize',
+        "array-normalize",
         'array-find-index',
         'color-normalize',
         'earcut',
