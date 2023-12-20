@@ -10,7 +10,7 @@ const flatten = require('flatten-vertex-data')
 const triangulate = require('earcut')
 const normalize = require('array-normalize')
 const { float32, fract32 } = require('to-float32')
-require('weakmap-polyfill')
+const WeakMap = require('es6-weak-map')
 const parseRect = require('parse-rect')
 const findIndex = require('array-find-index');
 

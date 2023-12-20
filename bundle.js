@@ -1,7 +1,5 @@
 'use strict';
 
-require('weakmap-polyfill');
-
 var getBounds = require('array-bounds');
 module.exports = normalize;
 function normalize(arr, dim, bounds) {
@@ -58,6 +56,7 @@ const {
   float32,
   fract32
 } = require('to-float32');
+const WeakMap = require('es6-weak-map');
 const parseRect = require('parse-rect');
 const findIndex = require('array-find-index');
 var reglLine2d = Line2D;
