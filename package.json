@@ -8,8 +8,7 @@
     "test": "budo test",
     "test-browser": "budo test -- -t glslify",
     "prepublishOnly": "npm run build",
-    "build": "rollup -c rollup.config.js"
-    
+    "build": "rollup -c rollup.config.js"    
   },
   "browserify": {
     "transform": [
@@ -57,15 +56,13 @@
     "adaptive-bezier-curve": "^1.0.3",
     "arc-to": "^1.0.1",
     "array-fill": "^1.2.0",
-    "array-from": "^2.1.1",
-    "bubleify": "^2.0.0",
+    "array-from": "^2.1.1",    
     "canvas-fit": "^1.5.0",
     "chttps": "^1.0.6",
     "color-rgba": "^2.1.1",
     "enable-mobile": "^1.0.7",
     "fps-indicator": "^1.1.0",
-    "gauss-random": "^1.0.1",
-    "mobilify": "^1.0.1",
+    "gauss-random": "^1.0.1",    
     "nanoraf": "^3.0.1",
     "next-pow-2": "^1.0.0",
     "nice-color-palettes": "^2.0.0",
