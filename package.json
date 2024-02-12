@@ -35,17 +35,16 @@
   "homepage": "https://github.com/dy/regl-line2d#readme",
   "dependencies": {
     "array-bounds": "^1.0.1",
+    "array-find-index": "^1.0.2",
     "array-normalize": "^1.1.4",
     "color-normalize": "^1.5.0",
     "earcut": "^2.1.5",
     "es6-weak-map": "^2.0.3",
     "flatten-vertex-data": "^1.0.2",
-    "glslify": "^7.0.0",
     "object-assign": "^4.1.1",
     "parse-rect": "^1.2.0",
     "pick-by-alias": "^1.2.0",
-    "to-float32": "^1.1.0",
-    "array-find-index": "^1.0.2"
+    "to-float32": "^1.1.0"
   },
   "devDependencies": {
     "adaptive-bezier-curve": "^1.0.3",
