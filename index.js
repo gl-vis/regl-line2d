@@ -4,7 +4,6 @@
 const rgba = require('color-normalize')
 const getBounds = require('array-bounds')
 const extend = require('object-assign')
-const glslify = require('glslify')
 const pick = require('pick-by-alias')
 const flatten = require('flatten-vertex-data')
 const triangulate = require('earcut')
@@ -12,7 +11,395 @@ const normalize = require('array-normalize')
 const { float32, fract32 } = require('to-float32')
 const WeakMap = require('es6-weak-map')
 const parseRect = require('parse-rect')
-const findIndex = require('array-find-index');
+const findIndex = require('array-find-index')
+
+const rectVert = `
+precision highp float;
+
+attribute vec2 aCoord, bCoord, aCoordFract, bCoordFract;
+attribute vec4 color;
+attribute float lineEnd, lineTop;
+
+uniform vec2 scale, scaleFract, translate, translateFract;
+uniform float thickness, pixelRatio, id, depth;
+uniform vec4 viewport;
+
+varying vec4 fragColor;
+varying vec2 tangent;
+
+vec2 project(vec2 position, vec2 positionFract, vec2 scale, vec2 scaleFract, vec2 translate, vec2 translateFract) {
+	// the order is important
+	return position * scale + translate
+       + positionFract * scale + translateFract
+       + position * scaleFract
+       + positionFract * scaleFract;
+}
+
+void main() {
+	float lineStart = 1. - lineEnd;
+	float lineOffset = lineTop * 2. - 1.;
+
+	vec2 diff = (bCoord + bCoordFract - aCoord - aCoordFract);
+	tangent = normalize(diff * scale * viewport.zw);
+	vec2 normal = vec2(-tangent.y, tangent.x);
+
+	vec2 position = project(aCoord, aCoordFract, scale, scaleFract, translate, translateFract) * lineStart
+		+ project(bCoord, bCoordFract, scale, scaleFract, translate, translateFract) * lineEnd
+
+		+ thickness * normal * .5 * lineOffset / viewport.zw;
+
+	gl_Position = vec4(position * 2.0 - 1.0, depth, 1);
+
+	fragColor = color / 255.;
+}
+`
+
+const rectFrag =`
+precision highp float;
+
+uniform float dashLength, pixelRatio, thickness, opacity, id;
+uniform sampler2D dashTexture;
+
+varying vec4 fragColor;
+varying vec2 tangent;
+
+void main() {
+	float alpha = 1.;
+
+	float t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;
+	float dash = texture2D(dashTexture, vec2(t, .5)).r;
+
+	gl_FragColor = fragColor;
+	gl_FragColor.a *= alpha * opacity * dash;
+}
+`
+
+const fillVert = `
+precision highp float;
+
+attribute vec2 position, positionFract;
+
+uniform vec4 color;
+uniform vec2 scale, scaleFract, translate, translateFract;
+uniform float pixelRatio, id;
+uniform vec4 viewport;
+uniform float opacity;
+
+varying vec4 fragColor;
+
+const float MAX_LINES = 256.;
+
+void main() {
+	float depth = (MAX_LINES - 4. - id) / (MAX_LINES);
+
+	vec2 position = position * scale + translate
+       + positionFract * scale + translateFract
+       + position * scaleFract
+       + positionFract * scaleFract;
+
+	gl_Position = vec4(position * 2.0 - 1.0, depth, 1);
+
+	fragColor = color / 255.;
+	fragColor.a *= opacity;
+}
+`
+
+const fillFrag = `
+precision highp float;
+varying vec4 fragColor;
+
+void main() {
+	gl_FragColor = fragColor;
+}
+`
+
+const milterVert = `
+precision highp float;
+
+attribute vec2 aCoord, bCoord, nextCoord, prevCoord;
+attribute vec4 aColor, bColor;
+attribute float lineEnd, lineTop;
+
+uniform vec2 scale, translate;
+uniform float thickness, pixelRatio, id, depth;
+uniform vec4 viewport;
+uniform float miterLimit, miterMode;
+
+varying vec4 fragColor;
+varying vec4 startCutoff, endCutoff;
+varying vec2 tangent;
+varying vec2 startCoord, endCoord;
+varying float enableStartMiter, enableEndMiter;
+
+const float REVERSE_THRESHOLD = -.875;
+const float MIN_DIFF = 1e-6;
+
+// TODO: possible optimizations: avoid overcalculating all for vertices and calc just one instead
+// TODO: precalculate dot products, normalize things beforehead etc.
+// TODO: refactor to rectangular algorithm
+
+float distToLine(vec2 p, vec2 a, vec2 b) {
+	vec2 diff = b - a;
+	vec2 perp = normalize(vec2(-diff.y, diff.x));
+	return dot(p - a, perp);
+}
+
+bool isNaN( float val ){
+  return ( val < 0.0 || 0.0 < val || val == 0.0 ) ? false : true;
+}
+
+void main() {
+	vec2 aCoord = aCoord, bCoord = bCoord, prevCoord = prevCoord, nextCoord = nextCoord;
+
+  vec2 adjustedScale;
+  adjustedScale.x = (abs(scale.x) < MIN_DIFF) ? MIN_DIFF : scale.x;
+  adjustedScale.y = (abs(scale.y) < MIN_DIFF) ? MIN_DIFF : scale.y;
+
+  vec2 scaleRatio = adjustedScale * viewport.zw;
+	vec2 normalWidth = thickness / scaleRatio;
+
+	float lineStart = 1. - lineEnd;
+	float lineBot = 1. - lineTop;
+
+	fragColor = (lineStart * aColor + lineEnd * bColor) / 255.;
+
+	if (isNaN(aCoord.x) || isNaN(aCoord.y) || isNaN(bCoord.x) || isNaN(bCoord.y)) return;
+
+	if (aCoord == prevCoord) prevCoord = aCoord + normalize(bCoord - aCoord);
+	if (bCoord == nextCoord) nextCoord = bCoord - normalize(bCoord - aCoord);
+
+
+	vec2 prevDiff = aCoord - prevCoord;
+	vec2 currDiff = bCoord - aCoord;
+	vec2 nextDiff = nextCoord - bCoord;
+
+	vec2 prevTangent = normalize(prevDiff * scaleRatio);
+	vec2 currTangent = normalize(currDiff * scaleRatio);
+	vec2 nextTangent = normalize(nextDiff * scaleRatio);
+
+	vec2 prevNormal = vec2(-prevTangent.y, prevTangent.x);
+	vec2 currNormal = vec2(-currTangent.y, currTangent.x);
+	vec2 nextNormal = vec2(-nextTangent.y, nextTangent.x);
+
+	vec2 startJoinDirection = normalize(prevTangent - currTangent);
+	vec2 endJoinDirection = normalize(currTangent - nextTangent);
+
+	// collapsed/unidirectional segment cases
+	// FIXME: there should be more elegant solution
+	vec2 prevTanDiff = abs(prevTangent - currTangent);
+	vec2 nextTanDiff = abs(nextTangent - currTangent);
+	if (max(prevTanDiff.x, prevTanDiff.y) < MIN_DIFF) {
+		startJoinDirection = currNormal;
+	}
+	if (max(nextTanDiff.x, nextTanDiff.y) < MIN_DIFF) {
+		endJoinDirection = currNormal;
+	}
+	if (aCoord == bCoord) {
+		endJoinDirection = startJoinDirection;
+		currNormal = prevNormal;
+		currTangent = prevTangent;
+	}
+
+	tangent = currTangent;
+
+	//calculate join shifts relative to normals
+	float startJoinShift = dot(currNormal, startJoinDirection);
+	float endJoinShift = dot(currNormal, endJoinDirection);
+
+	float startMiterRatio = abs(1. / startJoinShift);
+	float endMiterRatio = abs(1. / endJoinShift);
+
+	vec2 startJoin = startJoinDirection * startMiterRatio;
+	vec2 endJoin = endJoinDirection * endMiterRatio;
+
+	vec2 startTopJoin, startBotJoin, endTopJoin, endBotJoin;
+	startTopJoin = sign(startJoinShift) * startJoin * .5;
+	startBotJoin = -startTopJoin;
+
+	endTopJoin = sign(endJoinShift) * endJoin * .5;
+	endBotJoin = -endTopJoin;
+
+	vec2 aTopCoord = aCoord + normalWidth * startTopJoin;
+	vec2 bTopCoord = bCoord + normalWidth * endTopJoin;
+	vec2 aBotCoord = aCoord + normalWidth * startBotJoin;
+	vec2 bBotCoord = bCoord + normalWidth * endBotJoin;
+
+	//miter anti-clipping
+	float baClipping = distToLine(bCoord, aCoord, aBotCoord) / dot(normalize(normalWidth * endBotJoin), normalize(normalWidth.yx * vec2(-startBotJoin.y, startBotJoin.x)));
+	float abClipping = distToLine(aCoord, bCoord, bTopCoord) / dot(normalize(normalWidth * startBotJoin), normalize(normalWidth.yx * vec2(-endBotJoin.y, endBotJoin.x)));
+
+	//prevent close to reverse direction switch
+	bool prevReverse = dot(currTangent, prevTangent) <= REVERSE_THRESHOLD && abs(dot(currTangent, prevNormal)) * min(length(prevDiff), length(currDiff)) <  length(normalWidth * currNormal);
+	bool nextReverse = dot(currTangent, nextTangent) <= REVERSE_THRESHOLD && abs(dot(currTangent, nextNormal)) * min(length(nextDiff), length(currDiff)) <  length(normalWidth * currNormal);
+
+	if (prevReverse) {
+		//make join rectangular
+		vec2 miterShift = normalWidth * startJoinDirection * miterLimit * .5;
+		float normalAdjust = 1. - min(miterLimit / startMiterRatio, 1.);
+		aBotCoord = aCoord + miterShift - normalAdjust * normalWidth * currNormal * .5;
+		aTopCoord = aCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;
+	}
+	else if (!nextReverse && baClipping > 0. && baClipping < length(normalWidth * endBotJoin)) {
+		//handle miter clipping
+		bTopCoord -= normalWidth * endTopJoin;
+		bTopCoord += normalize(endTopJoin * normalWidth) * baClipping;
+	}
+
+	if (nextReverse) {
+		//make join rectangular
+		vec2 miterShift = normalWidth * endJoinDirection * miterLimit * .5;
+		float normalAdjust = 1. - min(miterLimit / endMiterRatio, 1.);
+		bBotCoord = bCoord + miterShift - normalAdjust * normalWidth * currNormal * .5;
+		bTopCoord = bCoord + miterShift + normalAdjust * normalWidth * currNormal * .5;
+	}
+	else if (!prevReverse && abClipping > 0. && abClipping < length(normalWidth * startBotJoin)) {
+		//handle miter clipping
+		aBotCoord -= normalWidth * startBotJoin;
+		aBotCoord += normalize(startBotJoin * normalWidth) * abClipping;
+	}
+
+	vec2 aTopPosition = (aTopCoord) * adjustedScale + translate;
+	vec2 aBotPosition = (aBotCoord) * adjustedScale + translate;
+
+	vec2 bTopPosition = (bTopCoord) * adjustedScale + translate;
+	vec2 bBotPosition = (bBotCoord) * adjustedScale + translate;
+
+	//position is normalized 0..1 coord on the screen
+	vec2 position = (aTopPosition * lineTop + aBotPosition * lineBot) * lineStart + (bTopPosition * lineTop + bBotPosition * lineBot) * lineEnd;
+
+	startCoord = aCoord * scaleRatio + translate * viewport.zw + viewport.xy;
+	endCoord = bCoord * scaleRatio + translate * viewport.zw + viewport.xy;
+
+	gl_Position = vec4(position  * 2.0 - 1.0, depth, 1);
+
+	enableStartMiter = step(dot(currTangent, prevTangent), .5);
+	enableEndMiter = step(dot(currTangent, nextTangent), .5);
+
+	//bevel miter cutoffs
+	if (miterMode == 1.) {
+		if (enableStartMiter == 1.) {
+			vec2 startMiterWidth = vec2(startJoinDirection) * thickness * miterLimit * .5;
+			startCutoff = vec4(aCoord, aCoord);
+			startCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;
+			startCutoff = startCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;
+			startCutoff += viewport.xyxy;
+			startCutoff += startMiterWidth.xyxy;
+		}
+
+		if (enableEndMiter == 1.) {
+			vec2 endMiterWidth = vec2(endJoinDirection) * thickness * miterLimit * .5;
+			endCutoff = vec4(bCoord, bCoord);
+			endCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;
+			endCutoff = endCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;
+			endCutoff += viewport.xyxy;
+			endCutoff += endMiterWidth.xyxy;
+		}
+	}
+
+	//round miter cutoffs
+	else if (miterMode == 2.) {
+		if (enableStartMiter == 1.) {
+			vec2 startMiterWidth = vec2(startJoinDirection) * thickness * abs(dot(startJoinDirection, currNormal)) * .5;
+			startCutoff = vec4(aCoord, aCoord);
+			startCutoff.zw += vec2(-startJoinDirection.y, startJoinDirection.x) / scaleRatio;
+			startCutoff = startCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;
+			startCutoff += viewport.xyxy;
+			startCutoff += startMiterWidth.xyxy;
+		}
+
+		if (enableEndMiter == 1.) {
+			vec2 endMiterWidth = vec2(endJoinDirection) * thickness * abs(dot(endJoinDirection, currNormal)) * .5;
+			endCutoff = vec4(bCoord, bCoord);
+			endCutoff.zw += vec2(-endJoinDirection.y, endJoinDirection.x)  / scaleRatio;
+			endCutoff = endCutoff * scaleRatio.xyxy + translate.xyxy * viewport.zwzw;
+			endCutoff += viewport.xyxy;
+			endCutoff += endMiterWidth.xyxy;
+		}
+	}
+}
+`
+
+const milterFrag = `
+precision highp float;
+
+uniform float dashLength, pixelRatio, thickness, opacity, id, miterMode;
+uniform sampler2D dashTexture;
+
+varying vec4 fragColor;
+varying vec2 tangent;
+varying vec4 startCutoff, endCutoff;
+varying vec2 startCoord, endCoord;
+varying float enableStartMiter, enableEndMiter;
+
+float distToLine(vec2 p, vec2 a, vec2 b) {
+	vec2 diff = b - a;
+	vec2 perp = normalize(vec2(-diff.y, diff.x));
+	return dot(p - a, perp);
+}
+
+void main() {
+	float alpha = 1., distToStart, distToEnd;
+	float cutoff = thickness * .5;
+
+	//bevel miter
+	if (miterMode == 1.) {
+		if (enableStartMiter == 1.) {
+			distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
+			if (distToStart < -1.) {
+				discard;
+				return;
+			}
+			alpha *= min(max(distToStart + 1., 0.), 1.);
+		}
+
+		if (enableEndMiter == 1.) {
+			distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
+			if (distToEnd < -1.) {
+				discard;
+				return;
+			}
+			alpha *= min(max(distToEnd + 1., 0.), 1.);
+		}
+	}
+
+	// round miter
+	else if (miterMode == 2.) {
+		if (enableStartMiter == 1.) {
+			distToStart = distToLine(gl_FragCoord.xy, startCutoff.xy, startCutoff.zw);
+			if (distToStart < 0.) {
+				float radius = length(gl_FragCoord.xy - startCoord);
+
+				if(radius > cutoff + .5) {
+					discard;
+					return;
+				}
+
+				alpha -= smoothstep(cutoff - .5, cutoff + .5, radius);
+			}
+		}
+
+		if (enableEndMiter == 1.) {
+			distToEnd = distToLine(gl_FragCoord.xy, endCutoff.xy, endCutoff.zw);
+			if (distToEnd < 0.) {
+				float radius = length(gl_FragCoord.xy - endCoord);
+
+				if(radius > cutoff + .5) {
+					discard;
+					return;
+				}
+
+				alpha -= smoothstep(cutoff - .5, cutoff + .5, radius);
+			}
+		}
+	}
+
+	float t = fract(dot(tangent, gl_FragCoord.xy) / dashLength) * .5 + .25;
+	float dash = texture2D(dashTexture, vec2(t, .5)).r;
+
+	gl_FragColor = fragColor;
+	gl_FragColor.a *= alpha * opacity * dash;
+}
+`
 
 
 module.exports = Line2D
@@ -124,8 +511,8 @@ Line2D.createShaders = function (regl) {
 
 	// simplified rectangular line shader
 	let drawRectLine = regl(extend({
-		vert: glslify('./rect-vert.glsl'),
-		frag: glslify('./rect-frag.glsl'),
+		vert: rectVert,
+		frag: rectFrag,
 
 		attributes: {
 			// if point is at the end of segment
@@ -188,8 +575,8 @@ Line2D.createShaders = function (regl) {
 				face: 'back'
 			},
 
-			vert: glslify('./miter-vert.glsl'),
-			frag: glslify('./miter-frag.glsl'),
+			vert: milterVert,
+			frag: milterFrag,
 
 			attributes: {
 				// is line end
@@ -257,8 +644,8 @@ Line2D.createShaders = function (regl) {
 		elements: (ctx, prop) => prop.triangles,
 		offset: 0,
 
-		vert: glslify('./fill-vert.glsl'),
-		frag: glslify('./fill-frag.glsl'),
+		vert: fillVert,
+		frag: fillFrag,
 
 		uniforms: {
 			scale: regl.prop('scale'),
