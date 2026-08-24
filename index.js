@@ -881,6 +881,22 @@ Line2D.prototype.update = function (options) {
 
 			let bounds = state.bounds = getBounds(positions, 2)
 
+			// Normalize positions against the view range when available,
+			// falling back to data bounds, and remember the basis so later
+			// range-only updates (pan/zoom) can remap consistently. Bounds-
+			// normalized coordinates lose float32 precision under deep zoom
+			// (catastrophic cancellation in the shader projection), which makes
+			// lines drift away from markers rendered by regl-scatter2d, whose
+			// positions are effectively range-based (see plotly.js#7955).
+			let normBounds = bounds
+			const targetRange = o.range || state.range
+			if (targetRange) {
+				normBounds = targetRange.slice()
+				if (!(normBounds[2] > normBounds[0])) normBounds[2] = normBounds[0] + 1e-155
+				if (!(normBounds[3] > normBounds[1])) normBounds[3] = normBounds[1] + 1e-155
+			}
+			state.normBounds = normBounds
+
 			// create fill positions
 			// FIXME: fill positions can be set only along with positions
 			if (state.fill) {
@@ -963,7 +979,7 @@ Line2D.prototype.update = function (options) {
 
 			// update position buffers
 			let npos = new Float64Array(positions)
-			normalize(npos, 2, bounds)
+			normalize(npos, 2, normBounds)
 
 			let positionData = new Float64Array(count * 2 + 6)
 
@@ -1018,6 +1034,7 @@ Line2D.prototype.update = function (options) {
 
 		if (o.range) {
 			state.range = o.range
+			state.rangeBasis = true
 		} else if (!state.range) {
 			state.range = state.bounds
 		}
@@ -1031,14 +1048,31 @@ Line2D.prototype.update = function (options) {
 			let rangeW = state.range[2] - state.range[0],
 				rangeH = state.range[3] - state.range[1]
 
-			state.scale = [
-				boundsW / rangeW,
-				boundsH / rangeH
-			]
-			state.translate = [
-				-state.range[0] / rangeW + bounds[0] / rangeW || 0,
-				-state.range[1] / rangeH + bounds[1] / rangeH || 0
-			]
+			if (state.rangeBasis && state.normBounds) {
+				// positions were normalized by the view range (norm-basis):
+				// npos = (p - nb0)/nbW, so scale = nbW/rangeW keeps them correct.
+				const nbW = state.normBounds[2] - state.normBounds[0],
+					nbH = state.normBounds[3] - state.normBounds[1]
+				state.scale = [
+					nbW / rangeW,
+					nbH / rangeH
+				]
+				state.translate = [
+					-state.range[0] / rangeW + state.normBounds[0] / rangeW || 0,
+					-state.range[1] / rangeH + state.normBounds[1] / rangeH || 0
+				]
+			}
+			else {
+				// positions were normalized by the data bounds (bounds-basis).
+				state.scale = [
+					boundsW / rangeW,
+					boundsH / rangeH
+				]
+				state.translate = [
+					-state.range[0] / rangeW + bounds[0] / rangeW || 0,
+					-state.range[1] / rangeH + bounds[1] / rangeH || 0
+				]
+			}
 
 			state.scaleFract = fract32(state.scale)
 			state.translateFract = fract32(state.translate)
