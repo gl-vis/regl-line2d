@@ -79,8 +79,8 @@ function computeNormBounds(state, o, rangeNorm) {
     const targetRange = o.range || state.range;
     if (targetRange) {
       normBounds = targetRange.slice();
-      if (!(normBounds[2] > normBounds[0])) normBounds[2] = normBounds[0] + 1e-155;
-      if (!(normBounds[3] > normBounds[1])) normBounds[3] = normBounds[1] + 1e-155;
+      if (normBounds[2] === normBounds[0]) normBounds[2] = normBounds[0] + 1e-155;
+      if (normBounds[3] === normBounds[1]) normBounds[3] = normBounds[1] + 1e-155;
     }
   }
   state.normBounds = normBounds;
@@ -164,5 +164,35 @@ test('old bounds-normalized path drifts under deep zoom (discrimination check)',
     }
   }
   t.ok(maxDrift > 1, `old path drifts (max ${maxDrift.toFixed(3)}px) — test is discriminating`);
+  t.end();
+});
+
+test('reversed range keeps the line in place when positions are re-uploaded (plotly.js#8204)', (t) => {
+  // plotly.js passes range [x0, y0, x1, y1] straight from the axes, so a
+  // reversed x axis gives range[2] < range[0]. On a redraw the positions are
+  // uploaded again while state.range is already set, so they get normalized
+  // by that reversed range.
+  const rx = [2.06488, 2.007725, 1.95057];
+  const ry = [0, 1, 0];
+  const range = [Math.max(...rx), Math.min(...ry), Math.min(...rx), Math.max(...ry)];
+  const state = {
+    bounds: [Math.min(...rx), Math.min(...ry), Math.max(...rx), Math.max(...ry)],
+    range: range,
+    rangeBasis: true,
+    normBounds: null
+  };
+  computeNormBounds(state, {}, true);
+  const npos = new Float64Array([rx[0], ry[0], rx[1], ry[1], rx[2], ry[2]]);
+  normalize(npos, 2, state.normBounds);
+  const nf = new Float32Array(float32(npos));
+  const npf = fract32(npos, float32(npos));
+  const lU = computeUniforms(state, range);
+  const mU = markerUniforms(range);
+  for (let k = 0; k < 3; k++) {
+    const lp = lineProject(nf[k * 2], nf[k * 2 + 1], npf[k * 2], npf[k * 2 + 1], lU);
+    const mp = markerProject(rx[k], ry[k], mU);
+    const gap = Math.hypot((lp[0] - mp[0]) * PX, (lp[1] - mp[1]) * PX);
+    t.ok(gap < 0.5, `p${k} reversed range gap ${gap.toFixed(4)}px < 0.5`);
+  }
   t.end();
 });
