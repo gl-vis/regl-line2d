@@ -892,8 +892,10 @@ Line2D.prototype.update = function (options) {
 			const targetRange = o.range || state.range
 			if (targetRange) {
 				normBounds = targetRange.slice()
-				if (!(normBounds[2] > normBounds[0])) normBounds[2] = normBounds[0] + 1e-155
-				if (!(normBounds[3] > normBounds[1])) normBounds[3] = normBounds[1] + 1e-155
+				// a reversed range (max < min) is valid and must be kept as is,
+				// only an empty range needs widening to avoid dividing by zero
+				if (normBounds[2] === normBounds[0]) normBounds[2] = normBounds[0] + 1e-155
+				if (normBounds[3] === normBounds[1]) normBounds[3] = normBounds[1] + 1e-155
 			}
 			state.normBounds = normBounds
 
